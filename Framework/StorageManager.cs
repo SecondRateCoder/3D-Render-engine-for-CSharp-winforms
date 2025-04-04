@@ -1,9 +1,9 @@
 static class StorageManager{
     static string PathProp = "";
     public static string filePath{set{
-        PathProp = value + @"\Cache\StorageAttempt";
-    }}
-    static string fileSpecific = ".bin";
+        PathProp = value + @"";
+    } get{return PathProp;}}
+    static string fileSpecific = @"\Cache\Saves\1.bin";
 	/// <summary>
 	///  This saves the World.worldData to the Binary file in StorageAttempt<seealso cref="fileSpecific"/>
 	/// </summary>
@@ -11,7 +11,7 @@ static class StorageManager{
 	/// each gameObj's Position then their Rotation, then an number detailing the number of it's children,
 	/// after which each child's A, B and C position is then stored.
 	/// </remarks>
-    public static void Save(string Method = ".bin"){
+    public static void Save(string Method = "Save/1.bin"){
 		fileSpecific = Method;
 		List<byte> fileContent = [.. BitConverter.GetBytes(World.worldData.Count)];
 		foreach(gameObj gO in World.worldData){
@@ -37,6 +37,12 @@ static class StorageManager{
 			fileContent.AddRange(gO.GetComponent(cc).ToBytes());
 			*/
 			}
+		}
+		public static gameObj[] readObj(){
+			return readObj(filePath+@"Cache\objs\Cube.obj");
+		}
+		public static gameObj[] readObj(string path){
+			string 
 		}
 	static gameObj[] Load(){
 		gameObj[]? World = null;

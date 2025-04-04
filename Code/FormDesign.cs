@@ -39,6 +39,7 @@ partial class Form1
         this.components = new System.ComponentModel.Container();
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         this.ClientSize = new System.Drawing.Size(900, 900);
+        this.Controls.Add(this.Tbox);
         this.ResumeLayout(false);
         this.PerformLayout();
 

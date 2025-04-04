@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System.Numerics;
 
 /// <summary>
 ///  A 3-dimensional point and rotation.
@@ -33,6 +33,7 @@ struct Vector3{
     ///  The Z co-ordinate of the vector, (The Forward/Backward axis).
     /// </summary> 
     public float Z{get; set;}
+    /// <summary>This is the length of this Vector3.</summary>
     public float Magnitude{get{return (float)Math.Sqrt((this.X*this.X) +(this.Y*this.Y) +(this.Z*this.Z));}}
     
 
@@ -104,7 +105,6 @@ struct Vector3{
         
     }
 
-
     public void Normalise(){
         this/=this.Magnitude;
     }
@@ -120,11 +120,12 @@ struct Vector3{
         double yz = zDif/Math.Cos(Math.Atan(yDif/zDif));
         return (float)(xy+xz+yz)/3;
     }
-    ///<summary>
-    /// The rotation to map a unto b, with the apex being a point of reference.
-    ///</summary>
-    ///<
-    public static Vector3 GetRotation(Vector3 a, Vector3 b){
+    ///<summary>Get the rotation from point a to b, with the apex being between them.</summary>
+    public static Vector3? GetRotation(Vector3 a, Vector3 b){
+        Vector3 origin = Vector3.CProduct(a, b);
+        float a = Vector3.GetDistance(a, origin);
+        float b = Vector3.GetDistance(b, origin);
+        if(a > b){a = (a-b)/b;}else if(a < b){b = (b-a)/a;}
         float xDif = Math.Abs(a.X - b.X);
         float yDif = Math.Abs(a.Y - b.Y);
         float zDif = Math.Abs(a.Z - b.Z);
@@ -133,43 +134,26 @@ struct Vector3{
         double yz = Math.Atan(yDif/zDif);
         return new Vector3((float)xy, (float)xz, (float)yz);
     }
-    public Vector3 Rotate(Vector3 Rotation){
-        Vector3 rotated = (new Vector3(
-            this.X,
-            (float)(this.Y*(Math.Cos(Rotation.Y)-Math.Sin(Rotation.Y))),
-            (float)(this.Z*(Math.Cos(Rotation.Z)+Math.Sin(Rotation.Z))))+
-        new Vector3(
-            (float)(this.X*(Math.Cos(Rotation.X)-Math.Sin(Rotation.X))),
-            this.Y,
-            (float)(this.Z*(Math.Cos(Rotation.Z)-Math.Sin(Rotation.Z))))+
-        new Vector3(
-            (float)(this.X*(Math.Cos(Rotation.X)-Math.Sin(Rotation.X))),
-            (float)(this.Z*(Math.Cos(Rotation.Z)+Math.Sin(Rotation.Z))),
-            this.Z
-            ))/3;
-        this = rotated;
-        return rotated;
-    }
     /// <summary>
     ///  Rotate this vector around Origin, by Rotation.
     /// </summary>
     /// <param name="Rotation">The value that this vector will be rotated by.</param>
     /// <param name="Origin">The point this vector will rotate around.</param>
     /// <returns>This method returns a copy of the value.</returns>
+    /// <remarks>This both sets this vector to the rotated version and returns a copy.</remarks>
     public Vector3 RotateAround(Vector3 Rotation, Vector3 Origin){
-        Vector3 Offset = this-Origin;
-        Offset.Abs();
+        Vector3 Offset = (this-Origin).Abs();
         Vector3 Rot = Vector3.GetRotation(this, Origin);
-        Vector3 nPos = new Vector3((float)(Offset.X/(Math.Sin(180-Rot.X)/2)),
+        this = new Vector3((float)(Offset.X/(Math.Sin(180-Rot.X)/2)),
         (float)(Offset.Y/(Math.Sin(180-Rot.Y)/2)),
         (float)(Offset.Z/(Math.Sin(180-Rot.Z)/2)));
-        this = nPos;
-        return nPos;
+        return this;
     }
-    public void Abs(){
+    public Vector3 Abs(){
         this.X = Math.Abs(this.X);
         this.Y = Math.Abs(this.Y);
         this.Z = Math.Abs(this.Z);
+        return this;
     }
     public byte[] ToBytes(){
         List<byte> result = [.. BitConverter.GetBytes(this.X)];
@@ -194,11 +178,7 @@ struct Vector3{
         return new List<float>(){this.X, this.Y, this.Z};
     }
     public static Vector3 CProduct(Vector3 a, Vector3 b){
-        Vector3 c = new Vector3();
-        c.X = (a.Y*b.Z)-(a.Z*b.Y);
-        c.Y = (a.Z*b.X)-(a.X*b.Z);
-        c.Z = (a.X*b.Y)-(a.Y*b.X);
-        return c;
+        return new Vector3((a.Y*b.Z)-(a.Z*b.Y), (a.Z*b.X)-(a.X*b.Z), (a.X*b.Y)-(a.Y*b.X));
     }
     public static float DProduct(Vector3 a, Vector3 b){
         a.Normalise();
@@ -250,18 +230,17 @@ struct Vector3{
         a.Z /= b;
         return a;
     }
-    ///<summary>
-    /// b is minused from all axis of a.
-    ///</summary>
-    public static Vector3 operator -(Vector3 a, int b){
-        if(b != 0){
-            return a;
-        }else{
-            a.X -= b;
-            a.Y -= b;
-            a.Z -= b;
-            return a;
-        }
+    public static Vector3 operator -(float a, Vector3 b){
+        b.X = a - b.X;
+        b.Y = a - b.Y;
+        b.Z = a - b.Z;
+        return b;
+    }
+    public static Vector3 operator -(Vector3 a, Vector3 b){
+        a.X -= b.X;
+        a.Y -= b.Y;
+        a.Z -= b.Z;
+        return a;
     }
     public static Vector3 operator +(Vector3 a, Vector3 b){
         a.X += b.X;
@@ -269,12 +248,6 @@ struct Vector3{
         a.Z += b.Z;
         return a;
     } 
-    public static Vector3 operator -(Vector3 a, Vector3 b){
-        a.X -= b.X;
-        a.Y -= b.Y;
-        a.Z -= b.Z;
-        return a;
-    }
     public static bool operator ==(Vector3 a, Vector3 b){
         if(!(a.X == b.X && a.X == b.Y && a.Z == b.Z)){
             return false;
@@ -309,6 +282,7 @@ struct Polygon{
     public Vector3 origin{get{
         return (A+B+C)/3;
     }}
+
     public Vector3 Normal{
         get{
             Vector3 a = Vector3.CProduct(this.A, this.B);
@@ -325,15 +299,17 @@ struct Polygon{
         return (a*b)*c;
     }
     }
-    public Polygon(Vector3 a, Vector3 b, Vector3 c){
+    public Polygon(Vector3 a, Vector3 b, Vector3 c, IEnumerable<Color> uv){
         this.A = a;
         this.B = b;
         this.C = c;
+        this.UVPoints = uv;
     }
-    public Polygon(){
+    public Polygon(IEnumerable<Color> uv){
         this.A = new Vector3();
         this.B = new Vector3();
         this.C = new Vector3();
+        this.UVPoints = uv;
     }
     public static Polygon PolyClip(Polygon target, Vector3 focus, float Range){
         (bool a, bool b, bool c) item_ = (true, true, true);
@@ -364,14 +340,16 @@ struct Polygon{
         target.C /= item_.c&& item.cLength < Range? 1:(item.cLength-Range)/item.cLength;
         return target;
     }
-    public void Orient (Vector3 Position, (Vector3 Position, Vector3 Rotation) PostOrientation){
+    public void Translate (Vector3 PrePosition, Vector3 Position, Vector3 Rotation){
         // This will orient a child node by to its parent
-        A += PostOrientation.Position-Position;
-        A.RotateAround(PostOrientation.Rotation, PostOrientation.Position);
-        B += PostOrientation.Position-Position;
-        B.RotateAround(PostOrientation.Rotation, PostOrientation.Position);
-        C += PostOrientation.Position-Position;
-        C.RotateAround(PostOrientation.Rotation, PostOrientation.Position);
+        A.RotateAround(PrePosition, Rotation);
+        A += Position;
+
+        B.RotateAround(PrePosition, Rotation);
+        B += Position;
+
+        C.RotateAround(PrePosition, Rotation);
+        C += Position;
     }
     public float Furthest(Vector3 origin){
         float result;
@@ -388,101 +366,73 @@ struct Polygon{
     public Color Shade(Light light){
         float dp = Vector3.DProduct(this.Normal, light.Source.GetNormal());
         return Color.FromArgb((int)(dp*(1/Vector3.GetDistance(this.origin, light.Source))));
-        /*
-        float a = Vector3.GetDistance(A, light.Source);
-        float b = Vector3.GetDistance(B, light.Source);
-        float c = Vector3.GetDistance(C, light.Source);
-        float mag;
-        Vector3 mid = (A+B+C)/3;
-        if(a > b){
-            mag = a>c? a: c;
-        }else{
-            mag = b>c? b: c;
-        }
-        int T = (int)Vector3.GetDistance(mid, light.Source);
-        int Multiplier = (int)(1/3*Math.PI*light.Radius*(light.Intensity/T));
-        return Color.FromArgb(light.Color.R/T*Multiplier, light.Color.G/T*Multiplier, light.Color.B/T*Multiplier);
-        */
     }
-}
-class Light{
-    public Vector3 Source{get; private set;}
-    public Color Colour{get; private set;}
-    public int Radius;
-    public int Intensity = 0;
 
-    public Light(Vector3? source = null, Color? color = null, int mag = 10){
-        this.Source = source == null? new Vector3(): source.Value;
-        this.Colour = color == null? Color.WhiteSmoke: color.Value;
-        this.Radius = (int)(mag*(3/4));
-        this.Intensity = mag-Radius;
-    }
+
+	public static Polygon operator +(Polygon a, Vector3 b){
+		return new Polygon(a.A + b, a.B + b, a.C + b);
+	}
+	public static Polygon operator -(Polygon a, Vector3 b){
+		return new Polygon(a.A - b, a.B - b, a.C - b);
+	}
+	/// <summary>
+	///  Create a mesh.
+	/// </summary>
+	/// <param name="height">The height of the mesh.</param>
+	/// <param name="width">Half the width of the mesh.</param>
+    /// <param name="Bevel">The length at which the centre of the cross-section of the mesh meets the main length of the mesh</param>
+	/// <returns>An array of polygons describing a mesh</returns>
+	/// <remarks>This method programmatically generates a prism with the inputted number of sides.</remarks>
+	public static Polygon[] Mesh(int Height =10, int bevel =0, int width =10, int sides =3){
+		if(sides < 2){sides = 3;}
+		List<Polygon> result = new List<Polygon>();
+		Vector3 height = new Vector3(0, Height, 0);
+		Vector3 PieceRotation = new Vector3(0, 0, 360/sides);
+		Vector3 _buff = new Vector3(0, Height/2, width);
+		for(int i = -width;i < sides;i++){
+			Vector3 CSection = _buff;
+			_buff.RotateAround(height/2, PieceRotation*i);
+            //Add top face.
+			result.Add(new Polygon(height/2, new Vector3(_buff.X, _buff.Y+_buff.Z-bevel, 0), new Vector3(_buff.X, _buff.Y-bevel, 0)));
+            //Add cross-section.
+			result.Add(new Polygon(new Vector3(_buff.X, _buff.Y-bevel, _buff.Z), new Vector3(CSection.X, CSection.Y-bevel, CSection.Z), CSection-height));
+            //Add bottom face, adds the entry before the cross-section is added.
+			result.Add(result[reult.Count-1]-height);
+		}
+		return result.ToArray();
+	}
 }
+
 /*Represents a 3-Dimensional object.*/
 class gameObj{
+    public string Name;
+    internal delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
+    public Orient_ orient_;
+    public List<Polygon>? Children;
+    public Vector3 Position;
+    private Vector3 rotation;
+    /// <summary>
+    ///  The list containing all of this gameObject's components
+    /// </summary>
+    List<(Type ogType, Rndrcomponent rC)> components;
+    public int compLength{get{return this.components.Count;}}
     public int Size{
         get{
             int Vects = sizeof(float)*6*Children.Count;
             int Comps = 0;
             for(int cc =0;cc < (this.components.Count == 0? -1: this.components.Count);cc++){
-                Comps += components[cc].content.Length;
+                Comps += components[cc].ToByte().Length;
             }
             return Comps+Vects;
         }
     }
-    /// <summary>
-    ///  The list containing all of this gameObject'scomponents
-    /// </summary>
-    List<(string typeName, byte[] content)> components;
-    public int compLength{get{return this.components.Count;}}
-    public void AddComponentFBytes<RComponent>(string typeName, byte[] Content) where RComponent : Rndrcomponent{
-        components.Add((typeName, Content));
-    }
-    public void AddComponent<RComponent>(RComponent rC) where RComponent : Rndrcomponent{
-        components.Add((rC.GetType().Name, rC.ToByte()));
-    }
-    public void AddComponents<RComponent>(IEnumerable<RComponent> rC) where RComponent : Rndrcomponent{
-        foreach(RComponent rc in rC){
-            components.Add((rC.GetType().Name, rc.ToByte()));
+    public Vector3 Rotation{
+        get{
+            return this.rotation;
         }
-    }
-    public Type GetComponentType<RComponent>(int index) where RComponent : Rndrcomponent{
-        switch(this.components[index].typeName){
-            case "RigidBdy":
-            return typeof(RigidBdy);
-            default:
-            return typeof(Rndrcomponent);
+        set{
+            this.rotation = this.Children != null && this.Children.Count > 0? value: Vector3.zero;
         }
-    }
-    /// <summary>
-    ///  This goes through the gameObject's components property and returns everything of the Inputted type.
-    /// </summary>
-    /// <typeparam name="Component">This is the RndrCcomponent type that should be returned.</typeparam>
-    /// <returns>Returns a list of all the expected components.</returns>
-    public RComponent[] GetComponents<RComponent>() where RComponent : Rndrcomponent, new(){
-        List<RComponent> result = new List<RComponent>();
-        int cc = 0;
-        RComponent c = new RComponent();
-        for(string item= ""; cc < components.Count;cc++, item = components[cc].typeName){
-            if(item == typeof(RComponent).Name){
-                result.Add(c.FromByte(components[cc].content));
-            }
-        }
-        return result.ToArray();
-    }
-    /// <summary>
-    ///  This is an overload of GetComponent<Component>()
-    /// </summary>
-    /// <typeparam name="Component">This is the RndrCcomponent type that should be returned.</typeparam>
-    /// <returns>Returns the 1st instance of the expected component</returns>
-    public Component GetComponent<Component>() where Component : Rndrcomponent, new(){
-        int cc = 0;
-        for(string item= ""; cc < components.Count;cc++, item = components[cc].typeName){
-            if(item == typeof(Component).Name){
-                return new Component().FromByte(components[cc].content);
-            }
-        }
-        return null;
     }
     public int CollisionRange{
         get{
@@ -498,17 +448,51 @@ class gameObj{
             
         }
     }
-    internal delegate void Orient_(Vector3 Position, (Vector3 Position, Vector3 Rotation) PostOrientation);
-    public Orient_ orient_;
-    public List<Polygon>? Children;
-    public Vector3 Position;
-    private Vector3 rotation;
-    public Vector3 Rotation{
-        get{
-            return this.rotation;
+
+
+    public void AddComponent<RComponent>(Type type, RComponent rC) where RComponent : Rndrcomponent{
+        components.Add((type, rC));
+    }
+    public void AddComponents<RComponent>(IEnumerable<(Type type, RComponent rC)> rC) where RComponent : Rndrcomponent{
+        foreach((Type type, RComponent rc) rc in rC){
+            components.Add(rc);
         }
-        set{
-            this.rotation = this.Children != null && this.Children.Count > 0? value: Vector3.zero;
+    }
+    /// <summary>
+    /// Get the type of the component at index.
+    /// </summary>
+    public Type GetComponentType(int index){
+        return this.components[index].ogType;
+    }
+    /// <summary>
+    ///  This is an overload of GetComponent<Component>()
+    /// </summary>
+    /// <typeparam name="Component">This is the RndrCcomponent type that should be returned.</typeparam>
+    /// <returns>Returns the 1st instance of the expected component.</returns>
+    public Component? GetComponent<Component>() where Component : Rndrcomponent, new(){
+        for(int cc = 0; cc < components.Count;cc++){
+            if(this.components[cc].ogType == typeof(Component)){
+                return (Component?)this.components[cc].rC;
+            }
+        }
+        return null;
+    }
+
+    public void newTexture(string? path = null){
+        string _path = this.GetComponent<Texturer>().file;
+        this.GetComponent<Texturer>().Reset((path == null?file: path));
+    }
+    public void UpdateTexture(int index, Point[] uv){
+        this.Children[cc].UpdateTexture(uv)
+    }
+    public Color[] Texture(int index){
+        return this.GetComponent<Texturer>.Texture(this.Children[index]);
+    }
+    public void Translate(Vector3 position, Vector3 rotation, bool PrivateTranslation = false){
+        this.Position += position;
+        this.Rotation += rotation;
+        if(!PrivateTranslation){
+            this.orient_(this.Position - position, position, rotation);
         }
     }
     ///<summary>
@@ -529,35 +513,43 @@ class gameObj{
         Dis = Vector3.GetDistance(scope.origin, Position);
         return (scope, Dis <= LowerBd && Dis > 0? true: false);
     }
-    public gameObj(Vector3 position, Vector3 rotation, List<Polygon>? children = null, List<(string name, byte[] content)>? Mycomponents = null){
+
+
+    public gameObj(Vector3 position, Vector3 rotation,IEnumerable<Point>? UVpoints = null, IEnumerable<Polygon>? children = null, List<Rndrcomponent>? Mycomponents = null, string? name = null){
         this.Position = position;
-        if(children != null){
-            this.orient_ = new Polygon().Orient;
+        if(children == null){
+            this.orient_ = new Polygon().Translate;
         }else{
-            this.Children = children;
-            for(int cc = 0;cc < children.Count;cc++){
-                this.orient_ += children[cc].Orient;
+            this.Children = children.ToList();
+            for(int cc = 0;cc < children.Count();cc++){
+                this.orient_ += children.ElementAt(cc).Translate;
             }
         }
+        if(UVPoints == null){
+            this.UVPoints = UVpoints;
+        }
         if(Mycomponents == null){
-            this.components = new List<(string name, byte[] content)>();
+            this.components = new List<Rndrcomponent>();
         }else{
             this.components = Mycomponents;
         }
         this.Rotation = rotation;
+        this.Name = name == null? $"{World.worldData.Count+1}": name;
+        World.orientToWorld += this.Translate;
+        World.worldData.Add(this);
     }
+    
 
-    public void Rotate(Vector3 rotation, bool PrivateTranslation = false){
-        Vector3 Rotated = new Vector3(this.Position).Rotate(rotation);
-        if(!PrivateTranslation){
-            (Vector3, Vector3) Translation = (this.Position, this.Rotation + rotation);
-            this.orient_(this.Position, Translation);
+    public static gameObj operator +(gameObj parent, Polygon[] children){
+        foreach(Polygon p in children){
+            parent.Children.Add(p);
+            parent.orient_ += p.Translate;
         }
-        this.Position = Rotated;
+        return parent;
     }
     public static gameObj operator +(gameObj parent, Polygon child){
         parent.Children.Add(child);
-        parent.orient_ += child.Orient;
+        parent.orient_ += child.Translate;
         return parent;
     }
     /// <summary>
@@ -565,22 +557,20 @@ class gameObj{
     /// </summary>
     /// <param name="parent">The gameObj that will recieve the children.</param>
     /// <param name="child">The gameObj that will have it's children copied to the parent.</param>
-    /// <returns></returns>
     public static gameObj operator +(gameObj parent, gameObj child){
         for(int cc = 0; cc < child.Children.Count;cc++){
             parent.Children.Add(child.Children[cc]);
-            parent.orient_ += child.Children[cc].Orient;
+            parent.orient_ += child.Children[cc].Translate;
         }
 
         return parent;
     }
-
     public static gameObj operator -(gameObj parent, Polygon child){
         try{
-            //Use try because if the parent doesnt have the child it will catch,
+            //Use try because if the parent doesn't have the child it will catch,
             //if children is already empty or unassigned it will catch,
             parent.Children.Remove(child);
-            parent.orient_ -= child.Orient;
+            parent.orient_ -= child.Translate;
         }
         finally{
             if(parent.Children != null && parent.Children.Count == 0){
@@ -591,10 +581,10 @@ class gameObj{
     }
 }
 class Camera{
-    public delegate void Orient_(Vector3 PreOrient, (Vector3, Vector3) PostOrientation);
+    public delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
     public Orient_ orientToCam;
-    public Vector3 position{get; set;}
-    public Vector3 rotation{get; set;}
+    public Vector3 Position{get; private set;}
+    public Vector3 Rotation{get; private set;}
     /// <summary>
     ///  The tolerance for how small a polygon at the boundary of the viewport can be clipped before it's simply deleted.
     /// </summary>
@@ -626,141 +616,27 @@ class Camera{
     }
     public Camera(float Fov = 15f, Vector3? pos = null, Vector3? rot = null){
         this.far = Fov;
-        this.position = pos == null? Vector3.zero: pos.Value;
-        this.rotation = pos == null? Vector3.zero: pos.Value;
+        this.Position = pos == null? Vector3.zero: pos.Value;
+        this.Rotation = pos == null? Vector3.zero: pos.Value;
+    }
+    public void Translate(Vector3 position, Vector3 rotation){
+        this.Position += position;
+        this.Rotation += rotation;
     }
 }
-/// <summary>
-///  This class represents the the Scene and what will be viewed by the user.
-/// </summary>
-static class World{
-    public static readonly Vector3 origin = Vector3.zero;
-    public static List<gameObj> worldData = new List<gameObj>();
-    public static Vector3 WorldRotation{
-        get{return ViewPort.cams[ViewPort.camIndex].rotation;}
-    }
-}
-/// <summary>
-///  This class represents the viewport of the user, the Camera property is what will be used to select the viewpoint.
-/// </summary> 
-static class ViewPort{
-    /// <summary>
-    ///  This property represents the bounds of the form.
-    /// </summary>
-    ///<remarks>The left(l) and bottom(b) properties are set to 0, 
-    /// whilst the right(r) and top(t) properties hold the window width and height, respectively.</remarks>
-    public static readonly (float r, float l, float b, float t) boundary = (Camera.form_.DisplayRectangle.Width, 0, 0, Camera.form_.DisplayRectangle.Height);
-    public static List<Camera> cams = new List<Camera>(){new Camera()};
-    public static int camIndex;
-    /// <summary>
-    ///  This property represents the 4x4 Matrix that will convert all viewable vector positions to Perspective projection.
-    /// </summary> 
-    static float[,] PPMatrix {get;} = new float[4, 4]{
-        {(float)(1/(boundary.r/boundary.t)*Math.Tan(cams[camIndex].theta/2)), 0f, 0f, 0f},
-        {0f, (float)(1/Math.Tan(cams[camIndex].theta/2)), 0f, 0f},
-        {0f, 0f, cams[camIndex].far/(cams[camIndex].far-cams[camIndex].near), -cams[camIndex].far*cams[camIndex].near/(cams[camIndex].far-cams[camIndex].near)},
-        {0f, 0f, 1f, 0f}};
-    /*
-        {
-        {(float)(1/(boundary.r/boundary.t)*Math.Tan(cams[camIndex].theta/2)), 0f, 0f, 0f},
-        {0f, (float)(1/Math.Tan(cams[camIndex].theta/2)), 0f, 0f},
-        {0f, 0f, cams[camIndex].far/(cams[camIndex].far-cams[camIndex].near), -cams[camIndex].far*cams[camIndex].near/(cams[camIndex].far-cams[camIndex].near)},
-        ,{0f, 0f, 1f, 0f}}
-    */
-    static void setCam(int value){
-        if(value >0 && value < cams.Count){
-            cams[value].orientToCam = cams[camIndex].orientToCam;
-            camIndex = value;
-        }
-    }
-    /// <summary>
-    ///  This overload turns Gameobjs into polygons then runs the main overload(Convert_()).
-    /// </summary> 
-    public static (Point A, Point B, Point C, Color color)[] Convert_(List<gameObj> objs){
-        List<Polygon> polygons = new List<Polygon>();
-        if(objs == null){
-            (Point A, Point B, Point C, Color color)[] item = [(Point.Empty, Point.Empty, Point.Empty, Color.Empty)];
-            return item;
-        }
-        for(int cc = 0;cc < objs.Count;cc++){
-            for(int cc_ = 0; cc_ < objs[cc].Children.Count;cc_++){
-                polygons.Add(objs[cc].Children[cc_]);
-            }
-        }
-        return Convert_(polygons);
-    }
-    /// <summary>
-    ///  This overload takes the parameter data from the static World class.
-    /// </summary> 
-    public static (Point A, Point B, Point C, Color color)[] Convert_(){
-        if(World.worldData == null){
-            (Point A, Point B, Point C, Color color)[] item = [(Point.Empty, Point.Empty, Point.Empty, Color.Empty)];
-            return item;
-        }else{
-            List<Polygon> polygons = new List<Polygon>();
-            for(int cc = 0;cc < World.worldData.Count;cc++){
-                for(int cc_ = 0; cc_ < World.worldData[cc].Children.Count;cc_++){
-                    if(Vector3.DProduct(World.worldData[cc].Children[cc_].origin, cams[camIndex].position) < 0){
-                        polygons.Add(World.worldData[cc].Children[cc_]);
-                    }
-                }
-            }
-            return Convert_(polygons);
-        }
-        
-    }
-    /// <summary>
-    ///  The main Convert_() overload, This function converts the world 3d enviroment into a 2 representation.
-    /// </summary> 
-    public static (Point A, Point B, Point C, Color color)[] Convert_(List<Polygon> polygons){
-        (Point a, Point b, Point c, Color color)[] result = new (Point a, Point b, Point c, Color color)[polygons.Count];
-        if(polygons == null){
-            gameObj gO = Entry.BuildWorld();
-            polygons = gO.Children;
-        }else{
-        for(int cc = 0; cc < polygons.Count; cc++){
-            if(Vector3.GetDistance(polygons[cc].A, World.origin) <= cams[camIndex].clipTol && Vector3.GetDistance(polygons[cc].B, World.origin) <= cams[camIndex].clipTol && Vector3.GetDistance(polygons[cc].C, World.origin) <= cams[camIndex].clipTol){
-                continue;
-            }else{
-                polygons[cc] = Polygon.PolyClip(polygons[cc], Vector3.zero, cams[camIndex].far);
-            }
-        }
-        }
-        for(int cc = 0 ;cc < polygons.Count; cc++){
-            Polygon CalcBuffer = Multiply(polygons[cc]);
-            result[cc] = (CalcBuffer.A.ToPoint(), CalcBuffer.B.ToPoint(), CalcBuffer.C.ToPoint(), polygons[cc].Shade(new Light()));
-        }
-        return result;
-    }
-    static Polygon Multiply(Polygon polygon){
-        Polygon CalcBuffer = new Polygon();
-        float wA = 1;
-        float wB = 1;
-        float wC = 1;
-        //For Point A
-        CalcBuffer.A = new Vector3(
-            (PPMatrix[0, 0]*cams[camIndex].far/4 * polygon.A.X/cams[camIndex].far)+(PPMatrix[1, 0]*cams[camIndex].far/4 * polygon.A.Y/cams[camIndex].far)+(PPMatrix[2, 0]*cams[camIndex].far/4 * polygon.A.Z/cams[camIndex].far)+(PPMatrix[3, 0]),
-            (PPMatrix[0, 1]*cams[camIndex].far/4 * polygon.A.X/cams[camIndex].far)+(PPMatrix[1, 1]*cams[camIndex].far/4 * polygon.A.Y/cams[camIndex].far)+(PPMatrix[2, 1]*cams[camIndex].far/4 * polygon.A.Z/cams[camIndex].far)+(PPMatrix[3, 1]),
-            (PPMatrix[0, 2]*cams[camIndex].far/4 * polygon.A.X/cams[camIndex].far)+(PPMatrix[1, 2]*cams[camIndex].far/4 * polygon.A.Y/cams[camIndex].far)+(PPMatrix[2, 2]*cams[camIndex].far/4 * polygon.A.Z/cams[camIndex].far)+(PPMatrix[3, 2])
-            );
-        wA = (PPMatrix[0, 3]*CalcBuffer.A.X)+(PPMatrix[1, 3]*CalcBuffer.A.Y)+(PPMatrix[2, 3]*CalcBuffer.A.Z)+PPMatrix[3, 3];
-        CalcBuffer.A /= wA;
-        //For Point B
-        CalcBuffer.B = new Vector3(
-            (PPMatrix[0, 0]*cams[camIndex].far/4 * polygon.B.X/cams[camIndex].far)+(PPMatrix[1, 0]*cams[camIndex].far/4 * polygon.B.Y/cams[camIndex].far)+(PPMatrix[2, 0]*cams[camIndex].far/4 * polygon.B.Z/cams[camIndex].far)+(PPMatrix[3, 0]),
-            (PPMatrix[0, 1]*cams[camIndex].far/4 * polygon.B.X/cams[camIndex].far)+(PPMatrix[1, 1]*cams[camIndex].far/4 * polygon.B.Y/cams[camIndex].far)+(PPMatrix[2, 1]*cams[camIndex].far/4 * polygon.B.Z/cams[camIndex].far)+(PPMatrix[3, 1]),
-            (PPMatrix[0, 2]*cams[camIndex].far/4 * polygon.B.X/cams[camIndex].far)+(PPMatrix[1, 2]*cams[camIndex].far/4 * polygon.B.Y/cams[camIndex].far)+(PPMatrix[2, 2]*cams[camIndex].far/4 * polygon.B.Z/cams[camIndex].far)+(PPMatrix[3, 2])
-            );
-        wB = (PPMatrix[0, 3]*CalcBuffer.B.X)+(PPMatrix[1, 3]*CalcBuffer.B.Y)+(PPMatrix[2, 3]*CalcBuffer.B.Z)+(PPMatrix[3, 3]);
-        CalcBuffer.B /= wB;
-        //For Point C
-        CalcBuffer.C = new Vector3(
-            (PPMatrix[0, 0]*cams[camIndex].far/4 * polygon.C.X/cams[camIndex].far)+(PPMatrix[1, 0]*cams[camIndex].far/4 * polygon.C.Y/cams[camIndex].far)+(PPMatrix[2, 0]*cams[camIndex].far/4 * polygon.C.Z/cams[camIndex].far)+(PPMatrix[3, 0]),
-            (PPMatrix[0, 1]*cams[camIndex].far/4 * polygon.C.X/cams[camIndex].far)+(PPMatrix[1, 1]*cams[camIndex].far/4 * polygon.C.Y/cams[camIndex].far)+(PPMatrix[2, 1]*cams[camIndex].far/4 * polygon.C.Z/cams[camIndex].far)+(PPMatrix[3, 1]),
-            (PPMatrix[0, 2]*cams[camIndex].far/4 * polygon.C.X/cams[camIndex].far)+(PPMatrix[1, 2]*cams[camIndex].far/4 * polygon.C.Y/cams[camIndex].far)+(PPMatrix[2, 2]*cams[camIndex].far/4 * polygon.C.Z/cams[camIndex].far)+(PPMatrix[3, 2])
-            );
-        wC = (PPMatrix[0, 3]*CalcBuffer.C.X)+(PPMatrix[1, 3]*CalcBuffer.C.Y)+(PPMatrix[2, 3]*CalcBuffer.C.Z)+(PPMatrix[3, 3]);
-        CalcBuffer.C /= wC;
-        return CalcBuffer;
+
+
+
+class Light{
+    public Vector3 Source{get; private set;}
+    public Color Colour{get; private set;}
+    public int Radius;
+    public int Intensity = 0;
+
+    public Light(Vector3? source = null, Color? color = null, int mag = 10){
+        this.Source = source == null? new Vector3(): source.Value;
+        this.Colour = color == null? Color.WhiteSmoke: color.Value;
+        this.Radius = (int)(mag*(3/4));
+        this.Intensity = mag-Radius;
     }
 }
