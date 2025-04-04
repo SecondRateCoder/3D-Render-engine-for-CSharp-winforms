@@ -55,13 +55,13 @@ class Texturer : Rndrcomponent{
         
         //Search for the p by skipping forward
         Color[] result = new Color[UVPoints.Length];
-        Point p;
+        Point p = new Point();
         for(int cc = 0;cc < UVPoints.Length;cc++, p = UVPoints[cc]){
             int Point = (p.X + (p.Y*imgDimensions.width))*3;
             if(Point > img.Length){
                 continue;
             }
-            result[cc] = Color.FromARGB(BitConverter.ToInt32([img[Point]]), BitConverter.ToInt32([img[Point+1]]), BitConverter.ToInt32([img[Point+2]]));
+            result[cc] = Color.FromArgb(BitConverter.ToInt32([img[Point]]), BitConverter.ToInt32([img[Point+1]]), BitConverter.ToInt32([img[Point+2]]));
         }
         return result;
     }
