@@ -1,0 +1,5 @@
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.GeneratedMSBuildEditorConfig.editorconfig
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.AssemblyInfoInputs.cache
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.AssemblyInfo.cs
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.csproj.CoreCompileInputs.cache
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.sourcelink.json

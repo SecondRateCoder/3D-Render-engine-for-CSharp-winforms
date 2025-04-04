@@ -1,4 +1,4 @@
-using System.CodeDom;
+using System.Drawing;
 using System.Text;
 using System.Timers;
 
@@ -21,19 +21,19 @@ class Texturer : Rndrcomponent{
         return new Texturer(Encoding.UTF8.GetString(bytes));
     }
     
-    
     public FileInfo finfo;
     byte[] img;
     public (int width, int height) imgDimensions{get; private set;}
     string fileProp;
     public string file{get{return fileProp;} set{fileProp = StorageManager.filePath+value;}}
-    public Texturer(string path){
+    public Texturer(){file = StorageManager.filePath + @"Cache\Images\Grass Block.png";}
+    public Texturer(string? path = null){
         file = path == null? StorageManager.filePath+@"Cache\Images\Grass Block.png": path;
         Bitmap image = (Bitmap)Image.FromFile(file);
         imgDimensions = (image.Width, image.Height);
         img = File.ReadAllBytes(file);
     }
-    public new void Dispose(bool disposing){
+    public new void Dispose(bool disposing = true){
         if (disposing && (finfo != null)){
             finfo.Delete();
             img = null;
@@ -41,9 +41,12 @@ class Texturer : Rndrcomponent{
         base.Dispose(disposing);
     }
     public void Reset(string Relativepath){
-        this.Dispose();
+        this.Dispose(true);
         this.file = Relativepath;
         img = File.ReadAllBytes(file);
+    }
+    public Color[]? Texture(Polygon p){
+        return Texture(p.UVPoints);
     }
     public Color[]? Texture(Point[] UVPoints){
         //Get the color of each UVPoint but on the img, if the point is not in the img then set it's color to black.
@@ -58,7 +61,7 @@ class Texturer : Rndrcomponent{
             if(Point > img.Length){
                 continue;
             }
-            result[cc] = new Color(BitConverter.ToInt32([img[Point]]), BitConverter.ToInt32([img[Point+1]]), BitConverter.ToInt32([img[Point+2]]));
+            result[cc] = Color.FromARGB(BitConverter.ToInt32([img[Point]]), BitConverter.ToInt32([img[Point+1]]), BitConverter.ToInt32([img[Point+2]]));
         }
         return result;
     }

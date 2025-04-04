@@ -108,32 +108,6 @@ struct Vector3{
     public void Normalise(){
         this/=this.Magnitude;
     }
-    ///<summary>
-    /// Get the distance from 2 vectors, as a float;
-    ///</summary>
-    public static float GetDistance(Vector3 a, Vector3 b){
-        float xDif = Math.Abs(a.X - b.X);
-        float yDif = Math.Abs(a.Y - b.Y);
-        float zDif = Math.Abs(a.Z - b.Z);
-        double xy = xDif/Math.Cos(Math.Atan(yDif/xDif));
-        double xz = xDif/Math.Cos(Math.Atan(zDif/xDif));
-        double yz = zDif/Math.Cos(Math.Atan(yDif/zDif));
-        return (float)(xy+xz+yz)/3;
-    }
-    ///<summary>Get the rotation from point a to b, with the apex being between them.</summary>
-    public static Vector3? GetRotation(Vector3 a, Vector3 b){
-        Vector3 origin = Vector3.CProduct(a, b);
-        float a = Vector3.GetDistance(a, origin);
-        float b = Vector3.GetDistance(b, origin);
-        if(a > b){a = (a-b)/b;}else if(a < b){b = (b-a)/a;}
-        float xDif = Math.Abs(a.X - b.X);
-        float yDif = Math.Abs(a.Y - b.Y);
-        float zDif = Math.Abs(a.Z - b.Z);
-        double xy = Math.Atan(yDif/xDif);
-        double xz = Math.Atan(zDif/xDif);
-        double yz = Math.Atan(yDif/zDif);
-        return new Vector3((float)xy, (float)xz, (float)yz);
-    }
     /// <summary>
     ///  Rotate this vector around Origin, by Rotation.
     /// </summary>
@@ -176,6 +150,47 @@ struct Vector3{
     }
     public List<float> ToList(){
         return new List<float>(){this.X, this.Y, this.Z};
+    }
+    ///<summary>
+    /// Get the distance from 2 vectors, as a float;
+    ///</summary>
+    public static float GetDistance(Vector3 a, Vector3 b){
+        float xDif = Math.Abs(a.X - b.X);
+        float yDif = Math.Abs(a.Y - b.Y);
+        float zDif = Math.Abs(a.Z - b.Z);
+        double xy = xDif/Math.Cos(Math.Atan(yDif/xDif));
+        double xz = xDif/Math.Cos(Math.Atan(zDif/xDif));
+        double yz = zDif/Math.Cos(Math.Atan(yDif/zDif));
+        return (float)(xy+xz+yz)/3;
+    }
+    ///<summary>Get the rotation from point a to b, with the apex being between them.</summary>
+    public static Vector3 GetRotation(Vector3 a, Vector3 b){
+        Vector3 origin = Vector3.CProduct(a, b);
+        float A = Vector3.GetDistance(a, origin);
+        float B = Vector3.GetDistance(b, origin);
+        if(A > B){a = (a-b)/b;}else if(A < B){b = (b-a)/a;}
+        float xDif = Math.Abs(a.X - b.X);
+        float yDif = Math.Abs(a.Y - b.Y);
+        float zDif = Math.Abs(a.Z - b.Z);
+        double xy = Math.Atan(yDif/xDif);
+        double xz = Math.Atan(zDif/xDif);
+        double yz = Math.Atan(yDif/zDif);
+        return new Vector3((float)xy, (float)xz, (float)yz);
+    }
+    public static Vector3 GetRotation(Polygon p){
+        return GetRotation(p.A, p.B, p.C);
+    }
+    public static Vector3 GetRotation(Vector3 a, Vector3 b, Vector3 c){
+        float A = Vector3.GetDistance(a, c);
+        float B = Vector3.GetDistance(b, c);
+        if(A > B){a = (a-b)/b;}else if(A < B){b = (b-a)/a;}
+        float xDif = Math.Abs(a.X - b.X);
+        float yDif = Math.Abs(a.Y - b.Y);
+        float zDif = Math.Abs(a.Z - b.Z);
+        double xy = Math.Atan(yDif/xDif);
+        double xz = Math.Atan(zDif/xDif);
+        double yz = Math.Atan(yDif/zDif);
+        return new Vector3((float)xy, (float)xz, (float)yz);
     }
     public static Vector3 CProduct(Vector3 a, Vector3 b){
         return new Vector3((a.Y*b.Z)-(a.Z*b.Y), (a.Z*b.X)-(a.X*b.Z), (a.X*b.Y)-(a.Y*b.X));
@@ -282,7 +297,17 @@ struct Polygon{
     public Vector3 origin{get{
         return (A+B+C)/3;
     }}
-
+    public float Area{get{
+        //Get rotation from a to b around c
+        //use rotation and length of AC and BC
+        //Use 1/2(a*b)*Sin(Rotation) to get the area
+        float ac = Vector3.GetDistance(this.A, this.C);
+        float bc = Vector3.GetDistance(this.B, this.C);
+        float ab = Vector3.GetRotation(this).Magnitude;
+        return (float)(.5f * ac * bc * Math.Sin(ab));
+    }}
+    public Point[] UVPoints{get; private set;}
+    public void UpdateTexture(Point[] uv){this.UVPoints = uv;}
     public Vector3 Normal{
         get{
             Vector3 a = Vector3.CProduct(this.A, this.B);
@@ -299,17 +324,15 @@ struct Polygon{
         return (a*b)*c;
     }
     }
-    public Polygon(Vector3 a, Vector3 b, Vector3 c, IEnumerable<Color> uv){
+    public Polygon(Vector3 a, Vector3 b, Vector3 c){
         this.A = a;
         this.B = b;
         this.C = c;
-        this.UVPoints = uv;
     }
-    public Polygon(IEnumerable<Color> uv){
+    public Polygon(){
         this.A = new Vector3();
         this.B = new Vector3();
         this.C = new Vector3();
-        this.UVPoints = uv;
     }
     public static Polygon PolyClip(Polygon target, Vector3 focus, float Range){
         (bool a, bool b, bool c) item_ = (true, true, true);
@@ -397,7 +420,7 @@ struct Polygon{
             //Add cross-section.
 			result.Add(new Polygon(new Vector3(_buff.X, _buff.Y-bevel, _buff.Z), new Vector3(CSection.X, CSection.Y-bevel, CSection.Z), CSection-height));
             //Add bottom face, adds the entry before the cross-section is added.
-			result.Add(result[reult.Count-1]-height);
+			result.Add(result[result.Count-1]-height);
 		}
 		return result.ToArray();
 	}
@@ -421,7 +444,7 @@ class gameObj{
             int Vects = sizeof(float)*6*Children.Count;
             int Comps = 0;
             for(int cc =0;cc < (this.components.Count == 0? -1: this.components.Count);cc++){
-                Comps += components[cc].ToByte().Length;
+                Comps += components[cc].rC.ToByte().Length;
             }
             return Comps+Vects;
         }
@@ -479,14 +502,16 @@ class gameObj{
     }
 
     public void newTexture(string? path = null){
-        string _path = this.GetComponent<Texturer>().file;
-        this.GetComponent<Texturer>().Reset((path == null?file: path));
+        Texturer? t = this.GetComponent<Texturer>();
+        if(t == null){return;}else{
+            t.Reset(path == null?t.file: path);
+        }
     }
     public void UpdateTexture(int index, Point[] uv){
-        this.Children[cc].UpdateTexture(uv)
+        this.Children[index].UpdateTexture(uv);
     }
     public Color[] Texture(int index){
-        return this.GetComponent<Texturer>.Texture(this.Children[index]);
+        return this.GetComponent<Texturer>().Texture(this.Children[index]);
     }
     public void Translate(Vector3 position, Vector3 rotation, bool PrivateTranslation = false){
         this.Position += position;
