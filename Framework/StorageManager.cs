@@ -38,12 +38,6 @@ static class StorageManager{
 			*/
 			}
 		}
-		public static gameObj[] readObj(){
-			return readObj(filePath+@"Cache\objs\Cube.obj");
-		}
-		public static gameObj[] readObj(string path){
-			string 
-		}
 	static gameObj[] Load(){
 		gameObj[]? World = null;
 		using(BinaryReader sR = new BinaryReader(File.Open(PathProp+fileSpecific, FileMode.Open))){

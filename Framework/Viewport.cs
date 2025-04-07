@@ -3,7 +3,7 @@
 /// </summary>
 static class World{
     public delegate void Orient_(Vector3 position, Vector3 rotation, bool PrivateTranslation = false);
-    public Orient_ WorldOrient;
+    public static Orient_ WorldOrient;
     public static List<gameObj> worldData = new List<gameObj>();
     public static List<Camera> cams = new List<Camera>(){new Camera()};
     public static int camIndex{get; private set;}
@@ -42,7 +42,7 @@ static class ViewPort{
     static (Point p, Color color)[] Convert_(){
         List<(Color[] texture, Polygon poly)> parameter = new List<(Color[] texture, Polygon poly)>();
         if(World.worldData.Count == 0){
-            gameObj gO = new gameObj(Vector3.zero, Vector3.zero, null, Polygon.Mesh(1, 0, 1, 4));
+            gameObj gO = new gameObj(Vector3.zero, Vector3.zero, Polygon.Mesh(1, 0, 1, 4));
             for(int cc = 0;cc < gO.Children.Count;cc++){
                 parameter.Add((gO.Texture(cc), gO.Children[cc]));
             }
@@ -64,7 +64,7 @@ static class ViewPort{
         }
         for(int cc = 0;cc < objs.Count;cc++){
             for(int cc_ = 0; cc_ < objs[cc].Children.Count;cc_++){
-                parameter.Add((objs[cc].GetComponent<Texturer>().Texture(objs[cc].Children[cc_].UVPoints), objs[cc].Children[cc_]))
+                parameter.Add((objs[cc].GetComponent<Texturer>().Texture(objs[cc].Children[cc_].UVPoints), objs[cc].Children[cc_]));
             }
         }
         return Convert_(parameter);
@@ -75,18 +75,18 @@ static class ViewPort{
     public static (Point p, Color color)[] Convert_(List<(Color[] texture, Polygon poly)> polygons){
         (Point p, Color color)[] result = new (Point p, Color color)[polygons.Count];
         if(polygons == null){
-            throw new Exception("Can't be null, you Monkey. \nDo you know how much fricking code I had to write to implement texturing \nDon't fucing do this")
+            throw new Exception("Can't be null, you Monkey. \nDo you know how much fricking code I had to write to implement texturing \nDon't fucing do this");
         }else{
             //Apply camera transform and clip each polygon.
             for(int cc = 0; cc < polygons.Count; cc++){
-                if(Vector3.GetRotation(polygons[cc].Normal, World.cams[camIndex].Position)<90){
-                    polygon.Translate(World.cams[camIndex].Position, 0f-World.cams[World.camIndex].Position, 0f-World.cams[camIndex].Rotation);
-                    Polygon CalcBuffer = Multiply(polygons[cc]);
-                    result[cc] = (CalcBuffer.A.ToPoint(), CalcBuffer.B.ToPoint(), CalcBuffer.C.ToPoint(), polygons[cc].Shade(new Light()));
+                if(Vector3.GetRotation(polygons[cc].poly.Normal, World.cams[World.camIndex].Position).Magnitude<90){
+                    polygons[cc].poly.Translate(World.cams[World.camIndex].Position, 0f-World.cams[World.camIndex].Position, 0f-World.cams[World.camIndex].Rotation);
+                    Vector3[] CalcBuffer = Polygon.ToVector3(Multiply(polygons[cc].poly));
+                    
                 }else{
                     cc++;
                 }
-                polygons[cc] = Polygon.PolyClip(polygons[cc], Vector3.zero, World.cams[World.camIndex].far);
+                polygons[cc] = (polygons[cc].texture, Polygon.PolyClip(polygons[cc].poly, Vector3.zero, World.cams[World.camIndex].far));
             }
         }
         return result;

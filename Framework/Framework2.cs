@@ -9,8 +9,13 @@ abstract class Rndrcomponent{
     public abstract int Size{get;}
     public abstract byte[] ToByte();
     public abstract Rndrcomponent FromByte(byte[] bytes);
-
     internal void Dispose(bool disposing){}
+}
+class Empty : Rndrcomponent{
+    public override Rndrcomponent FromByte(byte[] bytes){return this;}
+    public override int Size{get{return 0;}}
+    public override byte[] ToByte(){return new byte[0];}
+
 }
 class Texturer : Rndrcomponent{
     public override int Size{get;}
