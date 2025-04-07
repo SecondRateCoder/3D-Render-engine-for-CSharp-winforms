@@ -437,6 +437,32 @@ struct Polygon{
     }
 }
 struct Mesh : IEnumerable{
+    public Mesh(IEnumerable<Polygon> p){
+        this.mesh = p.ToArray();
+        for(int cc = 0; cc < this.mesh.Length;cc++){
+            this.orient_ += this.mesh[cc].Translate;
+        }
+    }
+    public void Translate(Vector3 position, Vector3 rotation){
+        this.Position += position;
+        this.Rotation += rotation;
+        this.orient_(this.Position - position, position, rotation);
+    }
+    delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
+    Orient_ orient_;
+    public Vector3 Position{get; private set;}
+    public Vector3 Rotation{get; private set;}
+    Polygon[] mesh;
+    public int Count{get{return this.mesh.Length;}}
+    public static bool operator ==(Mesh m, Mesh? m2){
+        if(m2 == null){
+            return false;
+        }else{
+            for(int cc = 0; cc < (m.Count + m2.Value.Count)/2;cc++)
+        }
+    }
+    IEnumerator IEnumerable.GetEnumerator(){return (IEnumerator)GetEnumerator();}
+    public MeshEnum GetEnumerator(){ return new MeshEnum(mesh);}
     public Polygon this[int index]{
         get{
             return mesh[index];
@@ -445,13 +471,6 @@ struct Mesh : IEnumerable{
             mesh[index] = value;
         }
     }
-    IEnumerator IEnumerable.GetEnumerator(){return (IEnumerator)GetEnumerator();}
-    public MeshEnum GetEnumerator(){ return new MeshEnum(mesh);}
-    delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
-    Orient_ orient_;
-    public Vector3 Position{get; private set;}
-    public Vector3 rotation{get; private set;}
-    Polygon[] mesh;
 }
 struct MeshEnum : IEnumerator{
     public Polygon[] mesh;

@@ -5,7 +5,7 @@ class gameObj{
     public string Name;
     internal delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
     public Orient_ orient_;
-    public List<Polygon>? Children;
+    public Mesh Children;
     public Vector3 Position;
     private Vector3 rotation;
     /// <summary>
