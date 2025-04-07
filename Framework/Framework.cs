@@ -125,7 +125,6 @@ class gameObj{
             }
         }
         if(Mycomponents == null){
-            Rndrcomponent rC = (Rndrcomponent)new Empty();
             this.components = new List<(Type ogType, Rndrcomponent rC)>();
         }else{
             this.components = Mycomponents;

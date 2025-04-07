@@ -436,7 +436,7 @@ struct Polygon{
 		return points;
     }
 }
-struct Mesh{
+struct Mesh : IEnumerable{
     public Polygon this[int index]{
         get{
             return mesh[index];
@@ -445,9 +445,40 @@ struct Mesh{
             mesh[index] = value;
         }
     }
-    public delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
-    public Orient_ orient_;
+    IEnumerator IEnumerable.GetEnumerator(){return (IEnumerator)GetEnumerator();}
+    public MeshEnum GetEnumerator(){ return new MeshEnum(mesh);}
+    delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
+    Orient_ orient_;
     public Vector3 Position{get; private set;}
     public Vector3 rotation{get; private set;}
     Polygon[] mesh;
+}
+struct MeshEnum : IEnumerator{
+    public Polygon[] mesh;
+    int position = -1;
+    public MeshEnum(Polygon[] mesh){
+        this.mesh = mesh;
+    }
+    public bool MoveNext(){
+        position++;
+        return(position < mesh.Length);
+    }
+    public void Reset(){
+        position = -1;
+    }
+    object IEnumerator.Current{
+        get{
+            return Current;
+        }
+    }
+    public Polygon Current{
+        get{
+            try{
+                return this.mesh[this.position];
+            }catch(IndexOutOfRangeException){
+                throw new InvalidOperationException();
+            }
+        }
+    }
+
 }
