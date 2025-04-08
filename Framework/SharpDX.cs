@@ -1,6 +1,44 @@
 using SharpDX;
-partial static class Viewport{
-    byte[] backBuffer;
+class TrueColor{
+    public int A{get{return (int)a;}}
+    byte a;
+    public int R{get{return (int)r;}}
+    byte b;
+    public int G{get{return (int)g;}}
+    byte r;
+    public int B{get{return (int)b;}}
+    byte g;
+    public TrueColor(byte a, byte r, byte g, byte b){
+        this.a = a;
+        this.r = r;
+        this.g = g;
+        this.b = b;
+    }
+    public TrueColor(int a, int r, int g, int b){
+        this.a = BitConverter.GetBytes(a)[0];
+        this.r = BitConverter.GetBytes(r)[0];
+        this.g = BitConverter.GetBytes(g)[0];
+        this.b = BitConverter.GetBytes(b)[0];
+    }
+
+}
+class WriteableBitmap{
+    TrueColor[] colors;
+    public int pixelHeight;
+    public int pixelWidth;
+    TrueColor this[int x, int y]{
+        get{
+            return colors[x+(y*pixelWidth)];
+        }
+    }
+    public TrueColor this[int index]{
+        get{
+            return this.colors[index];
+        }
+    }
+}
+static partial class Viewport{
+    static byte[] backBuffer;
     WriteableBitmap bmp;
     public void Update(WriteableBitmap bmp){
         this.bmp = bmp;

@@ -464,6 +464,8 @@ struct Mesh : IEnumerable{
 	public void AddRange(IEnumerable<Polygon> polygons){mesh.AddRange(polygons);}
 	public List<Polygon> ToList(){return this.mesh;}
 	public void RemoveAt(int index){this.mesh.RemoveAt(index);}
+
+    
     /// <summary>
     ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
     /// </summary>

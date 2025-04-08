@@ -17,7 +17,7 @@ static class World{
 /// <summary>
 ///  This class represents the viewport of the user, the Camera property is what will be used to select the viewpoint.
 /// </summary> 
-static class ViewPort{
+static partial class ViewPort{
     /// <summary>
     ///  This property represents the bounds of the form.
     /// </summary>
