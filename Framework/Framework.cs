@@ -3,8 +3,6 @@
 /// </summary>
 class gameObj{
     public string Name;
-    internal delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
-    public Orient_ orient_;
     public Mesh Children;
     public Vector3 Position;
     private Vector3 rotation;
@@ -91,7 +89,7 @@ class gameObj{
         this.Position += position;
         this.Rotation += rotation;
         if(!PrivateTranslation){
-            this.orient_(this.Position - position, position, rotation);
+            this.Children.Translate(this.Position - position, rotation);
         }
     }
     ///<summary>
@@ -117,12 +115,9 @@ class gameObj{
     public gameObj(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         this.Position = position;
         if(children == null){
-            this.orient_ = new Polygon().Translate;
+            this.Children.AddRange(Polygon.Mesh());
         }else{
-            this.Children = children.ToList();
-            for(int cc = 0;cc < children.Count();cc++){
-                this.orient_ += children.ElementAt(cc).Translate;
-            }
+            this.Children = new Mesh(children.ToList());
         }
         if(Mycomponents == null){
             this.components = new List<(Type ogType, Rndrcomponent rC)>();
@@ -137,15 +132,11 @@ class gameObj{
     
 
     public static gameObj operator +(gameObj parent, Polygon[] children){
-        foreach(Polygon p in children){
-            parent.Children.Add(p);
-            parent.orient_ += p.Translate;
-        }
+        parent.Children.AddRange(children);
         return parent;
     }
     public static gameObj operator +(gameObj parent, Polygon child){
         parent.Children.Add(child);
-        parent.orient_ += child.Translate;
         return parent;
     }
     /// <summary>
@@ -154,25 +145,7 @@ class gameObj{
     /// <param name="parent">The gameObj that will recieve the children.</param>
     /// <param name="child">The gameObj that will have it's children copied to the parent.</param>
     public static gameObj operator +(gameObj parent, gameObj child){
-        for(int cc = 0; cc < child.Children.Count;cc++){
-            parent.Children.Add(child.Children[cc]);
-            parent.orient_ += child.Children[cc].Translate;
-        }
-
-        return parent;
-    }
-    public static gameObj operator -(gameObj parent, Polygon child){
-        try{
-            //Use try because if the parent doesn't have the child it will catch,
-            //if children is already empty or unassigned it will catch,
-            parent.Children.Remove(child);
-            parent.orient_ -= child.Translate;
-        }
-        finally{
-            if(parent.Children != null && parent.Children.Count == 0){
-                parent.Children = null;
-            }
-        }
+        parent.Children.AddRange(child.Children.ToList());
         return parent;
     }
 }

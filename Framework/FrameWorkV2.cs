@@ -400,6 +400,12 @@ struct Polygon{
 	public static Polygon operator -(Polygon a, Vector3 b){
 		return new Polygon(a.A - b, a.B - b, a.C - b);
 	}
+	public static bool operator ==(Polygon a, Polygon b){
+		if(a.A == b.A && a.B == b.B && a.C == b.C){return true;}else{return false;}
+	}
+	public static bool operator !=(Polygon a, Polygon b){
+		return !(a == b);
+	}
 	/// <summary>
 	///  Create a mesh.
 	/// </summary>
@@ -438,29 +444,58 @@ struct Polygon{
 }
 struct Mesh : IEnumerable{
     public Mesh(IEnumerable<Polygon> p){
-        this.mesh = p.ToArray();
-        for(int cc = 0; cc < this.mesh.Length;cc++){
-            this.orient_ += this.mesh[cc].Translate;
-        }
+        this.mesh = p.ToList();
     }
-    public void Translate(Vector3 position, Vector3 rotation){
+    public async void Translate(Vector3 position, Vector3 rotation){
         this.Position += position;
         this.Rotation += rotation;
-        this.orient_(this.Position - position, position, rotation);
+		Mesh m = this;
+		await Task.Run(() => {
+			for(int cc = 0;cc < m.Count; cc++){
+				m[cc].Translate(m.Position - position, position, rotation);
+			}
+		});
     }
-    delegate void Orient_(Vector3 PrePosition, Vector3 Position, Vector3 Rotation);
-    Orient_ orient_;
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}
-    Polygon[] mesh;
-    public int Count{get{return this.mesh.Length;}}
-    public static bool operator ==(Mesh m, Mesh? m2){
-        if(m2 == null){
+    List<Polygon> mesh;
+    public int Count{get{return this.mesh.Count;}}
+	public void Add(Polygon poly){mesh.Add(poly);}
+	public void AddRange(IEnumerable<Polygon> polygons){mesh.AddRange(polygons);}
+	public List<Polygon> ToList(){return this.mesh;}
+	public void RemoveAt(int index){this.mesh.RemoveAt(index);}
+    /// <summary>
+    ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
+    /// </summary>
+    /// <param name="m">The 1st mesh to be compared to.</param>
+    /// <param name="m2">The 2nd mesh to be compared to.</param>
+	/// <param name="Tolerance">This is the parameter the the similarity Quotient will be compared to</param>
+    /// <returns>A bool.</returns>
+	/// <remarks>Both meshes must be same sized.</remarks>
+    public static bool operator ==(Mesh m, Mesh m2){
+        int sQ = 0;
+        if(m.Count != m2.Count){
             return false;
         }else{
-            for(int cc = 0; cc < (m.Count + m2.Value.Count)/2;cc++)
-        }
-    }
+			int increment = 1/m.Count;
+            for(int cc = 0; cc < m.Count; cc++){
+				if(m[cc] == m2[cc]){
+					sQ += increment;
+				}
+			}
+            }
+        return sQ > .9f? true: false;
+	}
+	/// <summary>
+	/// Checks how similar two meshes are and returns the inverse of that value.
+	/// </summary>
+	/// <param name="m">The 1st mesh to be compared.</param>
+	/// <param name="m2">The 2nd mesh to be compared.</param>
+	/// <returns>A boolean value.</returns>
+	/// <remarks>Both meshes must be same-sized.</remarks>
+	public static bool operator !=(Mesh m, Mesh m2){
+		return !(m == m2);
+	}
     IEnumerator IEnumerable.GetEnumerator(){return (IEnumerator)GetEnumerator();}
     public MeshEnum GetEnumerator(){ return new MeshEnum(mesh);}
     public Polygon this[int index]{
@@ -475,8 +510,8 @@ struct Mesh : IEnumerable{
 struct MeshEnum : IEnumerator{
     public Polygon[] mesh;
     int position = -1;
-    public MeshEnum(Polygon[] mesh){
-        this.mesh = mesh;
+    public MeshEnum(IEnumerable<Polygon> mesh){
+        this.mesh = mesh.ToArray();
     }
     public bool MoveNext(){
         position++;
