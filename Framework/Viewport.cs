@@ -23,10 +23,10 @@ static partial class ViewPort{
     /// </summary>
     ///<remarks>The left(l) and bottom(b) properties are set to 0, 
     /// whilst the right(r) and top(t) properties hold the window width and height, respectively.</remarks>
-    public static readonly (float r, float l, float b, float t) boundary = (Camera.form_.DisplayRectangle.Width, 0, 0, Camera.form_.DisplayRectangle.Height);
+    public static readonly (float r, float l, float b, float t) boundary = (Camera.form.DisplayRectangle.Width, 0, 0, Camera.form.DisplayRectangle.Height);
     /// <summary>
     ///  This property represents the 4x4 Matrix that will convert all viewable vector positions to Perspective projection.
-    /// </summary> 
+    /// </summary>
     static float[,] PPMatrix {get;} = new float[4, 4]{
         {(float)(1/(boundary.r/boundary.t)*Math.Tan(World.cams[World.camIndex].theta/2)), 0f, 0f, 0f},
         {0f, (float)(1/Math.Tan(World.cams[World.camIndex].theta/2)), 0f, 0f},
@@ -91,6 +91,27 @@ static partial class ViewPort{
         }
         return result;
     }
+    public static Vector3 Transform(Vector3 value, System.Numerics.Quaternion rotation){
+        float x2 = rotation.X + rotation.X;
+        float y2 = rotation.Y + rotation.Y;
+        float z2 = rotation.Z + rotation.Z;
+
+        float wx2 = rotation.W * x2;
+        float wy2 = rotation.W * y2;
+        float wz2 = rotation.W * z2;
+        float xx2 = rotation.X * x2;
+        float xy2 = rotation.X * y2;
+        float xz2 = rotation.X * z2;
+        float yy2 = rotation.Y * y2;
+        float yz2 = rotation.Y * z2;
+        float zz2 = rotation.Z * z2;
+
+        return new Vector3(
+            value.X * (1.0f - yy2 - zz2) + value.Y * (xy2 - wz2) + value.Z * (xz2 + wy2),
+            value.X * (xy2 + wz2) + value.Y * (1.0f - xx2 - zz2) + value.Z * (yz2 - wx2),
+            value.X * (xz2 - wy2) + value.Y * (yz2 + wx2) + value.Z * (1.0f - xx2 - yy2)
+        );
+    }
     static Polygon Multiply(Polygon polygon){
         Polygon CalcBuffer = new Polygon();
         float wA = 1;
@@ -104,6 +125,8 @@ static partial class ViewPort{
             );
         wA = (PPMatrix[0, 3]*CalcBuffer.A.X)+(PPMatrix[1, 3]*CalcBuffer.A.Y)+(PPMatrix[2, 3]*CalcBuffer.A.Z)+PPMatrix[3, 3];
         CalcBuffer.A /= wA;
+        CalcBuffer.A.Normalise();
+        CalcBuffer.A = new Vector3((CalcBuffer.A.X/CalcBuffer.A.Z) * Camera.form.Bounds.Width, (CalcBuffer.A.Y/CalcBuffer.A.Z)  * Camera.form.Bounds.Height, 0);
         //For Point B
         CalcBuffer.B = new Vector3(
             (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 0]),
@@ -112,6 +135,8 @@ static partial class ViewPort{
             );
         wB = (PPMatrix[0, 3]*CalcBuffer.B.X)+(PPMatrix[1, 3]*CalcBuffer.B.Y)+(PPMatrix[2, 3]*CalcBuffer.B.Z)+(PPMatrix[3, 3]);
         CalcBuffer.B /= wB;
+        CalcBuffer.B.Normalise();
+        CalcBuffer.B = new Vector3((CalcBuffer.B.X/CalcBuffer.B.Z) * Camera.form.Bounds.Width, (CalcBuffer.B.Y/CalcBuffer.B.Z)  * Camera.form.Bounds.Height, 0);
         //For Point C
         CalcBuffer.C = new Vector3(
             (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 0]),
@@ -120,6 +145,10 @@ static partial class ViewPort{
             );
         wC = (PPMatrix[0, 3]*CalcBuffer.C.X)+(PPMatrix[1, 3]*CalcBuffer.C.Y)+(PPMatrix[2, 3]*CalcBuffer.C.Z)+(PPMatrix[3, 3]);
         CalcBuffer.C /= wC;
+        CalcBuffer.C.Normalise();
+        CalcBuffer.C= new Vector3((CalcBuffer.C.X/CalcBuffer.C.Z) * Camera.form.Bounds.Width, (CalcBuffer.C.Y/CalcBuffer.C.Z)  * Camera.form.Bounds.Height, 0);
+        
+
         return CalcBuffer;
     }
 }

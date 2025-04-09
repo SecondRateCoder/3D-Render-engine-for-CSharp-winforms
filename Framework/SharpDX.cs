@@ -20,63 +20,88 @@ class TrueColor{
         this.g = BitConverter.GetBytes(g)[0];
         this.b = BitConverter.GetBytes(b)[0];
     }
-
+    public static explicit operator TrueColor(byte[] bytes){return new TrueColor(bytes[0], bytes[1], bytes[2], bytes[3]);}
+    public static explicit operator TrueColor(List<byte> bytes){return new TrueColor(bytes[0], bytes[1], bytes[2], bytes[3]);}
 }
 class WriteableBitmap{
     TrueColor[] colors;
     public int pixelHeight;
     public int pixelWidth;
+    public int Count{get{return pixelWidth*pixelHeight;}}
     TrueColor this[int x, int y]{
         get{
+            if(x+(y*pixelWidth) > pixelHeight*pixelWidth){return colors[colors.Length-1];}
             return colors[x+(y*pixelWidth)];
         }
     }
     public TrueColor this[int index]{
         get{
+            if(index > pixelHeight*pixelWidth){return colors[colors.Length-1];}
             return this.colors[index];
+        }
+    }
+    public WriteableBitmap(){
+        colors = new TrueColor[0];
+        this.pixelHeight = 0;
+        this.pixelWidth = 0;
+    }
+    public WriteableBitmap(List<byte> bytes, int Width, int Height){
+        for(int cc = 0;cc < bytes.Count;cc+=4){
+            colors[cc] = (TrueColor)bytes;
+            foreach(int i in new int[]{0, 1, 2, 3}){
+                bytes.RemoveAt(0);
+            }
+        }
+        this.pixelWidth = Width;
+        this.pixelHeight = Height;
+    }
+    public void Update(TrueColor tC, int index){
+        this.colors[index] = tC;
+    }
+    public void Update(byte a, byte r, byte g, byte b, int index){
+        this.colors[index] = new TrueColor(a, r, g, b);
+    }
+    public void Update(byte[] bytes){
+        this.colors = new TrueColor[bytes.Length/4];
+        for(int cc =0;cc < bytes.Length;cc+=4){
+            colors[cc] = new TrueColor(bytes[cc], bytes[cc+1], bytes[cc+2], bytes[cc+3]);
+        }
+    }
+    public static explicit operator WriteableBitmap?(Bitmap bmp){
+        ImageConverter converter = new ImageConverter();
+        byte[]? bytes = (byte[]?)converter.ConvertTo(bmp, typeof(byte[]));
+        if(bytes != null){
+            return new WriteableBitmap(bytes.ToList(), bmp.Width, bmp.Height);
+        }else{
+            return null;
         }
     }
 }
 static partial class Viewport{
     static byte[] backBuffer;
-    WriteableBitmap bmp;
-    public void Update(WriteableBitmap bmp){
-        this.bmp = bmp;
-        backBuffer = new byte[bmp.PixelWidth * bmp.PixelHeight * 4];
+    static WriteableBitmap bmp;
+    public static void Update(WriteableBitmap Bmp){
+        bmp = Bmp;
+        backBuffer = new byte[bmp.pixelWidth * bmp.pixelHeight * 4];
     }
-    public void Clear(Color c){
-        for(int cc =0;cc < bmp.Length;cc+=4){
-            backBuffer[cc] = c.a;
-            backBuffer[cc] = c.r;
-            backBuffer[cc] = c.g;
-            backBuffer[cc] = c.b;
+    public static void Clear(Color c){
+        for(int cc =0;cc < bmp.Count;cc+=4){
+            backBuffer[cc] = c.A;
+            backBuffer[cc] = c.R;
+            backBuffer[cc] = c.G;
+            backBuffer[cc] = c.B;
         }
     }
-    public void Present(){
-        using(Stream stream = bmp.PixelBuffer.AsStream()){
-            // writing our byte[] back buffer into our WriteableBitmap stream
-            stream.Write(backBuffer, 0, backBuffer.Length);
-        }
-        // request a redraw of the entire bitmap
-        bmp.Invalidate();
+    public static void Present(){
+        bmp.Update(backBuffer);
     }
-    public void PutPixel(int x, int y, Color color){
-        int index = (x + (y * bmp.PixelWidth)) * 4;
-        backBuffer[index] = (byte)(color.a * 255);
-        backBuffer[index+1] = (byte)(color.r * 255);
-        backBuffer[index+2] = (byte)(color.g * 255);
-        backBuffer[index+3] = (byte)(color.b * 255);
+    public static void PutPixel(int x, int y, Color color){
+        int index = (x + (y * bmp.pixelWidth)) * 4;
+        backBuffer[index] = (byte)(color.A * 255);
+        backBuffer[index+1] = (byte)(color.R * 255);
+        backBuffer[index+2] = (byte)(color.G * 255);
+        backBuffer[index+3] = (byte)(color.B * 255);
     }
 
-    public Vector2 Project(Vector3 coord, Matrix transMat)
-    {
-        // transforming the coordinates
-        var point = Vector3.TransformCoordinate(coord, transMat);
-        // The transformed coordinates will be based on coordinate system
-        // starting on the center of the screen. But drawing on screen normally starts
-        // from top left. We then need to transform them again to have x:0, y:0 on top left.
-        var x = point.X * bmp.PixelWidth + bmp.PixelWidth / 2.0f;
-        var y = -point.Y * bmp.PixelHeight + bmp.PixelHeight / 2.0f;
-        return (new Vector2(x, y));
-    }
+
 }

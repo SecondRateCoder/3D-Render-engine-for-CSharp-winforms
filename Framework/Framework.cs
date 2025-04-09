@@ -150,8 +150,6 @@ class gameObj{
     }
 }
 class Camera{
-    public delegate void Orient_(Vector3 Position, Vector3 Rotation, bool pT = false);
-    public Orient_ orientToCam;
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}
 	/// <summary>
@@ -173,18 +171,16 @@ class Camera{
     ///</summary>
     ///<remarks>This property cant be changed after being assigned.</remarks>
     public float far{get{return fov_;} set{fov_ = (fov_ == 0? value: fov_);}}
-    private static Form form;
-    public static Form form_{
+    private static Form form_;
+    public static Form form{
         get{
-            return form;
+            return form_;
         }
         set{
-            Form? item_ = Form.ActiveForm;
-            while(item_ == null){
-                Task.Delay(500);
-                item_ = Form.ActiveForm;
+            while(Form.ActiveForm == null){
+                Thread.Sleep(500);
             }
-            form = item_;
+            form_ = Form.ActiveForm;
         }
     }
     public Camera(float Fov = 15f, Vector3? pos = null, Vector3? rot = null){
