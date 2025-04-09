@@ -1,6 +1,4 @@
-using System.CodeDom;
 using System.Collections;
-using System.Numerics;
 
 /// <summary>
 ///  A 3-dimensional point and rotation.
