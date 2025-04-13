@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using System.IO;
 static class StorageManager{
     static string PathProp = "";
     public static string filePath{set{
@@ -16,15 +18,15 @@ static class StorageManager{
 		List<byte> fileContent = [.. BitConverter.GetBytes(World.worldData.Count)];
 		foreach(gameObj gO in World.worldData){
 			fileContent.AddRange(BitConverter.GetBytes(gO.Size));
-			fileContent.AddRange(gO.Position.ToBytes());
-			fileContent.AddRange(gO.Rotation.ToBytes());
+			fileContent.AddRange((byte[])gO.Position);
+			fileContent.AddRange((byte[])gO.Rotation);
 			fileContent.AddRange(BitConverter.GetBytes(gO.Children.Count));
 			int cc = 0;
 			//The children are encoded.
 			foreach(Polygon pO in gO.Children){
-				fileContent.AddRange(gO.Children[cc].A.ToBytes());
-				fileContent.AddRange(gO.Children[cc].B.ToBytes());
-				fileContent.AddRange(gO.Children[cc].C.ToBytes());
+				fileContent.AddRange((byte[])gO.Children[cc].A);
+				fileContent.AddRange((byte[])gO.Children[cc].B);
+				fileContent.AddRange((byte[])gO.Children[cc].C);
 				cc++;
 			}
 			/*
@@ -86,5 +88,18 @@ static class StorageManager{
 			Mem = cc;
 		}
 		throw new Exception("CorruptedSaveFile", new FileFormatException("The file was been saved in a specific format, if this pattern has been broken then the "));
+	}
+}
+class Path{
+	string filePath;
+	string buffer;
+	string fileExtension;
+	bool Directory;
+	public Path(string filePath, string? fileExtension, bool Directory){
+		if((!Directory && fileExtension == null) || (Directory && string.IsNullOrEmpty(fileExtension))){throw new Exception("PathPropertyException");}else{
+			if(Directory == false){this.fileExtension = fileExtension;}
+			if(System.IO.Directory.Exists(filePath) && Directory){this.buffer = filePath;		this.filePath = filePath;		fileExtension = "";		this.Directory = Directory;}
+			else if(File.Exists(filePath) && !Directory){}
+		}
 	}
 }

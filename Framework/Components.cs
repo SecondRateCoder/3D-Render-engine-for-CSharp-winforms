@@ -1,4 +1,6 @@
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Timers;
 
@@ -20,23 +22,48 @@ class Empty : Rndrcomponent{
 class Texturer : Rndrcomponent{
     public override int Size{get;}
     public override byte[] ToByte(){
-        return Encoding.UTF8.GetBytes(this.file);
+        return Encoding.UTF8.GetBytes(this.filePath);
     }
     public override Texturer FromByte(byte[] bytes){
         return new Texturer(Encoding.UTF8.GetString(bytes));
     }
     
     public FileInfo finfo;
-    byte[] img{get{try{return Image.FromFile(file).RawFormat.GUID.ToByte();}catch{return Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png").RawFormat.GUID.ToByte();}}}
+    /// <remarks>DO NOT ACCESS, , ALL WILLY NILLY.</remarks>
+    byte[] buffer;
+    /// <remarks>DO NOT ACCESS, ALL WILLY NILLY.</remarks>
+    string buffer_;
+    byte[] img{
+        get{
+            if(filePath != buffer_){
+                using(MemoryStream mS = new MemoryStream()){
+                    try{
+                        ((Bitmap)Image.FromFile(filePath)).Save(mS, ImageFormat.Bmp);
+                    }catch(FileNotFoundException){
+                        Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory+@"Cache\Images\");
+                        File.Create(AppDomain.CurrentDomain.BaseDirectory+@"Cache\Images\GrassBlock.png");
+                        ((Bitmap)Image.FromFile(AppDomain.CurrentDomain.BaseDirectory+@"Cache\Images\GrassBlock.png")).Save(mS, ImageFormat.Bmp);
+                    }
+                    return mS.ToArray();
+                }
+            }else{
+                return buffer;
+            }
+        }
+    }
     public (int width, int height) imgDimensions{get; private set;}
+    string relativeProp;
+    public string relativePath{get{return AppDomain.CurrentDomain.BaseDirectory+relativeProp;} 
+        set{if(AppDomain.CurrentDomain.BaseDirectory+value != filePath || 
+            ((string.IsNullOrEmpty(filePath) | string.IsNullOrEmpty(filePath)) && !File.Exists(AppDomain.CurrentDomain.BaseDirectory+value))){}}}
     string fileProp;
-    public string file{get{return fileProp;} set{fileProp = StorageManager.filePath+value;}}
-    public Texturer(){file = StorageManager.filePath + @"Cache\Images\Grass Block.png";}
+    public string filePath{get{return fileProp;} set{if(File.Exists(value)){fileProp = StorageManager.filePath+value;}else{fileProp =AppDomain.CurrentDomain.BaseDirectory+@"Cache\Images\GrassBlock.png";}}}
+    public Texturer(){filePath = StorageManager.filePath + @"Cache\Images\Grass Block.png";}
     public Texturer(string? path = null){
-        file = path == null? StorageManager.filePath+@"Cache\Images\Grass Block.png": path;
-        Bitmap image = (Bitmap)Image.FromFile(file);
+        filePath = path == null || ? StorageManager.filePath+@"Cache\Images\Grass Block.png": path;
+        Bitmap image = (Bitmap)Image.FromFile(filePath);
         imgDimensions = (image.Width, image.Height);
-        img = File.ReadAllBytes(file);
+        
     }
     public new void Dispose(bool disposing = true){
         if (disposing && (finfo != null)){
@@ -47,8 +74,8 @@ class Texturer : Rndrcomponent{
     }
     public void Reset(string Path){
         this.Dispose(true);
-        this.file = Path;
-        img = File.ReadAllBytes(file);
+        this.filePath = Path;
+        img = File.ReadAllBytes(filePath);
     }
     public Color[]? Texture(Polygon p){
         return Texture(p.UVPoints);
