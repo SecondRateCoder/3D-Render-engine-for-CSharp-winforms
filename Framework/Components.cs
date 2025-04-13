@@ -27,7 +27,7 @@ class Texturer : Rndrcomponent{
     }
     
     public FileInfo finfo;
-    byte[] img;
+    byte[] img{get{try{return Image.FromFile(file).RawFormat.GUID.ToByte();}catch{return Image.FromFile(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png").RawFormat.GUID.ToByte();}}}
     public (int width, int height) imgDimensions{get; private set;}
     string fileProp;
     public string file{get{return fileProp;} set{fileProp = StorageManager.filePath+value;}}
@@ -45,28 +45,20 @@ class Texturer : Rndrcomponent{
         }
         base.Dispose(disposing);
     }
-    public void Reset(string Relativepath){
+    public void Reset(string Path){
         this.Dispose(true);
-        this.file = Relativepath;
+        this.file = Path;
         img = File.ReadAllBytes(file);
     }
     public Color[]? Texture(Polygon p){
         return Texture(p.UVPoints);
     }
     public Color[]? Texture(Point[] UVPoints){
-        //Get the color of each UVPoint but on the img, if the point is not in the img then set it's color to black.
-        //24 bits per pixel.
-        //1 byte per r, g, b each.
-        
-        //Search for the p by skipping forward
-        Color[] result = new Color[UVPoints.Length];
+        Color[] result = new Color[0];
         Point p = new Point();
-        for(int cc = 0;cc < UVPoints.Length;cc++, p = UVPoints[cc]){
-            int Point = (p.X + (p.Y*imgDimensions.width))*3;
-            if(Point > img.Length){
-                continue;
-            }
-            result[cc] = Color.FromArgb(BitConverter.ToInt32([img[Point]]), BitConverter.ToInt32([img[Point+1]]), BitConverter.ToInt32([img[Point+2]]));
+        for(int cc =0;cc < UVPoints.Length;cc++){
+            int index = (UVPoints[cc].X + (UVPoints[cc].Y*imgDimensions.Width))*4;
+            result.Add(Color.FromARGB(img[index], img[index+1], img[index+2], img[index+3]));
         }
         return result;
     }

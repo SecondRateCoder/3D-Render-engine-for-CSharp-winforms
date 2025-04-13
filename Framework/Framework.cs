@@ -1,4 +1,306 @@
 /// <summary>
+///  A 3-dimensional point and rotation.
+/// </summary> 
+struct Vector3{
+    /// <summary>
+    ///  This property represents a Vector, which has it's x, y and z values set to 0.
+    /// </summary> 
+    public static readonly Vector3 zero = new Vector3();
+    /// <summary>
+    ///  This property represents a Vector, which has it's x, y and z values set to Float.infinity.
+    /// </summary> 
+    public static readonly Vector3 infinity = new Vector3(float.PositiveInfinity);
+    /// <summary>
+    ///  This property represents a Vector, which has it's x, y and z values set to Float.negativeInfinity.
+    /// </summary> 
+    public static readonly Vector3 negativeInfinity = new Vector3(float.NegativeInfinity);
+    public static readonly Vector3 Up = new Vector3(0, 1, 0);
+    public static readonly Vector3 Forward = new Vector3(0, 0, 1);
+    public static readonly Vector3 Right = new Vector3(1, 0, 0);
+
+
+    /// <summary>
+    ///  The X co-ordinate of the Vector, (The Horizontal axis).
+    /// </summary> 
+    public float X{get; set;}
+    /// <summary>
+    ///  The Y co-ordinate of the vector, (The Vertical axis).
+    /// </summary> 
+    public float Y{get; set;}
+    /// <summary>
+    ///  The Z co-ordinate of the vector, (The Forward/Backward axis).
+    /// </summary> 
+    public float Z{get; set;}
+    /// <summary>This is the length of this Vector3.</summary>
+    public float Magnitude{get{return (float)Math.Sqrt((this.X*this.X) +(this.Y*this.Y) +(this.Z*this.Z));}}
+    
+
+    /// <summary>
+    ///  This ctor initalises a copy of V.
+    /// </summary>
+    /// <param name="V">The original vector3.</param>
+    public Vector3(Vector3 V){
+        this = V;
+    }
+    ///<summary>
+    /// This ctor creates a Vector3 from a series of bytes.
+    ///</summary>
+    public Vector3(byte[] bytes){
+        if(bytes.Length != sizeof(int)*3){
+            this = Vector3.zero;
+        }else{
+            byte[] buffer = new byte[sizeof(int)];
+            int i = 0;
+            while(i < 3){
+                for(int cc=0;cc<sizeof(int);cc++){
+                    buffer[cc] = bytes[cc+(i*sizeof(int))];
+                }
+                switch(i){
+                    case 0:
+                        this.X = BitConverter.ToInt32(buffer);
+                        break;
+                    case 1:
+                        this.Y = BitConverter.ToInt32(buffer);
+                        break;
+                    case 2:
+                        this.Z = BitConverter.ToInt32(buffer);
+                        break;
+                }
+            }
+        }
+    }
+    /// <summary>
+    ///  This constructor takes three arguments to assign to the x, y, and z co-ordinates(respectively).
+    /// </summary> 
+    /// <param name="x"> This maps the X co-ordinate of the Vector. </param>
+    /// <param name="y"> This maps to the Y co-ordinate of the Vector. </param>
+    /// <param name="z"> This maps to the Z co-ordinate of the Vector. </param>
+    public Vector3(float x, float y, float z){
+        this.X = x;
+        this.Y = y;
+        this.Z = z;
+    }
+    /// <summary>
+    ///  This constructor assigns all co-ordinates with the single float parameter.
+    /// </summary> 
+    /// <param name="a"> The float that all the co-ordinats will be assigned to. </param>
+    public Vector3(float num){
+        this.X = num;
+        this.Y = num;
+        this.Z = num;
+    }
+    /// <summary>
+    ///  This constructor assigns the Vector co-ordinates with random values (If the boolean parameters are true).
+    /// </summary> 
+    /// <param name="rng"> This boolean is the condition for whether the output will be a Vector with random values or 0s. </params>
+    public Vector3(bool rng = false){
+        Random rng_ = new();
+        if(rng){
+            this.X = rng_.Next();
+            this.Y = rng_.Next();
+            this.Z = rng_.Next();
+        }
+        
+    }
+
+    public void Normalise(){
+        this/=this.Magnitude;
+    }
+    /// <summary>
+    ///  Rotate this vector around Origin, by Rotation.
+    /// </summary>
+    /// <param name="Rotation">The value that this vector will be rotated by.</param>
+    /// <param name="Origin">The point this vector will rotate around.</param>
+    /// <returns>This method returns a copy of the value.</returns>
+    /// <remarks>This both sets this vector to the rotated version and returns a copy.</remarks>
+    public Vector3 RotateAround(Vector3 Rotation, Vector3 Origin){
+        Vector3 Offset = (this-Origin).Abs();
+        Vector3 Rot = Vector3.GetRotation(this, Origin);
+        this = new Vector3((float)(Offset.X/(Math.Sin(180-Rot.X)/2)),
+        (float)(Offset.Y/(Math.Sin(180-Rot.Y)/2)),
+        (float)(Offset.Z/(Math.Sin(180-Rot.Z)/2)));
+        return this;
+    }
+    public Vector3 Abs(){
+        this.X = Math.Abs(this.X);
+        this.Y = Math.Abs(this.Y);
+        this.Z = Math.Abs(this.Z);
+        return this;
+    }
+    public explicit operator Point(Vector3 v){return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}
+    public explicit operator List<float>(Vector3 v){return new List<float>(){v.X, v.Y, v.Z};}
+    public static explicit operator byte[](Vector3 v){
+        List<byte> result = [.. BitConverter.GetBytes(v.X)];
+        result.AddRange(BitConverter.GetBytes(v.Y));
+        result.AddRange(BitConverter.GetBytes(v.Z));
+        return result.ToArray();
+    }
+    public Vector3 GetNormal(){
+        Vector3 me = this;
+        me.Normalise();
+        return new Vector3(this.X/me.X, this.Y/me.Y, this.Z/me.Z);
+    }
+    ///<summary>
+    /// Get the distance from 2 vectors, as a float;
+    ///</summary>
+    public static float GetDistance(Vector3 a, Vector3 b){
+        float xDif = Math.Abs(a.X - b.X);
+        float yDif = Math.Abs(a.Y - b.Y);
+        float zDif = Math.Abs(a.Z - b.Z);
+        double xy = xDif/Math.Cos(Math.Atan(yDif/xDif));
+        double xz = xDif/Math.Cos(Math.Atan(zDif/xDif));
+        double yz = zDif/Math.Cos(Math.Atan(yDif/zDif));
+        return (float)(xy+xz+yz)/3;
+    }
+    ///<summary>Get the rotation from point a to b, with the apex being between them.</summary>
+    public static Vector3 GetRotation(Vector3 a, Vector3 b){
+        Vector3 origin = Vector3.CProduct(a, b);
+        float A = Vector3.GetDistance(a, origin);
+        float B = Vector3.GetDistance(b, origin);
+        if(A > B){a = (a-b)/b;}else if(A < B){b = (b-a)/a;}
+        float xDif = Math.Abs(a.X - b.X);
+        float yDif = Math.Abs(a.Y - b.Y);
+        float zDif = Math.Abs(a.Z - b.Z);
+        double xy = Math.Atan(yDif/xDif);
+        double xz = Math.Atan(zDif/xDif);
+        double yz = Math.Atan(yDif/zDif);
+        return new Vector3((float)xy, (float)xz, (float)yz);
+    }
+    public static Vector3 GetRotation(Polygon p){
+        return GetRotation(p.A, p.B, p.C);
+    }
+    public static Vector3 GetRotation(Vector3 a, Vector3 b, Vector3 c){
+        float A = Vector3.GetDistance(a, c);
+        float B = Vector3.GetDistance(b, c);
+        if(A > B){a = (a-b)/b;}else if(A < B){b = (b-a)/a;}
+        float xDif = Math.Abs(a.X - b.X);
+        float yDif = Math.Abs(a.Y - b.Y);
+        float zDif = Math.Abs(a.Z - b.Z);
+        double xy = Math.Atan(yDif/xDif);
+        double xz = Math.Atan(zDif/xDif);
+        double yz = Math.Atan(yDif/zDif);
+        return new Vector3((float)xy, (float)xz, (float)yz);
+    }
+    public static Vector3 CProduct(Vector3 a, Vector3 b){
+        return new Vector3((a.Y*b.Z)-(a.Z*b.Y), (a.Z*b.X)-(a.X*b.Z), (a.X*b.Y)-(a.Y*b.X));
+    }
+    public static float DProduct(Vector3 a, Vector3 b){
+        a.Normalise();
+        b.Normalise();
+        return (a.X*b.X)+(a.Y*b.Y)+(a.Z*b.Z);
+    }
+    public static Vector3 Transform(Vector3 value, System.Numerics.Quaternion rotation){
+        float x2 = rotation.X + rotation.X;
+        float y2 = rotation.Y + rotation.Y;
+        float z2 = rotation.Z + rotation.Z;
+
+        float wx2 = rotation.W * x2;
+        float wy2 = rotation.W * y2;
+        float wz2 = rotation.W * z2;
+        float xx2 = rotation.X * x2;
+        float xy2 = rotation.X * y2;
+        float xz2 = rotation.X * z2;
+        float yy2 = rotation.Y * y2;
+        float yz2 = rotation.Y * z2;
+        float zz2 = rotation.Z * z2;
+
+        return new Vector3(
+            value.X * (1.0f - yy2 - zz2) + value.Y * (xy2 - wz2) + value.Z * (xz2 + wy2),
+            value.X * (xy2 + wz2) + value.Y * (1.0f - xx2 - zz2) + value.Z * (yz2 - wx2),
+            value.X * (xz2 - wy2) + value.Y * (yz2 + wx2) + value.Z * (1.0f - xx2 - yy2)
+        );
+    }
+    ///<summary>
+    /// a to the power of b.
+    ///</summary>
+    public static Vector3 operator ^(Vector3 a, int b){
+        Vector3 result = a;
+        for(int cc = 0;cc < b; cc++){
+            result.X *= a.X;
+            result.Y *= a.Y;
+            result.Z *= a.Z;
+        }
+        return result;
+    }
+    ///<summary>
+    /// each of a's axis is multiplied by b's axis.
+    ///</summary>
+    public static Vector3 operator *(Vector3 a, Vector3 b){
+        a.X *= b.X;
+        a.Y *= b.Y;
+        a.Z *= b.Z;
+        return a;
+    }
+    public static Vector3 operator *(Vector3 a, float b){
+        a.X *= b;
+        a.Y *= b;
+        a.Z *= b;
+        return a;
+    }
+    public static Vector3 operator *(float b, Vector3 a){
+        a.X *= b;
+        a.Y *= b;
+        a.Z *= b;
+        return a;
+    } 
+    public static Vector3 operator /(Vector3 a, Vector3 b){
+        a.X /= b.X;
+        a.Y /= b.Y;
+        a.Z /= b.Z;
+        return a;
+    } 
+    public static Vector3 operator /(Vector3 a, float b){
+        a.X /= b;
+        a.Y /= b;
+        a.Z /= b;
+        return a;
+    }
+    public static Vector3 operator -(float a, Vector3 b){
+        b.X = a - b.X;
+        b.Y = a - b.Y;
+        b.Z = a - b.Z;
+        return b;
+    }
+    public static Vector3 operator -(Vector3 a, Vector3 b){
+        a.X -= b.X;
+        a.Y -= b.Y;
+        a.Z -= b.Z;
+        return a;
+    }
+    public static Vector3 operator +(Vector3 a, Vector3 b){
+        a.X += b.X;
+        a.Y += b.Y;
+        a.Z += b.Z;
+        return a;
+    } 
+    public static bool operator ==(Vector3 a, Vector3 b){
+        if(!(a.X == b.X && a.X == b.Y && a.Z == b.Z)){
+            return false;
+        }else{
+            return true;
+        }
+    }
+    public static bool operator !=(Vector3 a, Vector3 b){
+        if(!(a.X == b.X && a.X == b.Y && a.Z == b.Z)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType()){
+            return false;
+        }
+        return base.Equals (obj);
+    }
+    
+    public override int GetHashCode()
+    {
+        return base.GetHashCode();
+    }
+}
+/// <summary>
 /// Represents a 3-Dimensional object.
 /// </summary>
 class gameObj{
@@ -71,19 +373,6 @@ class gameObj{
             }
         }
         return null;
-    }
-
-    public void newTexture(string? path = null){
-        Texturer? t = this.GetComponent<Texturer>();
-        if(t == null){return;}else{
-            t.Reset(path == null?t.file: path);
-        }
-    }
-    public void UpdateTexture(int index, Point[] uv){
-        this.Children[index].UpdateTexture(uv);
-    }
-    public Color[] Texture(int index){
-        return this.GetComponent<Texturer>().Texture(this.Children[index]);
     }
     public void Translate(Vector3 position, Vector3 rotation, bool PrivateTranslation = false){
         this.Position += position;
@@ -194,8 +483,6 @@ class Camera{
     }
 }
 
-
-
 class Light{
     public Vector3 Source{get; private set;}
     public Color Colour{get; private set;}
@@ -209,3 +496,4 @@ class Light{
         this.Intensity = mag-Radius;
     }
 }
+

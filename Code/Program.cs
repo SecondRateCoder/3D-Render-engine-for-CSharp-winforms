@@ -17,6 +17,12 @@ class Entry{
         cts = new CancellationTokenSource();
 		Start = ExternalControl.StartTimer;
 		Update = Paint3D;
+        Start += async() => {
+            await Task.Delay();
+            while(!Entry.cts.IsCancellationRequested){
+                Entry.Update();
+            }
+        };
 		Application.Run(f);
     }
 
@@ -61,12 +67,6 @@ public partial class Form1 : Form{
     override protected void OnLoad(EventArgs e){
         base.OnLoad(e);
         Entry.Start();
-        Task.Run(async() => {
-            await Task.Delay(0);
-            while(!Entry.cts.IsCancellationRequested){
-                Update();
-            }
-        });
     }
     protected override void OnClosing(CancelEventArgs e){
         base.OnClosing(e);

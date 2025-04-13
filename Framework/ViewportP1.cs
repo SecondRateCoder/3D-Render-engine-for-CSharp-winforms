@@ -7,10 +7,18 @@ static class World{
     public static List<gameObj> worldData = new List<gameObj>();
     public static List<Camera> cams = new List<Camera>(){new Camera()};
     public static int camIndex{get; private set;}
-    static void setCam(int index){
+    public static List<Light> lights = new List<Light>()[new Light(Vector3.zero, Color.White, 15)];
+    public static int[] lightIndex = 0;
+    public static void setCam(int index){
         if(index < cams.Count){
             camIndex = index;
         }
+    }
+    public static void SetLights(IEnumerable<int> lights){
+        lightIndex = lights.ToArray();
+    }
+    public static AddLight(int light){
+        lightIndex.Add(light);
     }
 }
 
@@ -40,38 +48,34 @@ static partial class ViewPort{
     /// </summary> 
     /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creats a cube to be rendered./></remarks>
     static (Point p, Color color)[] Convert_(){
-        List<(Color[] texture, Polygon poly)> parameter = new List<(Color[] texture, Polygon poly)>();
-        if(World.worldData.Count == 0){
-            gameObj gO = new gameObj(Vector3.zero, Vector3.zero, Polygon.Mesh(1, 0, 1, 4));
-            for(int cc = 0;cc < gO.Children.Count;cc++){
-                parameter.Add((gO.Texture(cc), gO.Children[cc]));
-            }
-        }else{
-            for(int cc = 0;cc < World.worldData.Count;cc++){
-                for(int cc_ = 0; cc_ < World.worldData[cc].Children.Count;cc_++){
-                    parameter.Add((World.worldData[cc].Texture(cc_), World.worldData[cc].Children[cc_]));
-                }
-            }
+        if(World.worldData.Count == 0){gameObj gO = new gameObj(Vector3.zero, Vector3.zero, Polygon.Mesh(1, 0, 1, 4));}
+        List<(Color[], Polygon)> parameter = List<(Color[], Polygon)>(gO.Children.Count);#
+        Color[] colors = new Color[(int)gO.Children.Volume];
+        for(int cc_=0;cc_ < colors.Length;cc_++){
+            colors[cc_] = Color.Grey;
+        }
+        for(int cc =0;cc < parameter.Count;cc++){
+            parameter.Add((colors, gO.Children[cc]));
         }
         return Convert_(parameter);
     }
-    ///  This overload turns Gameobjs into polygons then runs the main overload(Convert_()).
-    /// </summary> 
-    public static (Point p, Color color)[] Convert_(List<gameObj>? objs = null){
+    /// <summary>This overload turns Gameobjs into polygons then runs the main overload(Convert_()).</summary> 
+    public static (Point p, Color color)[] Convert_(List<gameObj> objs = null){
         List<(Color[], Polygon)> parameter = new List<(Color[], Polygon)>();
-        if(objs == null){
-            return Convert_();
+        Color[] colors = new Color[(int)gO.Children.Volume];
+        for(int cc_=0;cc_ < colors.Length;cc_++){
+            colors[cc_] = Color.Grey;
         }
         for(int cc = 0;cc < objs.Count;cc++){
             for(int cc_ = 0; cc_ < objs[cc].Children.Count;cc_++){
-                parameter.Add((objs[cc].GetComponent<Texturer>().Texture(objs[cc].Children[cc_].UVPoints), objs[cc].Children[cc_]));
+                parameter.Add((colors, objs[cc].Children[cc_]));
             }
         }
         return Convert_(parameter);
     }
-    /// <summary>
-    ///  The main Convert_() overload, This function converts the world 3d enviroment into a 2 representation.
-    /// </summary> 
+
+
+    /// <summary>The main Convert_() overload, This function converts the world 3d enviroment into a 2d representation.</summary> 
     public static (Point p, Color color)[] Convert_(List<(Color[] texture, Polygon poly)> polygons){
         (Point p, Color color)[] result = new (Point p, Color color)[polygons.Count];
         if(polygons == null){
@@ -81,8 +85,13 @@ static partial class ViewPort{
             for(int cc = 0; cc < polygons.Count; cc++){
                 if(Vector3.GetRotation(polygons[cc].poly.Normal, World.cams[World.camIndex].Position).Magnitude<90){
                     polygons[cc].poly.Translate(World.cams[World.camIndex].Position, 0f-World.cams[World.camIndex].Position, 0f-World.cams[World.camIndex].Rotation);
-                    Vector3[] CalcBuffer = Polygon.ToVector3(Multiply(polygons[cc].poly));
-                    
+                    polygons[cc] = Multiply(polygons[cc]);
+                    Point[] array = DrawBLine((Point)polygons[cc].A, (Point)polygons[cc].B);
+                    array.AddRange(DrawBLine((Point)polygons[cc].B, (Point)polygons[cc].C));
+                    array.AddRange(DrawBLine((Point)polygons[cc].C, (Point)polygons[cc].A));
+                    foreach(Point p in array){
+                        result[cc] = (p, Color.Grey);
+                    }
                 }else{
                     cc++;
                 }
@@ -90,27 +99,6 @@ static partial class ViewPort{
             }
         }
         return result;
-    }
-    public static Vector3 Transform(Vector3 value, System.Numerics.Quaternion rotation){
-        float x2 = rotation.X + rotation.X;
-        float y2 = rotation.Y + rotation.Y;
-        float z2 = rotation.Z + rotation.Z;
-
-        float wx2 = rotation.W * x2;
-        float wy2 = rotation.W * y2;
-        float wz2 = rotation.W * z2;
-        float xx2 = rotation.X * x2;
-        float xy2 = rotation.X * y2;
-        float xz2 = rotation.X * z2;
-        float yy2 = rotation.Y * y2;
-        float yz2 = rotation.Y * z2;
-        float zz2 = rotation.Z * z2;
-
-        return new Vector3(
-            value.X * (1.0f - yy2 - zz2) + value.Y * (xy2 - wz2) + value.Z * (xz2 + wy2),
-            value.X * (xy2 + wz2) + value.Y * (1.0f - xx2 - zz2) + value.Z * (yz2 - wx2),
-            value.X * (xz2 - wy2) + value.Y * (yz2 + wx2) + value.Z * (1.0f - xx2 - yy2)
-        );
     }
     static Polygon Multiply(Polygon polygon){
         Polygon CalcBuffer = new Polygon();
@@ -125,6 +113,7 @@ static partial class ViewPort{
             );
         wA = (PPMatrix[0, 3]*CalcBuffer.A.X)+(PPMatrix[1, 3]*CalcBuffer.A.Y)+(PPMatrix[2, 3]*CalcBuffer.A.Z)+PPMatrix[3, 3];
         CalcBuffer.A /= wA;
+        //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.A.Normalise();
         CalcBuffer.A = new Vector3((CalcBuffer.A.X/CalcBuffer.A.Z) * Camera.form.Bounds.Width, (CalcBuffer.A.Y/CalcBuffer.A.Z)  * Camera.form.Bounds.Height, 0);
         //For Point B
@@ -135,6 +124,7 @@ static partial class ViewPort{
             );
         wB = (PPMatrix[0, 3]*CalcBuffer.B.X)+(PPMatrix[1, 3]*CalcBuffer.B.Y)+(PPMatrix[2, 3]*CalcBuffer.B.Z)+(PPMatrix[3, 3]);
         CalcBuffer.B /= wB;
+        //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.B.Normalise();
         CalcBuffer.B = new Vector3((CalcBuffer.B.X/CalcBuffer.B.Z) * Camera.form.Bounds.Width, (CalcBuffer.B.Y/CalcBuffer.B.Z)  * Camera.form.Bounds.Height, 0);
         //For Point C
@@ -145,10 +135,9 @@ static partial class ViewPort{
             );
         wC = (PPMatrix[0, 3]*CalcBuffer.C.X)+(PPMatrix[1, 3]*CalcBuffer.C.Y)+(PPMatrix[2, 3]*CalcBuffer.C.Z)+(PPMatrix[3, 3]);
         CalcBuffer.C /= wC;
+        //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.C.Normalise();
         CalcBuffer.C= new Vector3((CalcBuffer.C.X/CalcBuffer.C.Z) * Camera.form.Bounds.Width, (CalcBuffer.C.Y/CalcBuffer.C.Z)  * Camera.form.Bounds.Height, 0);
-        
-
         return CalcBuffer;
     }
 }
