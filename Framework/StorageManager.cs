@@ -91,15 +91,34 @@ static class StorageManager{
 	}
 }
 class Path{
+	public string this[string newPath]{
+		get{return this.filePath;}
+		set{this.Update(value);}
+	}
 	string filePath;
 	string buffer;
-	string fileExtension;
+	string? fileExtension;
 	bool Directory;
 	public Path(string filePath, string? fileExtension, bool Directory){
-		if((!Directory && fileExtension == null) || (Directory && string.IsNullOrEmpty(fileExtension))){throw new Exception("PathPropertyException");}else{
-			if(Directory == false){this.fileExtension = fileExtension;}
-			if(System.IO.Directory.Exists(filePath) && Directory){this.buffer = filePath;		this.filePath = filePath;		fileExtension = "";		this.Directory = Directory;}
-			else if(File.Exists(filePath) && !Directory){}
+		//Check if there is something at the specified path.
+		if(!Exists(filePath)){throw new TypeInitializationException("Path", new ArgumentException());}
+		//Check if the item there is a directory.
+		if(Directory && (string.IsNullOrEmpty(fileExtension) | string.IsNullOrWhiteSpace(fileExtension))){
+			this.Directory = Exists(filePath) | System.IO.Directory.Exists(filePath);		
+			this.filePath = Directory? filePath: throw new TypeInitializationException("Path", new ArgumentException());
+			this.fileExtension = null;}else
+		if(!Directory && !(string.IsNullOrEmpty(fileExtension) | string.IsNullOrWhiteSpace(fileExtension))){
+			this.Directory = false;
+			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException("Path", new ArgumentException());
+			this.fileExtension = new FileInfo(filePath).Extension != fileExtension || string.IsNullOrEmpty(fileExtension)? new FileInfo(filePath).Extension: fileExtension;
 		}
+	}
+	public bool Update(string newPath){
+		if(System.IO.Directory.Exists(newPath) && Directory){this.filePath = newPath;	return true;}else 
+		if(File.Exists(newPath) && new FileInfo(newPath).Extension == this.fileExtension){this.filePath = newPath;	return true;}else{return false;}
+	}
+	bool Exists(string path){
+		if(File.Exists(path)){return true;}else 
+		if(System.IO.Directory.Exists(path)){return true;}else{return false;}
 	}
 }

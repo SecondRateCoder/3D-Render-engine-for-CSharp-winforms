@@ -7,8 +7,8 @@ class Entry{
     public static Action Update;
     public static Action Start;
     static Brush def;
+    
     static Form1 f = new Form1();
-
 
     public static void Main(){
         ApplicationConfiguration.Initialize();

@@ -154,7 +154,7 @@ struct Polygon{
 		return result.ToArray();
 	}
 }
-struct Mesh : IEnumerable{
+class Mesh : IEnumerable{
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}
     List<Polygon> mesh;
@@ -229,7 +229,7 @@ struct Mesh : IEnumerable{
     IEnumerator IEnumerable.GetEnumerator(){return (IEnumerator)GetEnumerator();}
     public MeshEnum GetEnumerator(){ return new MeshEnum(mesh);}
 }
-struct MeshEnum : IEnumerator{
+class MeshEnum : IEnumerator{
     public Polygon[] mesh;
     int position = -1;
     public MeshEnum(IEnumerable<Polygon> mesh){
