@@ -17,7 +17,8 @@ struct Polygon{
         float ab = Vector3.GetRotation(this).Magnitude;
         return (float)(.5f * ac * bc * Math.Sin(ab));
     }}
-    public Point[] UVPoints{get; private set;}
+    Point[] uPoints;
+    public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{this.uPoints = value;}}
     public void UpdateTexture(Point[] uv){this.UVPoints = uv;}
     public Vector3 Normal{
         get{
@@ -35,15 +36,23 @@ struct Polygon{
         return (a*b)*c;
     }
     }
+    public Polygon(Vector3 a, Vector3 b, Vector3 c, IEnumerable<Point> uVPoints){
+        this.A = a;
+        this.B = b;
+        this.C = c;
+        this.uPoints = uVPoints.ToArray();
+    }
     public Polygon(Vector3 a, Vector3 b, Vector3 c){
         this.A = a;
         this.B = b;
         this.C = c;
+        this.uPoints = new Point[0];
     }
     public Polygon(){
         this.A = new Vector3();
         this.B = new Vector3();
         this.C = new Vector3();
+        this.uPoints = new Point[0];
     }
     public static Polygon PolyClip(Polygon target, Vector3 focus, float Range){
         (bool a, bool b, bool c) item_ = (true, true, true);
@@ -97,23 +106,26 @@ struct Polygon{
         }
         return result;
     }
-    public Color Shade(Light light, Color c = TrueColor.Grey){
+    public Color Shade(Light light, Color? c = null){
+        if(c == null){c = Color.Gray;}
         int ColorIntensity = (int)(Vector3.DProduct(this.Normal, light.Source.GetNormal())*(1/Vector3.GetDistance(this.origin, light.Source)));
-        return Color.FromArgb((255* ColorIntensity* (1/light.Color.A + 1/c.A)), (255* ColorIntensity* (1/light.Color.R + 1/c.R)) 
-        (255* ColorIntensity* (1/light.Color.G + 1/c.G)), (255* ColorIntensity* (1/light.Color.B + 1/c.B)));
+        return Color.FromArgb(255* ColorIntensity* (1/light.Colour.A + 1/c.Value.A), 255* ColorIntensity* (1/light.Colour.R + 1/c.Value.R),
+        255* ColorIntensity* (1/light.Colour.G + 1/c.Value.G), 255* ColorIntensity* (1/light.Colour.B + 1/c.Value.B));
     }
-    public Color Shade(IEnumerable<Light> light, IEnumerable<Color>? colors = null){
-        Color[] c = new Color[light.Count()];
-        for(int cc =0; cc< c.Length;cc++){
-            c[cc] = this.Shade(light.GetItem(cc), c == null? Color.Grey:colors.GetItem(cc));
+    /// <summary>
+    /// Shade a polygon according to the color parameter an the light.
+    /// </summary>
+    /// <param name="lights">The lights to be taken into consideration.</param>
+    /// <param name="color">The color the polygon should be shaded to.</param>
+    /// <returns>A color shade.</returns>
+    public Color Shade(IEnumerable<Light> lights, Color color){
+        Color C = color;
+        foreach(Light light in lights){
+            C = this.Shade(light, C);
         }
-        Color result = Color.Black;
-        foreach(Color C in c){
-            result = Color.FromARGB(1/(result.A+C.A), 1/(result.R+C.R), 1/(result.G+C.G), 1/(result.B+C.B));
-        }
-        return result;
+        Color result = Color.Gray;
+        return Color.FromArgb(1/(result.A+C.A), 1/(result.R+C.R), 1/(result.G+C.G), 1/(result.B+C.B));
     }
-
 
 	public static Polygon operator +(Polygon a, Vector3 b){
 		return new Polygon(a.A + b, a.B + b, a.C + b);
@@ -127,6 +139,8 @@ struct Polygon{
 	public static bool operator !=(Polygon a, Polygon b){
 		return !(a == b);
 	}
+    public override bool Equals(object? obj){if(obj == null){return false;}else{return this == (Polygon)obj;}}
+    public override int GetHashCode(){return (this.A.GetHashCode() + this.B.GetHashCode() + this.C.GetHashCode())/32;}
 	/// <summary>
 	///  Create a mesh.
 	/// </summary>
@@ -221,9 +235,16 @@ class Mesh : IEnumerable{
 	public static bool operator !=(Mesh m, Mesh m2){
 		return !(m == m2);
 	}
-    public explicit operator Mesh(IEnumerable<Polygon> polygons){
-        return new Mesh(polygons);
+    public override bool Equals(object? obj){if(obj == null){return false;}else{return this == (Mesh)obj;}}
+    public override int GetHashCode(){
+        int result = 0;
+        foreach(Polygon p in this){
+            result += p.GetHashCode();
+            result /= 2;
+        }
+        return result;
     }
+    public static explicit operator Mesh(Polygon[] polygons){return new Mesh(polygons);}
 
 
     IEnumerator IEnumerable.GetEnumerator(){return (IEnumerator)GetEnumerator();}

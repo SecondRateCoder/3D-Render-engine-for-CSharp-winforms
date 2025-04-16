@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 /// <summary>
 ///  A 3-dimensional point and rotation.
 /// </summary> 
@@ -102,7 +104,12 @@ struct Vector3{
         }
         
     }
-
+    public Vector3 Tangent(){
+        this.X = (float)Math.Tan(this.X);
+        this.Y = (float)Math.Tan(this.Y);
+        this.Z = (float)Math.Tan(this.Z);
+        return this;
+    }
     public void Normalise(){
         this/=this.Magnitude;
     }
@@ -127,8 +134,8 @@ struct Vector3{
         this.Z = Math.Abs(this.Z);
         return this;
     }
-    public explicit operator Point(Vector3 v){return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}
-    public explicit operator List<float>(Vector3 v){return new List<float>(){v.X, v.Y, v.Z};}
+    public static explicit operator Point(Vector3 v){return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}
+    public static explicit operator List<float>(Vector3 v){return new List<float>(){v.X, v.Y, v.Z};}
     public static explicit operator byte[](Vector3 v){
         List<byte> result = [.. BitConverter.GetBytes(v.X)];
         result.AddRange(BitConverter.GetBytes(v.Y));
@@ -139,6 +146,12 @@ struct Vector3{
         Vector3 me = this;
         me.Normalise();
         return new Vector3(this.X/me.X, this.Y/me.Y, this.Z/me.Z);
+    }
+    public byte[] ToBytes(){
+        byte[] result = BitConverter.GetBytes(this.X);
+        _=result.Concat(BitConverter.GetBytes(this.Y));
+        _=result.Concat(BitConverter.GetBytes(this.Z));
+        return result;
     }
     ///<summary>
     /// Get the distance from 2 vectors, as a float;
@@ -189,6 +202,15 @@ struct Vector3{
         b.Normalise();
         return (a.X*b.X)+(a.Y*b.Y)+(a.Z*b.Z);
     }
+    public override bool Equals(object? obj){if(obj == null){return false;}else{return this == (Vector3)obj;}}
+    static byte[] ComputeHmacSha1Hash(string rawData, string key){
+        using (HMACSHA1 hmacSha1 = new HMACSHA1(System.Text.Encoding.UTF8.GetBytes(key))){
+            byte[] bytes = hmacSha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawData));
+            hmacSha1.Dispose();
+            return bytes;
+        }
+    }
+    public override int GetHashCode(){return BitConverter.ToInt32(ComputeHmacSha1Hash($"{this.X} {this.Y} {this.Z}", ""));}
     public static Vector3 Transform(Vector3 value, System.Numerics.Quaternion rotation){
         float x2 = rotation.X + rotation.X;
         float y2 = rotation.Y + rotation.Y;
@@ -287,22 +309,9 @@ struct Vector3{
             return false;
         }
     }
-    public override bool Equals(object obj)
-    {
-        if (obj == null || GetType() != obj.GetType()){
-            return false;
-        }
-        return base.Equals (obj);
-    }
-    
-    public override int GetHashCode()
-    {
-        return base.GetHashCode();
-    }
+
 }
-/// <summary>
-/// Represents a 3-Dimensional object.
-/// </summary>
+/// <summary>Represents a 3-Dimensional object.</summary>
 class gameObj{
     public string Name;
     public Mesh Children;
@@ -324,24 +333,16 @@ class gameObj{
         }
     }
     public Vector3 Rotation{
-        get{
-            return this.rotation;
-        }
-        set{
-            this.rotation = this.Children != null && this.Children.Count > 0? value: Vector3.zero;
-        }
+        get{return this.rotation;}
+        set{this.rotation = this.Children.Count > 0? value: Vector3.zero;}
     }
     public int CollisionRange{
         get{
-            if(Children != null){
-                float result = Children[0].Furthest(this.Position);
-                for(int cc = 1; cc<Children.Count;cc++){
-                    result = result > Children[cc].Furthest(this.Position)? result: Children[cc].Furthest(this.Position);
-                }
-                return (int)(result+.5);
-            }else{
-                return 0;
+            float result = Children[0].Furthest(this.Position);
+            for(int cc = 1; cc<Children.Count;cc++){
+                result = result > Children[cc].Furthest(this.Position)? result: Children[cc].Furthest(this.Position);
             }
+            return (int)(result+.5);
             
         }
     }
@@ -404,7 +405,7 @@ class gameObj{
     public gameObj(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         this.Position = position;
         if(children == null){
-            this.Children.AddRange(Polygon.Mesh());
+            this.Children = (Mesh)Polygon.Mesh();
         }else{
             this.Children = new Mesh(children.ToList());
         }
@@ -460,18 +461,7 @@ class Camera{
     ///</summary>
     ///<remarks>This property cant be changed after being assigned.</remarks>
     public float far{get{return fov_;} set{fov_ = (fov_ == 0? value: fov_);}}
-    private static Form form_;
-    public static Form form{
-        get{
-            return form_;
-        }
-        set{
-            while(Form.ActiveForm == null){
-                Thread.Sleep(500);
-            }
-            form_ = Form.ActiveForm;
-        }
-    }
+    public static Form? form{get{return Form.ActiveForm;}}
     public Camera(float Fov = 15f, Vector3? pos = null, Vector3? rot = null){
         this.far = Fov;
         this.Position = pos == null? Vector3.zero: pos.Value;
