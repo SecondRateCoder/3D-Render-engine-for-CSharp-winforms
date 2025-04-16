@@ -91,12 +91,7 @@ static class StorageManager{
 	}
 }
 class Path{
-	public string this[string newPath]{
-		get{return this.filePath;}
-		set{this.Update(value);}
-	}
 	string filePath;
-	string buffer;
 	string? fileExtension;
 	bool Directory;
 	public Path(string filePath, string? fileExtension, bool Directory){
@@ -117,6 +112,7 @@ class Path{
 		if(System.IO.Directory.Exists(newPath) && Directory){this.filePath = newPath;	return true;}else 
 		if(File.Exists(newPath) && new FileInfo(newPath).Extension == this.fileExtension){this.filePath = newPath;	return true;}else{return false;}
 	}
+	public string Get(){return this.filePath;}
 	bool Exists(string path){
 		if(File.Exists(path)){return true;}else 
 		if(System.IO.Directory.Exists(path)){return true;}else{return false;}
