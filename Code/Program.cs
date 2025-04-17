@@ -5,6 +5,7 @@ class Entry{
     public static CancellationTokenSource cts{get; private set;}
     public static ElapsedEventHandler TUpdate;
     public static Action Update;
+    static BackgroundWorker bWorker = new BackgroundWorker();
     public static Action Start;
     static Brush def;
     
@@ -17,14 +18,13 @@ class Entry{
         cts = new CancellationTokenSource();
 		Start = ExternalControl.StartTimer;
 		Update = Paint3D;
-        Start += async() => {
-            await Task.Delay(0);
-            while(!Entry.cts.IsCancellationRequested){
-                Entry.Update();
-            }
-        };
+        bWorker.DoWork += Loop;
 		Application.Run(f);
     }
+    static void Loop(object @object, DoWorkEventArgs WorkArgs){
+        while(!Entry.cts.IsCancellationRequested){
+            if(Update != null){Entry.Update();}
+        }}
 
     //Paint the enviroment.
     static void Paint3D(){
