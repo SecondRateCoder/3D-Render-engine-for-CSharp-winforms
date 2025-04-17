@@ -2,6 +2,7 @@ using SharpDX;
 
 class WriteableBitmap{
     Bitmap bmp
+    public Bitmap Get(){return this.bmp;}
     public void PutPixel(int x, int y, Color c){bmp.SetPixel(x, y, c);}
     public Color GetPixel(int x, int y){return bmp.GetPixel(x, y);}
     public int pixelHeight{get{return bmp.Height;}}
@@ -27,7 +28,12 @@ class WriteableBitmap{
         }
     }
     public void Update(byte a, byte r, byte g, byte b, int x, int y){
-        bmp.SetPixel(new Color((int)a, (int)r, (int)g, (int)b));
+        bmp.SetPixel(x, y, new Color((int)a, (int)r, (int)g, (int)b));
+    }
+    public void Update((Point p, Color c)[] TextureData){
+        foreach((Point p, Color c) bit in TextureData){
+            bmp.SetPixel(p.X, p.Y, c);
+        }
     }
     public void Update(byte[] bytes){
         int cc =0;
@@ -43,9 +49,11 @@ class WriteableBitmap{
     }
     public static explicit operator WriteableBitmap(Bitmap bmp){return new WriteableBitmap(bmp.RawFormat.GUID.ToBytes());}
 }
+
 static partial class Viewport{
     static byte[] backBuffer;
     static WriteableBitmap bmp;
+    public static Bitmap Get(){return bmp.Get();}
     public static void Update(WriteableBitmap Bmp){
         bmp = Bmp;
         backBuffer = new byte[bmp.pixelWidth * bmp.pixelHeight * 4];

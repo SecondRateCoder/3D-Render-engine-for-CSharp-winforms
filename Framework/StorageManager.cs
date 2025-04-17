@@ -93,6 +93,7 @@ static class StorageManager{
 class Path{
 	string filePath;
 	string? fileExtension;
+	string[] fileExtensions;
 	bool Directory;
 	public Path(string filePath, string? fileExtension, bool Directory){
 		//Check if there is something at the specified path.
@@ -104,8 +105,25 @@ class Path{
 			this.fileExtension = null;}else
 		if(!Directory && !(string.IsNullOrEmpty(fileExtension) | string.IsNullOrWhiteSpace(fileExtension))){
 			this.Directory = false;
-			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException("Path", new ArgumentException());
 			this.fileExtension = new FileInfo(filePath).Extension != fileExtension || string.IsNullOrEmpty(fileExtension)? new FileInfo(filePath).Extension: fileExtension;
+			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException("Path", new ArgumentException());
+		}
+	}
+	public Path(string filePath, string[]? fileExtensions, bool Directory){
+		//Check if there is something at the specified path.
+		if(!Exists(filePath)){throw new TypeInitializationException("Path", new ArgumentException());}
+		//Check if the item there is a directory.
+		if(Directory && fileExtensions == null){
+			this.Directory = Exists(filePath) | System.IO.Directory.Exists(filePath);		
+			this.filePath = Directory? filePath: throw new TypeInitializationException("Path", new ArgumentException());
+			this.fileExtension = null;}else
+		if(!Directory && fileExtension.Count > 0){
+			this.Directory = false;
+			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException("Path", new ArgumentException());
+			this.fileExtensions = new string[0];
+			foreach(string s in fileExtensions){
+				this.fileExtensions.Add(new FileInfo(filePath).Extension != s || string.IsNullOrEmpty(fileExtension)? new FileInfo(filePath).Extension: s);
+			}
 		}
 	}
 	public bool Update(string newPath){
@@ -117,4 +135,7 @@ class Path{
 		if(File.Exists(path)){return true;}else 
 		if(System.IO.Directory.Exists(path)){return true;}else{return false;}
 	}
+	public static Path operator +(Path p, string s){return p.Update(s);}
+	public static implicit operator string(Path p){return p.Get();}
+	public static explicit operator Path(string s){return new Path(s, File.Exists(s)? new FileInfo(s).Extension, false);}
 }

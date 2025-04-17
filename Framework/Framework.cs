@@ -110,9 +110,6 @@ struct Vector3{
         this.Z = (float)Math.Tan(this.Z);
         return this;
     }
-    public void Normalise(){
-        this/=this.Magnitude;
-    }
     /// <summary>
     ///  Rotate this vector around Origin, by Rotation.
     /// </summary>
@@ -134,13 +131,14 @@ struct Vector3{
         this.Z = Math.Abs(this.Z);
         return this;
     }
-    public static explicit operator Point(Vector3 v){return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}
-    public static explicit operator List<float>(Vector3 v){return new List<float>(){v.X, v.Y, v.Z};}
-    public static explicit operator byte[](Vector3 v){
-        List<byte> result = [.. BitConverter.GetBytes(v.X)];
-        result.AddRange(BitConverter.GetBytes(v.Y));
-        result.AddRange(BitConverter.GetBytes(v.Z));
-        return result.ToArray();
+    public void Normalise(){
+        this/=this.Magnitude;
+    }
+    public Vector3 GetNormalised(){
+        Vector3 v = this;
+        this.Normalise();
+        this = v;
+        return v;
     }
     public Vector3 GetNormal(){
         Vector3 me = this;
@@ -152,6 +150,29 @@ struct Vector3{
         _=result.Concat(BitConverter.GetBytes(this.Y));
         _=result.Concat(BitConverter.GetBytes(this.Z));
         return result;
+    }
+    
+    public static float ComputeDot(Vector3 vector, Vector3 lightPosition){
+        Vector3 normal = vector.GetNormal().GetNormalised();
+        lightPosition.Normalise();
+        return Math.Max(0, Vector3.DProduct(normal, lightPosition - vector));
+    }
+    public override bool Equals(object? obj){if(obj == null){return false;}else{return this == (Vector3)obj;}}
+    static byte[] ComputeHmacSha1Hash(string rawData, string key){
+        using (HMACSHA1 hmacSha1 = new HMACSHA1(System.Text.Encoding.UTF8.GetBytes(key))){
+            byte[] bytes = hmacSha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawData));
+            hmacSha1.Dispose();
+            return bytes;
+        }
+    }
+    public override int GetHashCode(){return BitConverter.ToInt32(ComputeHmacSha1Hash($"{this.X} {this.Y} {this.Z}", ""));}
+    public static explicit operator Point(Vector3 v){return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}
+    public static explicit operator List<float>(Vector3 v){return new List<float>(){v.X, v.Y, v.Z};}
+    public static explicit operator byte[](Vector3 v){
+        List<byte> result = [.. BitConverter.GetBytes(v.X)];
+        result.AddRange(BitConverter.GetBytes(v.Y));
+        result.AddRange(BitConverter.GetBytes(v.Z));
+        return result.ToArray();
     }
     ///<summary>
     /// Get the distance from 2 vectors, as a float;
@@ -202,15 +223,6 @@ struct Vector3{
         b.Normalise();
         return (a.X*b.X)+(a.Y*b.Y)+(a.Z*b.Z);
     }
-    public override bool Equals(object? obj){if(obj == null){return false;}else{return this == (Vector3)obj;}}
-    static byte[] ComputeHmacSha1Hash(string rawData, string key){
-        using (HMACSHA1 hmacSha1 = new HMACSHA1(System.Text.Encoding.UTF8.GetBytes(key))){
-            byte[] bytes = hmacSha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawData));
-            hmacSha1.Dispose();
-            return bytes;
-        }
-    }
-    public override int GetHashCode(){return BitConverter.ToInt32(ComputeHmacSha1Hash($"{this.X} {this.Y} {this.Z}", ""));}
     public static Vector3 Transform(Vector3 value, System.Numerics.Quaternion rotation){
         float x2 = rotation.X + rotation.X;
         float y2 = rotation.Y + rotation.Y;
@@ -258,6 +270,11 @@ struct Vector3{
         a.Y *= b;
         a.Z *= b;
         return a;
+    }
+    public static Vector3 operator *(Vector3 a, Point b){
+        a.Normalise();
+        b.Normalise();
+        return new Vector3((a.X/a.Z)*b.X, (a.Y/a.Z)*b.Y, 0);
     }
     public static Vector3 operator *(float b, Vector3 a){
         a.X *= b;

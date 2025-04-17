@@ -1,6 +1,40 @@
 using System.Collections;
 
+/*
+struct Equation{
+    public float XCoff;
+    public float Y_intercept;
+    public Equation(float X_coefficient, float Y_intercept){
+        this.XCoff = X_coefficient;
+        this.Y_intercept = Y_intercept;
+    }
+    public Equate(float X){
+        return (X * XCoff) + Y_intercept;
+    }
+    public EquateR(float Y){
+        return (Y - Y_intercept)/XCoff;
+    }
+    public static Equation FomPoints(Point a, Point b){
+        //Simultaenous equation.
+        float gradient = (a.Y - b.Y)/(a.X - b.X);
+        float y-intercept = a.Y - (a.X * gradient);
+        return new Equation(gradient, y_intercept);
+    }
+}
+struct PolyEquation{
+    public Equation A;
+    public Equation B;
+    public Equation C;
+    public PolyEquation(Equation a, Equation b, Equation c){
+        this.A = a;
+        this.B = b;
+        this.C = c;
+    }
+    public Point SolveAB(int x){
 
+    }
+}
+*/
 struct Polygon{
     public Vector3 A;
     public Vector3 B;
@@ -19,28 +53,19 @@ struct Polygon{
     }}
     Point[] uPoints;
     public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{this.uPoints = value;}}
-    public void UpdateTexture(Point[] uv){this.UVPoints = uv;}
+    public void UpdateTexture(Point[] uv){UVPoints = new Point[3]; UVPoints[0] = uv[0]; UVPoints[1] = uv[1]; UVPoints[2] = uv[2];}
     public Vector3 Normal{
         get{
             Vector3 a = Vector3.CProduct(this.A, this.B);
             Vector3 b = Vector3.CProduct(this.A, this.C);
             return Vector3.CProduct(a, b);}
     }
-    public Vector3 Rotation{get{
-        Vector3 a = Vector3.GetRotation(A, origin);
-        a.Tangent();
-        Vector3 b = Vector3.GetRotation(A, origin);
-        b.Tangent();
-        Vector3 c = Vector3.GetRotation(C, origin);
-        c.Tangent();
-        return (a*b)*c;
-    }
-    }
+    public Vector3 Rotation{get{return Vector3.GetRotation(this);}}
     public Polygon(Vector3 a, Vector3 b, Vector3 c, IEnumerable<Point> uVPoints){
         this.A = a;
         this.B = b;
         this.C = c;
-        this.uPoints = uVPoints.ToArray();
+        this.UpdateTexture(uVPoints.ToArray());
     }
     public Polygon(Vector3 a, Vector3 b, Vector3 c){
         this.A = a;
@@ -108,9 +133,13 @@ struct Polygon{
     }
     public Color Shade(Light light, Color? c = null){
         if(c == null){c = Color.Gray;}
+        return Color.FromArgb(c.A * Math.Max(0, Vector3.DProduct(this.Normal, light.Position)));
+        /*
         int ColorIntensity = (int)(Vector3.DProduct(this.Normal, light.Source.GetNormal())*(1/Vector3.GetDistance(this.origin, light.Source)));
         return Color.FromArgb(255* ColorIntensity* (1/light.Colour.A + 1/c.Value.A), 255* ColorIntensity* (1/light.Colour.R + 1/c.Value.R),
         255* ColorIntensity* (1/light.Colour.G + 1/c.Value.G), 255* ColorIntensity* (1/light.Colour.B + 1/c.Value.B));
+
+        */
     }
     /// <summary>
     /// Shade a polygon according to the color parameter an the light.
@@ -172,15 +201,11 @@ class Mesh : IEnumerable{
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}
     List<Polygon> mesh;
-    public int Count{get{return this.mesh.Count;}}
-    public float Volume{get{
-        float buffer = 0f;
-        foreach(Polygon p in this.mesh){buffer += p.Area;}
-        return buffer;
-    }}
+    public Polygon[] Get(){return this.mesh;}
 	public void Add(Polygon poly){mesh.Add(poly);}
 	public void AddRange(IEnumerable<Polygon> polygons){mesh.AddRange(polygons);}
 	public void RemoveAt(int index){this.mesh.RemoveAt(index);}
+    public void Remove(Polygon p){this.mesh.Remove(p);}
 	public List<Polygon> ToList(){return this.mesh;}
     
 
@@ -197,12 +222,19 @@ class Mesh : IEnumerable{
 			}
 		});
     }
+    public Mesh ViewPortClip(){
+        Camera cam = World.cams[World.camIndex];
+        Mesh m = this;
+        foreach(Polygon p in m){
+            float Sim = Vector3.DProduct(p.Normal, cam.Position * cam.Rotation.GetNormalised());
+            if(Sim < 0){this.mesh.Remove(p);}
+        }
+        return m;
+    }
     public Polygon this[int index]{
         get{return mesh[index];}
         set{mesh[index] = value;}
     }
-
-    
     /// <summary>
     ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
     /// </summary>
@@ -245,7 +277,7 @@ class Mesh : IEnumerable{
         return result;
     }
     public static explicit operator Mesh(Polygon[] polygons){return new Mesh(polygons);}
-
+    public static explicit operator Polygon[](Mesh mesh){return mesh.Get();}
 
     IEnumerator IEnumerable.GetEnumerator(){return (IEnumerator)GetEnumerator();}
     public MeshEnum GetEnumerator(){ return new MeshEnum(mesh);}

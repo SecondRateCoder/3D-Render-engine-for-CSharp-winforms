@@ -41,15 +41,44 @@ static partial class ViewPort{
         {0f, 0f, World.cams[World.camIndex].far/(World.cams[World.camIndex].far-World.cams[World.camIndex].near), -World.cams[World.camIndex].far*World.cams[World.camIndex].near/(World.cams[World.camIndex].far-World.cams[World.camIndex].near)},
         {0f, 0f, 1f, 0f}};
 
+
+
+
+    /// <summary>
+    /// <summary>
+    ///  This overload takes the parameter data from the static World class.
+    /// </summary> 
+    /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creates a cube to be rendered./></remarks>
+    public static (Point p, Color c)[] Convert_(){
+        Polygon[] buffer;
+        (Point p, Color c)[] TextureData = (Point p, Color c)[0];
+        if(World.worldData.Count == 0){
+            gameObj gO = new gameObj(Vector3.zero, Vector3.zero, Polygon.Mesh(1, 0, 1, 4));
+            gO.AddComponent<Texturer>();
+            buffer = gO.Children.ViewPortClip();
+            TextureData = gO.GetComponent<TextureData>().Texture(buffer);
+        }else{
+            foreach(gameObj gO in World.worldData){
+                buffer.AddRange(gO.Children.ViewPortClip());
+                TextureData.AddRange(gO.GetComponent<Texturer>().Texture(gO.Children.ViewPortClip()));
+            }
+        }
+        //TextureData has been fully filled.
+        //Transform each Polygon to screen-space and using th normalised point and normalised Polygon to get the position of the color point;
+        
+    }
+        /*
+        
+        
     
     /// <summary>
     /// <summary>
     ///  This overload takes the parameter data from the static World class.
     /// </summary> 
-    /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creats a cube to be rendered./></remarks>
+    /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creates a cube to be rendered./></remarks>
     static (Point p, Color color)[] Convert_(){
         if(World.worldData.Count == 0){gameObj gO = new gameObj(Vector3.zero, Vector3.zero, Polygon.Mesh(1, 0, 1, 4));}
-        List<(Color[], Polygon)> parameter = List<(Color[], Polygon)>(gO.Children.Count);#
+        List<(Color[], Polygon)> parameter = List<(Color[], Polygon)>(gO.Children.Count);
         Color[] colors = new Color[(int)gO.Children.Volume];
         for(int cc_=0;cc_ < colors.Length;cc_++){
             colors[cc_] = Color.Grey;
@@ -100,6 +129,8 @@ static partial class ViewPort{
         }
         return result;
     }
+        
+        */
     static Polygon Multiply(Polygon polygon){
         Polygon CalcBuffer = new Polygon();
         float wA = 1;

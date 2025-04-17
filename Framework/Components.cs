@@ -20,7 +20,7 @@ class Empty : Rndrcomponent{
 
 }
 class Texturer : Rndrcomponent{
-    public override int Size{get;}
+    public override int Size{get{return 0;}}
     public override byte[] ToByte(){
         return Encoding.UTF8.GetBytes(this.filePath);
     }
@@ -52,18 +52,12 @@ class Texturer : Rndrcomponent{
         }
     }
     public (int width, int height) imgDimensions{get; private set;}
-    string relativeProp;
-    public string relativePath{get{return AppDomain.CurrentDomain.BaseDirectory+relativeProp;} 
-        set{if(AppDomain.CurrentDomain.BaseDirectory+value != filePath || 
-            ((string.IsNullOrEmpty(filePath) | string.IsNullOrEmpty(filePath)) && !File.Exists(AppDomain.CurrentDomain.BaseDirectory+value))){}}}
-    string fileProp;
-    public string filePath{get{return fileProp;} set{if(File.Exists(value)){fileProp = StorageManager.filePath+value;}else{fileProp =AppDomain.CurrentDomain.BaseDirectory+@"Cache\Images\GrassBlock.png";}}}
-    public Texturer(){filePath = StorageManager.filePath + @"Cache\Images\Grass Block.png";}
+    Path filePath;    
+    public Texturer(){filePath = new Path(StorageManager.filePath + @"Cache\Images\Grass Block.png", [".png", ".bmp", ".jpeg"], false);}
     public Texturer(string? path = null){
-        filePath = path == null || ? StorageManager.filePath+@"Cache\Images\Grass Block.png": path;
+        filePath = path == null || ? (Path)(StorageManager.filePath+@"Cache\Images\Grass Block.png"): (Path)path;
         Bitmap image = (Bitmap)Image.FromFile(filePath);
         imgDimensions = (image.Width, image.Height);
-        
     }
     public new void Dispose(bool disposing = true){
         if (disposing && (finfo != null)){
@@ -74,18 +68,26 @@ class Texturer : Rndrcomponent{
     }
     public void Reset(string Path){
         this.Dispose(true);
-        this.filePath = Path;
+        this.filePath = (Path)Path;
         img = File.ReadAllBytes(filePath);
     }
-    public Color[]? Texture(Polygon p){
+    public (Point p, Color c)[]? Texture(IEnumerable<Polygon> polygons){
+        (Point p, Color c)[] result = new (Point p, Color c)[0];
+        for(int cc =0; cc< polygons.Count();cc++){result.Add(this.Texture(polygons[cc]));}
+        return result;
+    }
+    public (Point p, Color c)[]? Texture(Polygon p){
         return Texture(p.UVPoints);
     }
-    public Color[]? Texture(Point[] UVPoints){
-        Color[] result = new Color[0];
-        Point p = new Point();
+    public (Point p, Color c)[]? Texture(Polygon p){
+        //Need to use PolyEquation to simulate the bounds of the Polygon on the image.
+        PolyEquation pE = new PolyEquation(Equation.FromPoints(p.UVPoints[0], p.UVPoints[1]), Equation.FromPoints(p.UVPoints[1], p.UVPoints[2]), Equation.FromPoints(p.UVPoints[2], p.UVPoints[0]));
+        
+        (Point p, Color c)[] result = new (Point p, Color c)[0];
         for(int cc =0;cc < UVPoints.Length;cc++){
             int index = (UVPoints[cc].X + (UVPoints[cc].Y*imgDimensions.Width))*4;
-            result.Add(Color.FromARGB(img[index], img[index+1], img[index+2], img[index+3]));
+            //TODO Need to iterate through the shape created.
+            result.Add((UVPoints[cc], Color.FromARGB(img[index], img[index+1], img[index+2], img[index+3])));
         }
         return result;
     }
