@@ -61,12 +61,14 @@ struct Polygon{
             return Vector3.CProduct(a, b);}
     }
     public Vector3 Rotation{get{return Vector3.GetRotation(this);}}
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Polygon(Vector3 a, Vector3 b, Vector3 c, IEnumerable<Point> uVPoints){
         this.A = a;
         this.B = b;
         this.C = c;
         this.UpdateTexture(uVPoints.ToArray());
     }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Polygon(Vector3 a, Vector3 b, Vector3 c){
         this.A = a;
         this.B = b;
@@ -133,12 +135,11 @@ struct Polygon{
     }
     public Color Shade(Light light, Color? c = null){
         if(c == null){c = Color.Gray;}
-        return Color.FromArgb(c.A * Math.Max(0, Vector3.DProduct(this.Normal, light.Position)));
+        return Color.FromArgb((int)(c.Value.A * Math.Max(0, Vector3.DProduct(this.Normal, light.Source))));
         /*
         int ColorIntensity = (int)(Vector3.DProduct(this.Normal, light.Source.GetNormal())*(1/Vector3.GetDistance(this.origin, light.Source)));
         return Color.FromArgb(255* ColorIntensity* (1/light.Colour.A + 1/c.Value.A), 255* ColorIntensity* (1/light.Colour.R + 1/c.Value.R),
         255* ColorIntensity* (1/light.Colour.G + 1/c.Value.G), 255* ColorIntensity* (1/light.Colour.B + 1/c.Value.B));
-
         */
     }
     /// <summary>
@@ -201,7 +202,8 @@ class Mesh : IEnumerable{
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}
     List<Polygon> mesh;
-    public Polygon[] Get(){return this.mesh;}
+    public int Count{get{return this.mesh.Count;}}
+    public Polygon[] Get(){return this.mesh.ToArray();}
 	public void Add(Polygon poly){mesh.Add(poly);}
 	public void AddRange(IEnumerable<Polygon> polygons){mesh.AddRange(polygons);}
 	public void RemoveAt(int index){this.mesh.RemoveAt(index);}
