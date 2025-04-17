@@ -18,7 +18,7 @@ class Entry{
 		Start = ExternalControl.StartTimer;
 		Update = Paint3D;
         Start += async() => {
-            await Task.Delay();
+            await Task.Delay(0);
             while(!Entry.cts.IsCancellationRequested){
                 Entry.Update();
             }

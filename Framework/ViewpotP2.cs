@@ -1,12 +1,13 @@
+using System.Drawing.Imaging;
 using SharpDX;
 
 class WriteableBitmap{
-    Bitmap bmp
+    Bitmap bmp;
     public Bitmap Get(){return this.bmp;}
     public void PutPixel(int x, int y, Color c){bmp.SetPixel(x, y, c);}
     public Color GetPixel(int x, int y){return bmp.GetPixel(x, y);}
-    public int pixelHeight{get{return bmp.Height;}}
-    public int pixelWidth{get{return bmp.Width;}}
+    public int pixelHeight{get; private set;}
+    public int pixelWidth{get; private set;}
     public int Count{get{return pixelWidth*pixelHeight;}}
     Color this[int x, int y]{
         get{
@@ -16,38 +17,44 @@ class WriteableBitmap{
     }
     public WriteableBitmap(IEnumerable<byte> bytes, int Width = 0, int Height = 0){
         bmp = new Bitmap(Width, Height);
+		this.pixelHeight = Height;
+		this.pixelWidth = Width;
         int cc =0;
         for(int y =0;y < Height;y++){
             for(int x =0;x < Width;x++, cc+=4){
                 if(cc >= bytes.Count()){
                     bmp.SetPixel(x, y, Color.Black);
                 }else{
-                    bmp.SetPixel(x, y, new Color((byte)bytes.GetItem(cc), (byte)bytes.GetItem(cc), (byte)bytes.GetItem(cc), (byte)bytes.GetItem(cc)));
+                    bmp.SetPixel(x, y, Color.FromArgb((byte)bytes.ElementAt(cc), (byte)bytes.ElementAt(cc), (byte)bytes.ElementAt(cc), (byte)bytes.ElementAt(cc)));
                 }
             }
         }
     }
-    public void Update(byte a, byte r, byte g, byte b, int x, int y){
-        bmp.SetPixel(x, y, new Color((int)a, (int)r, (int)g, (int)b));
+    public void set(byte a, byte r, byte g, byte b, int x, int y){
+        bmp.SetPixel(x, y, Color.FromArgb((int)a, (int)r, (int)g, (int)b));
     }
-    public void Update((Point p, Color c)[] TextureData){
-        foreach((Point p, Color c) bit in TextureData){
-            bmp.SetPixel(p.X, p.Y, c);
-        }
+    public void Set((Point p, Color c)[] TextureData){
+        foreach((Point p, Color c) bit in TextureData){bmp.SetPixel(bit.p.X, bit.p.Y, bit.c);}
     }
-    public void Update(byte[] bytes){
+    public void Update(IEnumerable<byte> bytes){
         int cc =0;
-        for(int y =0;y < Height;y++){
-            for(int x =0;x < Width;x++, cc+=4){
-                if(cc >= bytes.Count){
+		if(bytes.Count() > this.pixelHeight * this.pixelWidth){throw new ArgumentOutOfRangeException();}
+        for(int y =0;y < this.pixelHeight;y++){
+            for(int x =0;x < this.pixelWidth;x++, cc+=4){
+                if(cc >= bytes.Count()){
                     bmp.SetPixel(x, y, Color.Black);
                 }else{
-                    bmp.SetPixel(x, y, new Color((byte)bytes[cc], (byte)bytes[cc+1], (byte)bytes[cc+2], (byte)bytes[cc+3]));
+                    bmp.SetPixel(x, y, Color.FromArgb((byte)bytes.ElementAt(cc), (byte)bytes.ElementAt(cc++), (byte)bytes.ElementAt(cc++), (byte)bytes.ElementAt(cc++)));
                 }
             }
         }
     }
-    public static explicit operator WriteableBitmap(Bitmap bmp){return new WriteableBitmap(bmp.RawFormat.GUID.ToBytes());}
+    public static explicit operator WriteableBitmap(Bitmap bmp){
+		using(MemoryStream mS = new MemoryStream()){
+			bmp.Save(mS, ImageFormat.Bmp);
+			return new WriteableBitmap(mS.ToArray());
+		}
+	}
 }
 
 static partial class Viewport{

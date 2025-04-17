@@ -55,8 +55,7 @@ static class StorageManager{
 					new Vector3(GetFloat(sR), GetFloat(sR), GetFloat(sR)), 
 					new Vector3(GetFloat(sR), GetFloat(sR), GetFloat(sR))));
 				}
-				World[cc] = new gameObj(Pos, Rot, polys);
-				string typeName = "";
+				World[cc] = new gameObj(Pos, Rot, true, polys);
 				int siZe = GetFloat(sR);
 				List<byte> content = new List<byte>();
 				for(int i =0;i < siZe;i++){
@@ -95,7 +94,8 @@ class Path{
 	string? fileExtension;
 	string[] fileExtensions;
 	bool Directory;
-	public Path(string filePath, string? fileExtension, bool Directory){
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    public Path(string filePath, string? fileExtension, bool Directory){
 		//Check if there is something at the specified path.
 		if(!Exists(filePath)){throw new TypeInitializationException("Path", new ArgumentException());}
 		//Check if the item there is a directory.
@@ -107,9 +107,11 @@ class Path{
 			this.Directory = false;
 			this.fileExtension = new FileInfo(filePath).Extension != fileExtension || string.IsNullOrEmpty(fileExtension)? new FileInfo(filePath).Extension: fileExtension;
 			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException("Path", new ArgumentException());
+		}else{
+			throw new TypeInitializationException("Path", new FileNotFoundException());
 		}
 	}
-	public Path(string filePath, string[]? fileExtensions, bool Directory){
+    public Path(string filePath, string[]? fileExtensions, bool Directory){
 		//Check if there is something at the specified path.
 		if(!Exists(filePath)){throw new TypeInitializationException("Path", new ArgumentException());}
 		//Check if the item there is a directory.
@@ -117,25 +119,28 @@ class Path{
 			this.Directory = Exists(filePath) | System.IO.Directory.Exists(filePath);		
 			this.filePath = Directory? filePath: throw new TypeInitializationException("Path", new ArgumentException());
 			this.fileExtension = null;}else
-		if(!Directory && fileExtension.Count > 0){
+		if(fileExtensions != null && !Directory && fileExtensions.Count() > 0){
 			this.Directory = false;
 			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException("Path", new ArgumentException());
-			this.fileExtensions = new string[0];
+			this.fileExtensions = [];
 			foreach(string s in fileExtensions){
-				this.fileExtensions.Add(new FileInfo(filePath).Extension != s || string.IsNullOrEmpty(fileExtension)? new FileInfo(filePath).Extension: s);
+				this.fileExtensions.Append(new FileInfo(filePath).Extension != s || string.IsNullOrEmpty(fileExtension)? new FileInfo(filePath).Extension: s);
 			}
 		}
 	}
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 	public bool Update(string newPath){
 		if(System.IO.Directory.Exists(newPath) && Directory){this.filePath = newPath;	return true;}else 
-		if(File.Exists(newPath) && new FileInfo(newPath).Extension == this.fileExtension){this.filePath = newPath;	return true;}else{return false;}
+		if(File.Exists(newPath) &&( new FileInfo(newPath).Extension == this.fileExtension | this.fileExtensions.Contains(new FileInfo(newPath).Extension))){this.filePath = newPath;	return true;}else{return false;}
 	}
 	public string Get(){return this.filePath;}
 	bool Exists(string path){
 		if(File.Exists(path)){return true;}else 
 		if(System.IO.Directory.Exists(path)){return true;}else{return false;}
 	}
-	public static Path operator +(Path p, string s){return p.Update(s);}
+	public static Path operator +(Path p, string s){
+		if(File.Exists(p+s) && (new FileInfo(p+s).Extension == p.fileExtension | p.fileExtensions.Contains(new FileInfo(p+s).Extension)) | System.IO.Directory.Exists(p+s) && p.Directory == true){
+			p.filePath += s;}return p;}
 	public static implicit operator string(Path p){return p.Get();}
-	public static explicit operator Path(string s){return new Path(s, File.Exists(s)? new FileInfo(s).Extension, false);}
+	public static explicit operator Path(string s){return new Path(s, File.Exists(s)? new FileInfo(s).Extension: throw new FileNotFoundException($"The file at: {s} was not found"), false);}
 }

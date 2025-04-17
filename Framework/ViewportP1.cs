@@ -1,3 +1,5 @@
+using System.Dynamic;
+
 /// <summary>
 ///  This class represents the the Scene and what will be viewed by the user.
 /// </summary>
@@ -7,8 +9,8 @@ static class World{
     public static List<gameObj> worldData = new List<gameObj>();
     public static List<Camera> cams = new List<Camera>(){new Camera()};
     public static int camIndex{get; private set;}
-    public static List<Light> lights = new List<Light>()[new Light(Vector3.zero, Color.White, 15)];
-    public static int[] lightIndex = 0;
+    public static List<Light> lights = new List<Light>(){new Light(Vector3.zero, Color.White, 15)};
+    public static int[] lightIndex = {0};
     public static void setCam(int index){
         if(index < cams.Count){
             camIndex = index;
@@ -17,8 +19,8 @@ static class World{
     public static void SetLights(IEnumerable<int> lights){
         lightIndex = lights.ToArray();
     }
-    public static AddLight(int light){
-        lightIndex.Add(light);
+    public static void AddLight(int light){
+        lightIndex.Append(light);
     }
 }
 
@@ -49,20 +51,28 @@ static partial class ViewPort{
     ///  This overload takes the parameter data from the static World class.
     /// </summary> 
     /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creates a cube to be rendered./></remarks>
-    public static (Point p, Color c)[] Convert_(){
-        Polygon[] buffer;
-        (Point p, Color c)[] TextureData = (Point p, Color c)[0];
+    public async static Task<(Point p, Color c)[]> Convert_(){
+        Polygon[] buffer = [];
+        (Point p, Color c)[] TextureData = [];
         if(World.worldData.Count == 0){
-            gameObj gO = new gameObj(Vector3.zero, Vector3.zero, Polygon.Mesh(1, 0, 1, 4));
-            gO.AddComponent<Texturer>();
-            buffer = gO.Children.ViewPortClip();
-            TextureData = gO.GetComponent<TextureData>().Texture(buffer);
+            gameObj gO = new gameObj(Vector3.zero, Vector3.zero, true, Polygon.Mesh(1, 0, 1, 4));
+            gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
+            await Task.Run(() => {
+                buffer = (Polygon[])gO.Children.ViewPortClip();
+                for(int i = 0;i < buffer.Length;i++){TextureData = gO.GetComponent<Texturer>().Texture(buffer[i]);}
+            });
         }else{
-            foreach(gameObj gO in World.worldData){
-                buffer.AddRange(gO.Children.ViewPortClip());
-                TextureData.AddRange(gO.GetComponent<Texturer>().Texture(gO.Children.ViewPortClip()));
-            }
+            await Task.Run(() => {
+                foreach(gameObj gO in World.worldData){
+                    Polygon[] buffer_ = (Polygon[])gO.Children.ViewPortClip();
+                    buffer.Concat((Polygon[])gO.Children.ViewPortClip());
+                    for(int i = 0;i < buffer_.Length;i++){
+                        if(gO.HasComponent<Texturer>()){TextureData.Concat(gO.GetComponent<Texturer>().Texture(buffer_[i]));}else{continue;}
+                    }
+                }
+            });
         }
+        return [];
         //TextureData has been fully filled.
         //Transform each Polygon to screen-space and using th normalised point and normalised Polygon to get the position of the color point;
         

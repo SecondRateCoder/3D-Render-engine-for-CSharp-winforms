@@ -272,9 +272,10 @@ struct Vector3{
         return a;
     }
     public static Vector3 operator *(Vector3 a, Point b){
+        float aMag = a.Magnitude;
         a.Normalise();
-        b.Normalise();
-        return new Vector3((a.X/a.Z)*b.X, (a.Y/a.Z)*b.Y, 0);
+        b = new Point((int)(b.X/aMag), (int)(b.Y/aMag));
+        return new Vector3(a.X/a.Z*b.X, a.Y/a.Z*b.Y, 0);
     }
     public static Vector3 operator *(float b, Vector3 a){
         a.X *= b;
@@ -330,6 +331,11 @@ struct Vector3{
 }
 /// <summary>Represents a 3-Dimensional object.</summary>
 class gameObj{
+    public static gameObj Empty{
+        get{
+            return new gameObj(Vector3.zero, Vector3.zero, false, [], [], "");
+        }
+    }
     public string Name;
     public Mesh Children;
     public Vector3 Position;
@@ -365,13 +371,17 @@ class gameObj{
     }
 
 
-    public void AddComponent<RComponent>(Type type, RComponent rC) where RComponent : Rndrcomponent{
-        components.Add((type, rC));
+    public void AddComponent<RComponent>(Type? type = null, RComponent? rC = null) where RComponent : Rndrcomponent, new(){
+        components.Add((type == null? typeof(RComponent): type, rC == null? new RComponent(): rC));
     }
     public void AddComponents<RComponent>(IEnumerable<(Type type, RComponent rC)> rC) where RComponent : Rndrcomponent{
         foreach((Type type, RComponent rc) rc in rC){
             components.Add(rc);
         }
+    }
+
+    public bool HasComponent<RComponent>()where RComponent : Rndrcomponent, new(){
+        if(GetComponent<RComponent>() == null){return false;}else{return true;}
     }
     /// <summary>
     /// Get the type of the component at index.
@@ -419,7 +429,7 @@ class gameObj{
     }
 
 
-    public gameObj(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
+    public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         this.Position = position;
         if(children == null){
             this.Children = (Mesh)Polygon.Mesh();
@@ -434,7 +444,7 @@ class gameObj{
         this.Rotation = rotation;
         this.Name = name == null? $"{World.worldData.Count+1}": name;
         World.WorldOrient += this.Translate;
-        World.worldData.Add(this);
+        if(Create){World.worldData.Add(this);}
     }
     
 
