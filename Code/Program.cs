@@ -29,7 +29,12 @@ class Entry{
     //Paint the enviroment.
     static void Paint3D(){
         f.Name = $"TheWindowText, fps: {ExternalControl.fps}";
-        (Point p, Color color)[] values = ViewPort.Convert_();
+        (Point p, Color color)[] values = [
+            (new Point((int)(0.25 * Form.ActiveForm.Width), (int)(0.1 * Form.ActiveForm.Width)), Color.Black), 
+            (new Point((int)(0.75 * Form.ActiveForm.Width), (int)(0.1 * Form.ActiveForm.Width)), Color.Black), 
+            (new Point((int)(0.25 * Form.ActiveForm.Width), (int)(0.9 * Form.ActiveForm.Width)), Color.Black), 
+            (new Point((int)(0.75 * Form.ActiveForm.Width), (int)(0.9 * Form.ActiveForm.Width)), Color.Black), 
+            ];
         for (int cc = 0; cc < values.Length; cc++){
             def = new SolidBrush(values[cc].color);
             f.G.FillRectangle(def, new RectangleF(values[cc].p, new Size(1, 1)));
@@ -43,10 +48,7 @@ static class ExternalControl{
     static void IncrementFrames(){fps++;}
 
     static Timer _1 = new Timer();
-    static object sender;
-    static ElapsedEventArgs e;
     public static void Initialise(){
-        e = (ElapsedEventArgs)new EventArgs();
         _1.AutoReset = true;
         _1.Interval = 1000;
 		_1.Elapsed += Entry.TUpdate;
