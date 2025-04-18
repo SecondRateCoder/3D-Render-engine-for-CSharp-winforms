@@ -18,7 +18,6 @@ class Entry{
 		Start = ExternalControl.StartTimer;
 		Update = Paint3D;
         T = Thread.CurrentThread;
-        Entry.Loop();
         Application.Run(f);
     }
     public static async void Loop(){
@@ -43,19 +42,16 @@ class Entry{
                 (new Point((int)(0.75 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
                 (new Point((int)(0.75 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
                 (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
-                (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
             ];
-        try{
-            List<Point> points = [];
-            for(int cc =0; cc < values.Length; cc++){
-                def = new Pen(values[cc].color, 5);
-                List<Point> Buffer = ViewPort.DrawBLine(values[cc].p, values[cc+1].p).ToList();
-                if(!int.IsEvenInteger(points.Count)){points.RemoveAt(points.Count-1);}
-                points.AddRange(Buffer);
-            }
-            f.G.Clear(Color.White);
-            f.G.DrawLines(def, points.ToArray());
-        }catch(IndexOutOfRangeException){return;}catch(ArgumentException){f.Refresh();}
+        List<Point> points = [];
+        for(int cc =0; cc < values.Length-1; cc++){
+            def = new Pen(values[cc].color, 5);
+            List<Point> Buffer = [.. ViewPort.DrawBLine(values[cc].p, values[cc+1].p)];
+            if(!int.IsEvenInteger(Buffer.Count)){Buffer.RemoveAt(Buffer.Count-1);}
+            points.AddRange(Buffer);
+        }
+        f.G.Clear(Color.White);
+        f.G.DrawLines(def, points.ToArray());
     }
 }
 static class ExternalControl{

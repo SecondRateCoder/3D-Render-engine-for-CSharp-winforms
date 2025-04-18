@@ -1,5 +1,5 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
-
 /// <summary>
 ///  A 3-dimensional point and rotation.
 /// </summary> 
