@@ -18,6 +18,7 @@ class Entry{
 		Start = ExternalControl.StartTimer;
 		Update = Paint3D;
         T = Thread.CurrentThread;
+        Loop();
         Application.Run(f);
     }
     public static async void Loop(){
