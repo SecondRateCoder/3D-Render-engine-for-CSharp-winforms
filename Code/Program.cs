@@ -7,7 +7,7 @@ class Entry{
     public static Action Update;
     public static BackgroundWorker bWorker = new BackgroundWorker();
     public static Action Start;
-    static Brush def;
+    static Pen def;
     
     static Form1 f = new Form1();
 
@@ -22,23 +22,34 @@ class Entry{
 		Application.Run(f);
     }
     static async void Loop(){
-        await Task.Run(() => {while(!Entry.cts.IsCancellationRequested){
-            if(Update != null){Entry.Update();}
-        }});
+        await Task.Run(() => {
+            if(Entry.cts == null){cts = new CancellationTokenSource(360000);}
+            while(!Entry.cts.IsCancellationRequested){
+                if(Update != null){Entry.Update();}
+            }
+        });
     }
 
     //Paint the enviroment.
     static void Paint3D(){
-        f.Name = $"TheWindowText, fps: {ExternalControl.fps}";
-        (Point p, Color color)[] values = [
-            (new Point((int)(0.25 * Form.ActiveForm.Width), (int)(0.1 * Form.ActiveForm.Width)), Color.Black), 
-            (new Point((int)(0.75 * Form.ActiveForm.Width), (int)(0.1 * Form.ActiveForm.Width)), Color.Black), 
-            (new Point((int)(0.25 * Form.ActiveForm.Width), (int)(0.9 * Form.ActiveForm.Width)), Color.Black), 
-            (new Point((int)(0.75 * Form.ActiveForm.Width), (int)(0.9 * Form.ActiveForm.Width)), Color.Black), 
+        try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}";}
+        catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
+        int formWidth = 0;
+        int formHeight = 0;
+        try{
+            formWidth = Form.ActiveForm.Width;
+            formHeight = Form.ActiveForm.Height;
+        }catch(NullReferenceException){return;}
+            (Point p, Color color)[] values = [
+                (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
+                (new Point((int)(0.75 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
+                (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
+                (new Point((int)(0.75 * formWidth), (int)(0.9 * Form.ActiveForm.Height)), Color.Black), 
             ];
-        for (int cc = 0; cc < values.Length; cc++){
-            def = new SolidBrush(values[cc].color);
-            f.G.FillRectangle(def, new RectangleF(values[cc].p, new Size(1, 1)));
+        int color =0;
+        for(int cc =1; cc < values.Length; cc+=2, color++){
+            def = new Pen(values[color].color);
+            f.G.DrawLines(def, ViewPort.DrawBLine(values[cc].p, values[cc+1].p));
         }
     }
 }

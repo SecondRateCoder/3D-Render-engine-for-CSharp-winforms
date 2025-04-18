@@ -58,22 +58,4 @@ class WriteableBitmap{
 }
 
 static partial class Viewport{
-    static byte[] backBuffer;
-    static WriteableBitmap bmp;
-    public static Bitmap Get(){return bmp.Get();}
-    public static void Update(WriteableBitmap Bmp){
-        bmp = Bmp;
-        backBuffer = new byte[bmp.pixelWidth * bmp.pixelHeight * 4];
-    }
-    public static void Clear(Color c){
-        for(int cc =0;cc < bmp.Count;cc+=4){
-            backBuffer[cc] = c.A;
-            backBuffer[cc] = c.R;
-            backBuffer[cc] = c.G;
-            backBuffer[cc] = c.B;
-        }
-    }
-    public static void Present(){
-        bmp.Update(backBuffer);
-    }
 }

@@ -181,4 +181,42 @@ static partial class ViewPort{
         CalcBuffer.C= new Vector3((CalcBuffer.C.X/CalcBuffer.C.Z) * Camera.form.Bounds.Width, (CalcBuffer.C.Y/CalcBuffer.C.Z)  * Camera.form.Bounds.Height, 0);
         return CalcBuffer;
     }
+
+
+
+
+        static byte[] backBuffer;
+    static WriteableBitmap bmp;
+    public static Bitmap Get(){return bmp.Get();}
+    public static void Update(WriteableBitmap Bmp){
+        bmp = Bmp;
+        backBuffer = new byte[bmp.pixelWidth * bmp.pixelHeight * 4];
+    }
+    public static void Clear(Color c){
+        for(int cc =0;cc < bmp.Count;cc+=4){
+            backBuffer[cc] = c.A;
+            backBuffer[cc] = c.R;
+            backBuffer[cc] = c.G;
+            backBuffer[cc] = c.B;
+        }
+    }
+    public static void Present(){
+        bmp.Update(backBuffer);
+    }
+    public static Point[] DrawBLine(Point a, Point b){
+        int dx = Math.Abs(b.X - a.X);
+        int dy = Math.Abs(b.Y - a.Y);
+        int sx = (a.X < b.X)? 1 : -1;
+        int sy = (a.Y < b.Y)? 1: -1;
+        int err = dx - dy;
+        Point[] points =[];
+        while(true){
+            points.Append(a);
+            if((a.X == b.X) && (a.Y == b.Y)){break;}
+            int e2 = err*2;
+            if(e2 < -dy){err -= dy;     a.X += sx;}
+            if(e2 < dx){err += dx;      a.Y += sy;}
+        }
+        return points;
+    }
 }
