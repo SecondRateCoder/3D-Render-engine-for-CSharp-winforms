@@ -7,9 +7,9 @@ class Entry{
     public static Action Update;
     public static Action Start;
     static Pen def;
+    static event Action RefreshyForm = () => {f.Refresh();};
     static Thread T;
     static Form1 f = new Form1();
-    public static event Action RefreshG = f.RefreshGraphics;
     public static void Main(){
         ApplicationConfiguration.Initialize();
 		StorageManager.filePath = AppDomain.CurrentDomain.BaseDirectory;
@@ -17,8 +17,9 @@ class Entry{
         cts = new CancellationTokenSource();
 		Start = ExternalControl.StartTimer;
 		Update = Paint3D;
+        T = Thread.CurrentThread;
         Entry.Loop();
-		Application.Run(f);
+        Application.Run(f);
     }
     public static async void Loop(){
         await Task.Run(() => {
@@ -31,14 +32,12 @@ class Entry{
 
     //Paint the enviroment.
     static void Paint3D(){
-        f.Refresh();
         try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.cts.IsCancellationRequested}";}
         catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
         int formHeight;
         int formWidth;
         formWidth = f.Width;
         formHeight = f.Height;
-        f.G.Clear(Color.White);
         (Point p, Color color)[] values = [
                 (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
                 (new Point((int)(0.75 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
@@ -47,13 +46,16 @@ class Entry{
                 (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
             ];
         try{
+            List<Point> points = [];
             for(int cc =0; cc < values.Length; cc++){
                 def = new Pen(values[cc].color, 5);
-                List<Point> points = ViewPort.DrawBLine(values[cc].p, values[cc+1].p).ToList();
+                List<Point> Buffer = ViewPort.DrawBLine(values[cc].p, values[cc+1].p).ToList();
                 if(!int.IsEvenInteger(points.Count)){points.RemoveAt(points.Count-1);}
-                f.G.DrawLines(def, points.ToArray());
+                points.AddRange(Buffer);
             }
-        }catch(IndexOutOfRangeException){return;}
+            f.G.Clear(Color.White);
+            f.G.DrawLines(def, points.ToArray());
+        }catch(IndexOutOfRangeException){return;}catch(ArgumentException){f.Refresh();}
     }
 }
 static class ExternalControl{
@@ -85,7 +87,6 @@ public partial class Form1 : Form{
         base.OnLoad(e);
         Entry.Start();
     }
-    public void RefreshGraphics() => this.Refresh();
     protected override void OnClosing(CancelEventArgs e){
         base.OnClosing(e);
         Entry.cts.Cancel();
