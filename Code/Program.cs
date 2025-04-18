@@ -7,9 +7,9 @@ class Entry{
     public static Action Update;
     public static Action Start;
     static Pen def;
-    
+    static Thread T;
     static Form1 f = new Form1();
-
+    public static event Action RefreshG = f.RefreshGraphics;
     public static void Main(){
         ApplicationConfiguration.Initialize();
 		StorageManager.filePath = AppDomain.CurrentDomain.BaseDirectory;
@@ -17,6 +17,7 @@ class Entry{
         cts = new CancellationTokenSource();
 		Start = ExternalControl.StartTimer;
 		Update = Paint3D;
+        Entry.Loop();
 		Application.Run(f);
     }
     public static async void Loop(){
@@ -30,23 +31,29 @@ class Entry{
 
     //Paint the enviroment.
     static void Paint3D(){
+        f.Refresh();
         try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.cts.IsCancellationRequested}";}
         catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
         int formHeight;
         int formWidth;
-            formWidth = f.Width;
-            formHeight = f.Height;
+        formWidth = f.Width;
+        formHeight = f.Height;
+        f.G.Clear(Color.White);
         (Point p, Color color)[] values = [
                 (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
                 (new Point((int)(0.75 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
-                (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
                 (new Point((int)(0.75 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
+                (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
+                (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
             ];
-        int color =0;
-        for(int cc =1; cc < values.Length; cc+=2, color++){
-            def = new Pen(values[color].color, 20);
-            f.G.DrawLines(def, ViewPort.DrawBLine(values[cc].p, values[cc+1].p));
-        }
+        try{
+            for(int cc =0; cc < values.Length; cc++){
+                def = new Pen(values[cc].color, 5);
+                List<Point> points = ViewPort.DrawBLine(values[cc].p, values[cc+1].p).ToList();
+                if(!int.IsEvenInteger(points.Count)){points.RemoveAt(points.Count-1);}
+                f.G.DrawLines(def, points.ToArray());
+            }
+        }catch(IndexOutOfRangeException){return;}
     }
 }
 static class ExternalControl{
@@ -77,8 +84,8 @@ public partial class Form1 : Form{
     override protected void OnLoad(EventArgs e){
         base.OnLoad(e);
         Entry.Start();
-        Entry.Loop();
     }
+    public void RefreshGraphics() => this.Refresh();
     protected override void OnClosing(CancelEventArgs e){
         base.OnClosing(e);
         Entry.cts.Cancel();
