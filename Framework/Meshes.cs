@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics;
 
 /*
 struct Equation{
@@ -35,6 +36,7 @@ struct PolyEquation{
     }
 }
 */
+[DebuggerDisplay("A: {A}, B: {B}, C: {C}")]
 struct Polygon{
     public Vector3 A;
     public Vector3 B;
@@ -198,6 +200,7 @@ struct Polygon{
 		return result.ToArray();
 	}
 }
+[DebuggerDisplay("Position: {Position}, Rotation: {Rotation}, Count: {Count}")]
 class Mesh : IEnumerable{
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}

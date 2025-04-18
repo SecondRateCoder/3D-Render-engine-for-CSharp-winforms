@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 /// <summary>
 ///  A 3-dimensional point and rotation.
 /// </summary> 
+[DebuggerDisplay("x: {X}, y: {Y}, z: {Z}")]
 struct Vector3{
     /// <summary>
     ///  This property represents a Vector, which has it's x, y and z values set to 0.
@@ -330,6 +331,7 @@ struct Vector3{
 
 }
 /// <summary>Represents a 3-Dimensional object.</summary>
+[DebuggerDisplay("Position: {Positon}, Rotation = {Rotation}", Name = "{Name}")]
 class gameObj{
     public static gameObj Empty{
         get{
@@ -340,6 +342,8 @@ class gameObj{
     public Mesh Children;
     public Vector3 Position;
     private Vector3 rotation;
+    public bool isEmpty{get{if(this.Position == Vector3.zero &&this.Rotation == Vector3.zero 
+    &&components.Count == 0 &&Children.Count == 0){return true;}else{return false;}}}
     /// <summary>
     ///  The list containing all of this gameObject's components
     /// </summary>
