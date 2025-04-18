@@ -51,8 +51,20 @@ class Entry{
             if(!int.IsEvenInteger(Buffer.Count)){Buffer.RemoveAt(Buffer.Count-1);}
             points.AddRange(Buffer);
         }
-        f.G.Clear(Color.White);
-        f.G.DrawLines(def, points.ToArray());
+		//
+		Action safeDraw = delegate {
+			f.Refresh();	
+		};
+		if(f.InvokeRequired){
+			f.Invoke(safeDraw);
+		}else{
+			f.Refresh();
+		}
+			f.G.Clear(Color.White);
+			f.G.DrawLines(def, points.ToArray());
+		//
+        
+        
     }
 }
 static class ExternalControl{
