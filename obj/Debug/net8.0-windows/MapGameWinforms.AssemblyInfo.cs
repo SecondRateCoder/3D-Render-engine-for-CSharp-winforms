@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MapGameWinforms")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3aebdc15318ea99666650ec4c16ed3c9df9c21c0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7ab1c7ff58101cdc4f84d535ab459cf8f3ea1fc0")]
 [assembly: System.Reflection.AssemblyProductAttribute("MapGameWinforms")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MapGameWinforms")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -96,7 +96,7 @@ class Texturer : Rndrcomponent{
         for(int cc =0;cc < UVPoints.Length;cc++){
             int index = (UVPoints[cc].X + (UVPoints[cc].Y*imgDimensions.width))*4;
             //TODO Need to iterate through the shape created.
-            result.Append((UVPoints[cc], Color.FromArgb(img[index], img[index+1], img[index+2], img[index+3])));
+            
         }
         return result;
     }

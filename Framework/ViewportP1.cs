@@ -1,4 +1,3 @@
-using System.Dynamic;
 
 /// <summary>
 ///  This class represents the the Scene and what will be viewed by the user.
@@ -10,14 +9,14 @@ static class World{
     public static List<Camera> cams = new List<Camera>(){new Camera()};
     public static int camIndex{get; private set;}
     public static List<Light> lights = new List<Light>(){new Light(Vector3.zero, Color.White, 15)};
-    public static int[] lightIndex = {0};
+    public static List<int> lightIndex = [0];
     public static void setCam(int index){
         if(index < cams.Count){
             camIndex = index;
         }
     }
     public static void SetLights(IEnumerable<int> lights){
-        lightIndex = lights.ToArray();
+        lightIndex = lights.ToList();
     }
     public static void AddLight(int light){
         lightIndex.Append(light);
@@ -48,26 +47,34 @@ static partial class ViewPort{
 
     /// <summary>
     /// <summary>
-    ///  This overload takes the parameter data from the static World class.
+    ///  This takes the gameObj data from the static World class.
     /// </summary> 
     /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creates a cube to be rendered./></remarks>
     public async static Task<(Point p, Color c)[]> Convert_(){
-        Polygon[] buffer = [];
-        (Point p, Color c)[] TextureData = [];
+        List<Polygon> buffer = [];
+        //The points in TextureData that represent where a new ogject's data starts, 
+        //it soud align with the gameObjs indexing in World.worldData.
+        List<int> positionData = [0];
+        List<(Point p, Color c)> TextureData = [];
         if(World.worldData.Count == 0){
             gameObj gO = new gameObj(Vector3.zero, Vector3.zero, true, Polygon.Mesh(1, 0, 1, 4));
             gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
             await Task.Run(() => {
-                buffer = (Polygon[])gO.Children.ViewPortClip();
-                for(int i = 0;i < buffer.Length;i++){TextureData = gO.GetComponent<Texturer>().Texture(buffer[i]);}
+                buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
+                for(int i = 0;i < buffer.Count;i++){TextureData = gO.GetComponent<Texturer>().Texture(buffer[i]).ToList();}
             });
+            buffer =[];
+            positionData = [0];
         }else{
             await Task.Run(() => {
                 foreach(gameObj gO in World.worldData){
                     Polygon[] buffer_ = (Polygon[])gO.Children.ViewPortClip();
                     buffer.Concat((Polygon[])gO.Children.ViewPortClip());
+                    int Position = TextureData.Count+1;
+                    bool HasTexture = gO.HasComponent<Texturer>();
                     for(int i = 0;i < buffer_.Length;i++){
-                        if(gO.HasComponent<Texturer>()){TextureData.Concat(gO.GetComponent<Texturer>().Texture(buffer_[i]));}else{continue;}
+                        if(HasTexture){positionData.Append(TextureData.Count+1);}
+                        if(HasTexture){TextureData.Concat(gO.GetComponent<Texturer>().Texture(buffer_[i]));}else{continue;}
                     }
                 }
             });
@@ -141,44 +148,46 @@ static partial class ViewPort{
     }
         
         */
+
+    /// <summary>
+    /// Will return a polygon whose vector co-ordinaates can be directly converted to points.
+    /// </summary>
+    /// <returns>A polygon whose vector co-ordinaates can be directly converted to points.</returns>
     static Polygon Multiply(Polygon polygon){
         Polygon CalcBuffer = new Polygon();
-        float wA = 1;
-        float wB = 1;
-        float wC = 1;
         //For Point A
         CalcBuffer.A = new Vector3(
-            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 0]),
-            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 1]),
-            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 2])
+            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
+            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+PPMatrix[3, 1],
+            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+PPMatrix[3, 2]
             );
-        wA = (PPMatrix[0, 3]*CalcBuffer.A.X)+(PPMatrix[1, 3]*CalcBuffer.A.Y)+(PPMatrix[2, 3]*CalcBuffer.A.Z)+PPMatrix[3, 3];
+        float wA = PPMatrix[0, 3] * CalcBuffer.A.X + PPMatrix[1, 3] * CalcBuffer.A.Y + PPMatrix[2, 3] * CalcBuffer.A.Z + PPMatrix[3, 3];
         CalcBuffer.A /= wA;
         //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.A.Normalise();
-        CalcBuffer.A = new Vector3((CalcBuffer.A.X/CalcBuffer.A.Z) * Camera.form.Bounds.Width, (CalcBuffer.A.Y/CalcBuffer.A.Z)  * Camera.form.Bounds.Height, 0);
+        CalcBuffer.A = new Vector3(CalcBuffer.A.X/CalcBuffer.A.Z * Camera.form.Bounds.Width, CalcBuffer.A.Y/CalcBuffer.A.Z  * Camera.form.Bounds.Height, 0);
         //For Point B
         CalcBuffer.B = new Vector3(
-            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 0]),
-            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 1]),
-            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 2])
+            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
+            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+PPMatrix[3, 1],
+            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+PPMatrix[3, 2]
             );
-        wB = (PPMatrix[0, 3]*CalcBuffer.B.X)+(PPMatrix[1, 3]*CalcBuffer.B.Y)+(PPMatrix[2, 3]*CalcBuffer.B.Z)+(PPMatrix[3, 3]);
+        float wB = PPMatrix[0, 3] * CalcBuffer.B.X + PPMatrix[1, 3] * CalcBuffer.B.Y + PPMatrix[2, 3] * CalcBuffer.B.Z + PPMatrix[3, 3];
         CalcBuffer.B /= wB;
         //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.B.Normalise();
-        CalcBuffer.B = new Vector3((CalcBuffer.B.X/CalcBuffer.B.Z) * Camera.form.Bounds.Width, (CalcBuffer.B.Y/CalcBuffer.B.Z)  * Camera.form.Bounds.Height, 0);
+        CalcBuffer.B = new Vector3(CalcBuffer.B.X/CalcBuffer.B.Z * Camera.form.Bounds.Width, CalcBuffer.B.Y/CalcBuffer.B.Z  * Camera.form.Bounds.Height, 0);
         //For Point C
         CalcBuffer.C = new Vector3(
-            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 0]),
-            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 1]),
-            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+(PPMatrix[3, 2])
+            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
+            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+PPMatrix[3, 1],
+            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+PPMatrix[3, 2]
             );
-        wC = (PPMatrix[0, 3]*CalcBuffer.C.X)+(PPMatrix[1, 3]*CalcBuffer.C.Y)+(PPMatrix[2, 3]*CalcBuffer.C.Z)+(PPMatrix[3, 3]);
+        float wC = PPMatrix[0, 3] * CalcBuffer.C.X + PPMatrix[1, 3] * CalcBuffer.C.Y + PPMatrix[2, 3] * CalcBuffer.C.Z + PPMatrix[3, 3];
         CalcBuffer.C /= wC;
         //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.C.Normalise();
-        CalcBuffer.C= new Vector3((CalcBuffer.C.X/CalcBuffer.C.Z) * Camera.form.Bounds.Width, (CalcBuffer.C.Y/CalcBuffer.C.Z)  * Camera.form.Bounds.Height, 0);
+        CalcBuffer.C= new Vector3(CalcBuffer.C.X/CalcBuffer.C.Z * Camera.form.Bounds.Width, CalcBuffer.C.Y/CalcBuffer.C.Z  * Camera.form.Bounds.Height, 0);
         return CalcBuffer;
     }
 
@@ -209,14 +218,14 @@ static partial class ViewPort{
         int sx = (a.X < b.X)? 1 : -1;
         int sy = (a.Y < b.Y)? 1: -1;
         int err = dx - dy;
-        Point[] points =[];
+        List<Point> points =[];
         while(true){
-            points.Append(a);
+            points.Add(a);
             if((a.X == b.X) && (a.Y == b.Y)){break;}
             int e2 = err*2;
-            if(e2 < -dy){err -= dy;     a.X += sx;}
+            if(e2 > -dy){err -= dy;     a.X += sx;}
             if(e2 < dx){err += dx;      a.Y += sy;}
         }
-        return points;
+        return [.. points];
     }
 }

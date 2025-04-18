@@ -5,7 +5,6 @@ class Entry{
     public static CancellationTokenSource cts{get; private set;}
     public static ElapsedEventHandler TUpdate;
     public static Action Update;
-    public static BackgroundWorker bWorker = new BackgroundWorker();
     public static Action Start;
     static Pen def;
     
@@ -18,10 +17,9 @@ class Entry{
         cts = new CancellationTokenSource();
 		Start = ExternalControl.StartTimer;
 		Update = Paint3D;
-        Loop();
 		Application.Run(f);
     }
-    static async void Loop(){
+    public static async void Loop(){
         await Task.Run(() => {
             if(Entry.cts == null){cts = new CancellationTokenSource(360000);}
             while(!Entry.cts.IsCancellationRequested){
@@ -32,23 +30,21 @@ class Entry{
 
     //Paint the enviroment.
     static void Paint3D(){
-        try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}";}
+        try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.cts.IsCancellationRequested}";}
         catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
-        int formWidth = 0;
-        int formHeight = 0;
-        try{
-            formWidth = Form.ActiveForm.Width;
-            formHeight = Form.ActiveForm.Height;
-        }catch(NullReferenceException){return;}
-            (Point p, Color color)[] values = [
+        int formHeight;
+        int formWidth;
+            formWidth = f.Width;
+            formHeight = f.Height;
+        (Point p, Color color)[] values = [
                 (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
                 (new Point((int)(0.75 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
                 (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
-                (new Point((int)(0.75 * formWidth), (int)(0.9 * Form.ActiveForm.Height)), Color.Black), 
+                (new Point((int)(0.75 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
             ];
         int color =0;
         for(int cc =1; cc < values.Length; cc+=2, color++){
-            def = new Pen(values[color].color);
+            def = new Pen(values[color].color, 20);
             f.G.DrawLines(def, ViewPort.DrawBLine(values[cc].p, values[cc+1].p));
         }
     }
@@ -81,6 +77,7 @@ public partial class Form1 : Form{
     override protected void OnLoad(EventArgs e){
         base.OnLoad(e);
         Entry.Start();
+        Entry.Loop();
     }
     protected override void OnClosing(CancelEventArgs e){
         base.OnClosing(e);
