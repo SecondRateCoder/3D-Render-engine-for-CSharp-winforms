@@ -18,6 +18,16 @@ class Empty : Rndrcomponent{
     public override void Initialise(){return;}
 
 }
+class Equation{
+    public float Gradient;
+    public float Y_Intercept;
+    public Equation(Point a, Point b){
+        this.Gradient = (b.Y - a.Y)/(b.X - a.X);
+        //Y = mx+c
+        //a.Y - Gradient * a.X = c
+        this.Y_Intercept = a.Y - (this.Gradient * a.X);
+    }
+}
 class Texturer : Rndrcomponent{
     public override int Size{get{return 0;}}
     public override byte[] ToByte(){

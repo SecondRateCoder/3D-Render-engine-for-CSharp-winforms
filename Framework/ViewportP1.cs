@@ -50,7 +50,7 @@ static partial class ViewPort{
     ///  This takes the gameObj data from the static World class.
     /// </summary> 
     /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creates a cube to be rendered./></remarks>
-    public async static Task<(Point p, Color c)[]> Convert_(){
+    public static (Point p, Color c)[] Convert_(){
         List<Polygon> buffer = [];
         //The points in TextureData that represent where a new ogject's data starts, 
         //it soud align with the gameObjs indexing in World.worldData.
@@ -59,14 +59,11 @@ static partial class ViewPort{
         if(World.worldData.Count == 0){
             gameObj gO = new gameObj(Vector3.zero, Vector3.zero, true, Polygon.Mesh(1, 0, 1, 4));
             gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
-            await Task.Run(() => {
                 buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
                 for(int i = 0;i < buffer.Count;i++){TextureData = gO.GetComponent<Texturer>().Texture(buffer[i]).ToList();}
-            });
             buffer =[];
             positionData = [0];
         }else{
-            await Task.Run(() => {
                 foreach(gameObj gO in World.worldData){
                     Polygon[] buffer_ = (Polygon[])gO.Children.ViewPortClip();
                     buffer.Concat((Polygon[])gO.Children.ViewPortClip());
@@ -77,7 +74,6 @@ static partial class ViewPort{
                         if(HasTexture){TextureData.Concat(gO.GetComponent<Texturer>().Texture(buffer_[i]));}else{continue;}
                     }
                 }
-            });
         }
         return [];
         //TextureData has been fully filled.

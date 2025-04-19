@@ -57,7 +57,7 @@ class Entry{
         if(f != null){
             f.Refresh();
             f.G.Clear(Color.White);
-            if(pointBuffer != null){f.G.DrawLines(def, pointBuffer.ToArray());}
+            if(pointBuffer != null){f.G.DrawPolygon(def, pointBuffer.ToArray());}
         }
     });
 		}else{
