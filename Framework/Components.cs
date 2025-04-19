@@ -91,7 +91,9 @@ class Texturer : Rndrcomponent{
     byte[] buffer;
     /// <remarks>DO NOT ACCESS, ALL WILLY NILLY.</remarks>
     string buffer_;
+    public static List<(Point p, Color[])> TextureData;
     byte[] img{get; set;}
+    int index;
     public (int width, int height) imgDimensions{get; private set;}
     Path filePath;
 
@@ -156,6 +158,8 @@ class Texturer : Rndrcomponent{
             int index = (UVPoints[cc].X + (UVPoints[cc].Y*imgDimensions.width))*4;
             //TODO Need to iterate through the shape created.
             //TODO Use the new Polyequation and equation classes to constrain how Polygon data is recieved.
+            //Split the triangle into 2, make 2 right angle triangles.
+            //
         }
         return result;
     }
