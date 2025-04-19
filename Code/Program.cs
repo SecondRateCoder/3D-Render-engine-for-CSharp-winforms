@@ -7,13 +7,6 @@ class Entry{
     public static Action Update;
     public static Action Start;
     static Pen def;
-    static event Action FormRefresh = () => {
-        if(f != null){
-            f.Refresh();
-            f.G.Clear(Color.White);
-            if(pointBuffer != null){f.G.DrawLines(def, pointBuffer.ToArray());}
-        }
-    };
     static List<Point> pointBuffer;
     static Thread T;
     static Form1 f = new Form1();
@@ -60,9 +53,15 @@ class Entry{
         }
 		//
 		if(f.InvokeRequired){
-			f.Invoke(FormRefresh);
+			f.Invoke(() => {
+        if(f != null){
+            f.Refresh();
+            f.G.Clear(Color.White);
+            if(pointBuffer != null){f.G.DrawLines(def, pointBuffer.ToArray());}
+        }
+    });
 		}else{
-			FormRefresh();
+			return;
 		}
 		//
         
