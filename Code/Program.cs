@@ -7,7 +7,14 @@ class Entry{
     public static Action Update;
     public static Action Start;
     static Pen def;
-    static event Action RefreshyForm = () => {f.Refresh();};
+    static event Action FormRefresh = () => {
+        if(f != null){
+            f.Refresh();
+            f.G.Clear(Color.White);
+            if(pointBuffer != null){f.G.DrawLines(def, pointBuffer.ToArray());}
+        }
+    };
+    static List<Point> pointBuffer;
     static Thread T;
     static Form1 f = new Form1();
     public static void Main(){
@@ -44,24 +51,19 @@ class Entry{
                 (new Point((int)(0.75 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
                 (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
             ];
-        List<Point> points = [];
+        pointBuffer = [];
         for(int cc =0; cc < values.Length-1; cc++){
             def = new Pen(values[cc].color, 5);
             List<Point> Buffer = [.. ViewPort.DrawBLine(values[cc].p, values[cc+1].p)];
             if(!int.IsEvenInteger(Buffer.Count)){Buffer.RemoveAt(Buffer.Count-1);}
-            points.AddRange(Buffer);
+            pointBuffer.AddRange(Buffer);
         }
 		//
-		Action safeDraw = delegate {
-			f.Refresh();	
-		};
 		if(f.InvokeRequired){
-			f.Invoke(safeDraw);
+			f.Invoke(FormRefresh);
 		}else{
-			f.Refresh();
+			FormRefresh();
 		}
-			f.G.Clear(Color.White);
-			f.G.DrawLines(def, points.ToArray());
 		//
         
         
