@@ -54,8 +54,8 @@ struct Polygon{
         return (float)(.5f * ac * bc * Math.Sin(ab));
     }}
     Point[] uPoints;
-    public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{this.uPoints = value;}}
-    public void UpdateTexture(Point[] uv){UVPoints = new Point[3]; UVPoints[0] = uv[0]; UVPoints[1] = uv[1]; UVPoints[2] = uv[2];}
+    public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{if(value.Length > 3){UpdateTexture(value);}else{this.uPoints = value;}}}
+    public void UpdateTexture(Point[] uv){uPoints = new Point[3]; uPoints[0] = uv[0]; uPoints[1] = uv[1]; uPoints[2] = uv[2];}
     public Vector3 Normal{
         get{
             Vector3 a = Vector3.CProduct(this.A, this.B);

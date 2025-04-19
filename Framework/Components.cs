@@ -21,11 +21,60 @@ class Empty : Rndrcomponent{
 class Equation{
     public float Gradient;
     public float Y_Intercept;
-    public Equation(Point a, Point b){
+    public bool WithinX(float x){if(x <= x_Bounds.upper && x >= x_Bounds.upper){return true;}else{return false;}}
+    public (float upper, float lower) x_Bounds;
+    public bool WithinY(float y){if(y <= y_Bounds.upper && y >= y_Bounds.upper){return true;}else{return false;}}
+    public (float upper, float lower) y_Bounds;
+    public Equation(Point a, Point b, (int upper, int lower)? xBounds = null, (int upper, int lower)? yBounds = null){
+        this.x_Bounds = xBounds == null? (float.NegativeInfinity, float.PositiveInfinity): xBounds.Value;
+        this.y_Bounds = yBounds == null? (float.NegativeInfinity, float.PositiveInfinity): yBounds.Value;
         this.Gradient = (b.Y - a.Y)/(b.X - a.X);
         //Y = mx+c
         //a.Y - Gradient * a.X = c
         this.Y_Intercept = a.Y - (this.Gradient * a.X);
+    }
+    public float SolveY(float x){
+        float Result = (this.Gradient * x) + Y_Intercept;
+        if(WithinY(Result)){return Result;}else{return 0f;}
+    }
+    public float SolveX(float y){
+        float Result = (y - this.Y_Intercept) / this.Gradient;
+        if(WithinX(Result)){return Result;}else{return 0f;}
+    }
+}
+class PolyEquation{
+    Equation AB;
+    Equation BC;
+    Equation CA;
+    public PolyEquation(Point a, Point b, Point c){
+        this.AB = new Equation(a, b);
+        this.BC = new Equation(b, c);
+        this.CA = new Equation(c, a);
+    }
+    public float[] SolveY(float x){
+        float Ab = this.AB.SolveY(x);
+        float Bc = this.BC.SolveY(x);
+        float Ca = this.CA.SolveY(x);
+        List<float> floats = [];
+        if(Ab != 0){floats.Add(Ab);}
+        if(Bc != 0){floats.Add(Bc);}
+        if(Ca != 0){floats.Add(Ca);}
+        return floats.ToArray();
+    }
+        public float[] SolveX(float y){
+        float Ab = this.AB.SolveX(y);
+        float Bc = this.BC.SolveX(y);
+        float Ca = this.CA.SolveX(y);
+        List<float> floats = [];
+        if(Ab != 0){floats.Add(Ab);}
+        if(Bc != 0){floats.Add(Bc);}
+        if(Ca != 0){floats.Add(Ca);}
+        return floats.ToArray();
+    }
+    public bool IsWithin(Point p){
+        return AB.WithinX(p.X) &&AB.WithinY(p.Y) &&
+        BC.WithinX(p.X) &&BC.WithinY(p.Y) &&
+        CA.WithinX(p.X) &&CA.WithinY(p.Y);
     }
 }
 class Texturer : Rndrcomponent{
@@ -106,7 +155,7 @@ class Texturer : Rndrcomponent{
         for(int cc =0;cc < UVPoints.Length;cc++){
             int index = (UVPoints[cc].X + (UVPoints[cc].Y*imgDimensions.width))*4;
             //TODO Need to iterate through the shape created.
-            
+            //TODO Use the new Polyequation and equation classes to constrain how Polygon data is recieved.
         }
         return result;
     }
