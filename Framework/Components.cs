@@ -18,67 +18,60 @@ class Empty : Rndrcomponent{
     public override void Initialise(){return;}
 
 }
-class Equation{
-    public float Gradient;
-    public float Y_Intercept;
-    public bool WithinX(float x){if(x <= x_Bounds.upper && x >= x_Bounds.upper){return true;}else{return false;}}
-    public (float upper, float lower) x_Bounds;
-    public bool WithinY(float y){if(y <= y_Bounds.upper && y >= y_Bounds.upper){return true;}else{return false;}}
-    public (float upper, float lower) y_Bounds;
-    public Equation(Point a, Point b, (int upper, int lower)? xBounds = null, (int upper, int lower)? yBounds = null){
-        this.x_Bounds = xBounds == null? (float.NegativeInfinity, float.PositiveInfinity): xBounds.Value;
-        this.y_Bounds = yBounds == null? (float.NegativeInfinity, float.PositiveInfinity): yBounds.Value;
-        this.Gradient = (b.Y - a.Y)/(b.X - a.X);
-        //Y = mx+c
-        //a.Y - Gradient * a.X = c
-        this.Y_Intercept = a.Y - (this.Gradient * a.X);
+class TextureData{
+    List<(Point point, Color color)> td;
+    public (Point p, Color c) this[int index]{
+        get{return td[index];}
+        set{td[index] = value;}
     }
-    public float SolveY(float x){
-        float Result = (this.Gradient * x) + Y_Intercept;
-        if(WithinY(Result)){return Result;}else{return 0f;}
+    public TextureData(List<(Point p, Color c)> data){
+        this.td = data;
     }
-    public float SolveX(float y){
-        float Result = (y - this.Y_Intercept) / this.Gradient;
-        if(WithinX(Result)){return Result;}else{return 0f;}
-    }
-}
-class PolyEquation{
-    Equation AB;
-    Equation BC;
-    Equation CA;
-    public PolyEquation(Point a, Point b, Point c){
-        this.AB = new Equation(a, b);
-        this.BC = new Equation(b, c);
-        this.CA = new Equation(c, a);
-    }
-    public float[] SolveY(float x){
-        float Ab = this.AB.SolveY(x);
-        float Bc = this.BC.SolveY(x);
-        float Ca = this.CA.SolveY(x);
-        List<float> floats = [];
-        if(Ab != 0){floats.Add(Ab);}
-        if(Bc != 0){floats.Add(Bc);}
-        if(Ca != 0){floats.Add(Ca);}
-        return floats.ToArray();
-    }
-        public float[] SolveX(float y){
-        float Ab = this.AB.SolveX(y);
-        float Bc = this.BC.SolveX(y);
-        float Ca = this.CA.SolveX(y);
-        List<float> floats = [];
-        if(Ab != 0){floats.Add(Ab);}
-        if(Bc != 0){floats.Add(Bc);}
-        if(Ca != 0){floats.Add(Ca);}
-        return floats.ToArray();
-    }
-    public bool IsWithin(Point p){
-        return AB.WithinX(p.X) &&AB.WithinY(p.Y) &&
-        BC.WithinX(p.X) &&BC.WithinY(p.Y) &&
-        CA.WithinX(p.X) &&CA.WithinY(p.Y);
-    }
+    public void Append((Point, Color) data){td.Add(data);}
+    public static implicit operator List<(Point point, Color color)>(TextureData tD){return tD.td;}
+    public static explicit operator TextureData(List<(Point point, Color color)> data){return new TextureData(data);}
 }
 class Texturer : Rndrcomponent{
+    public static TextureData textureData;
+    /// <summary>Store the image file in this before Initialising.</summary>
+    byte[] buffer;
+    Path filePath;
+    int DataStart;
+    int DataEnd;
     public override int Size{get{return 0;}}
+    public override byte[] ToByte(){
+        return Encoding.UTF8.GetBytes(this.filePath);
+    }
+    public override Texturer FromByte(byte[] bytes){throw new NotImplementedException();}
+    public Texturer(string? filePath = null){
+        this.filePath = filePath == null? new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false):
+        new Path(filePath, [".bmp", ".jpeg", ".png"], false);
+    }
+    public override void Initialise(){
+        FileInfo finfo = new FileInfo(filePath);
+        buffer = File.ReadAllBytes(filePath);
+    }
+    public new void Dispose(bool disposing = true){
+        base.Dispose(disposing);
+        if (disposing){
+			buffer = [];
+        }
+    }
+    public void Reset(string Path){
+        this.Dispose(true);
+        Initialise();
+    }
+    public TextureData? Texture(Point[] UVpoints){
+        if(UVpoints.Length % 3 == 0){
+            for(int cc =0; cc < UVpoints.Length;cc += 3){
+                Bitmap bmp = (Bitmap)Image.FromFile(filePath);
+                bmp.Clone(new Rectangle(), PixelFormat.DontCare);
+            }
+            return new TextureData([]);
+        }else{return null;}
+    }
+    /*
+        public override int Size{get{return 0;}}
     public override byte[] ToByte(){
         return Encoding.UTF8.GetBytes(this.filePath);
     }
@@ -86,12 +79,12 @@ class Texturer : Rndrcomponent{
         return new Texturer(Encoding.UTF8.GetString(bytes));
     }
     
+    public static List<(Point[] points, Color[])> TextureData;
     public FileInfo finfo;
     /// <remarks>DO NOT ACCESS, , ALL WILLY NILLY.</remarks>
     byte[] buffer;
     /// <remarks>DO NOT ACCESS, ALL WILLY NILLY.</remarks>
     string buffer_;
-    public static List<(Point p, Color[])> TextureData;
     byte[] img{get; set;}
     int index;
     public (int width, int height) imgDimensions{get; private set;}
@@ -99,7 +92,7 @@ class Texturer : Rndrcomponent{
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Texturer(){
-		filePath = new Path(StorageManager.filePath + @"Cache\Images\Grass Block.png", [".png", ".bmp", ".jpeg"], false);
+		;
 		Initialise();
 	}
 
@@ -145,8 +138,7 @@ class Texturer : Rndrcomponent{
     }
     public void Reset(string Path){
         this.Dispose(true);
-        this.filePath = (Path)Path;
-        img = File.ReadAllBytes(filePath);
+        Initialise();
     }
     public (Point p, Color c)[]? Texture(Polygon p){
         return Texture(p.UVPoints);
@@ -163,6 +155,7 @@ class Texturer : Rndrcomponent{
         }
         return result;
     }
+    */
 }
 
 class RigidBdy : Rndrcomponent{
