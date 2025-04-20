@@ -7,17 +7,17 @@ static class World{
     public static List<Camera> cams = new List<Camera>(){new Camera()};
     public static int camIndex{get; private set;}
     public static List<Light> lights = new List<Light>(){new Light(Vector3.zero, Color.White, 15)};
-    public static List<int> lightIndex = [0];
+    public static List<int> activeLights = [0];
     public static void setCam(int index){
         if(index < cams.Count){
             camIndex = index;
         }
     }
     public static void SetLights(IEnumerable<int> lights){
-        lightIndex = lights.ToList();
+        activeLights = lights.ToList();
     }
     public static void AddLight(int light){
-        lightIndex.Append(light);
+        activeLights.Append(light);
     }
     public static void Call(){
         Vector3 camPos = 0f-cams[camIndex].Position;
@@ -33,7 +33,41 @@ static class World{
 /// <summary>
 ///  This class represents the viewport of the user, the Camera property is what will be used to select the viewpoint.
 /// </summary> 
-static partial class ViewPort{
+static class ViewPort{
+    static byte[] backBuffer;
+    static WriteableBitmap bmp;
+    public static Bitmap Get(){return bmp.Get();}
+    public static void Update(WriteableBitmap Bmp){
+        bmp = Bmp;
+        backBuffer = new byte[bmp.pixelWidth * bmp.pixelHeight * 4];
+    }
+    public static void Clear(Color c){
+        for(int cc =0;cc < bmp.Count;cc+=4){
+            backBuffer[cc] = c.A;
+            backBuffer[cc] = c.R;
+            backBuffer[cc] = c.G;
+            backBuffer[cc] = c.B;
+        }
+    }
+    public static void Present(){
+        bmp.Update(backBuffer);
+    }
+    public static Point[] DrawBLine(Point a, Point b){
+        int dx = Math.Abs(b.X - a.X);
+        int dy = Math.Abs(b.Y - a.Y);
+        int sx = (a.X < b.X)? 1 : -1;
+        int sy = (a.Y < b.Y)? 1: -1;
+        int err = dx - dy;
+        List<Point> points =[];
+        while(true){
+            points.Add(a);
+            if((a.X == b.X) && (a.Y == b.Y)){break;}
+            int e2 = err*2;
+            if(e2 > -dy){err -= dy;     a.X += sx;}
+            if(e2 < dx){err += dx;      a.Y += sy;}
+        }
+        return [.. points];
+    }
     /// <summary>
     ///  This property represents the bounds of the form.
     /// </summary>
@@ -58,6 +92,7 @@ static partial class ViewPort{
     /// </summary> 
     /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creates a cube to be rendered./></remarks>
     public static (Point p, Color c)[] Convert_(){
+        //Store all the clipped polygons overall, using positionData to define the points between each.
         List<Polygon> buffer = [];
         //The points in TextureData that represent where a new ogject's data starts, 
         //it soud align with the gameObjs indexing in World.worldData.
@@ -67,20 +102,20 @@ static partial class ViewPort{
             gameObj gO = new gameObj(Vector3.zero, Vector3.zero, true, Polygon.Mesh(1, 0, 1, 4));
             gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
                 buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
-                for(int i = 0;i < buffer.Count;i++){TextureData = gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints]);}
+                for(int i = 0;i < buffer.Count;i++){ViewPort.bmp.Initialise(gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints]));}
             buffer =[];
             positionData = [0];
         }else{
-                foreach(gameObj gO in World.worldData){
-                    Polygon[] buffer_ = (Polygon[])gO.Children.ViewPortClip();
-                    buffer.AddRange((Polygon[])gO.Children.ViewPortClip());
-                    int Position = TextureData.Count+1;
-                    bool HasTexture = gO.HasComponent<Texturer>();
-                    for(int i = 0;i < buffer_.Length;i++){
-                        if(HasTexture){positionData.Append(TextureData.Count+1);}
-                        if(HasTexture){TextureData.Append(gO.GetComponent<Texturer>().Texture([buffer_[i].UVPoints]));}else{continue;}
-                    }
+            foreach(gameObj gO in World.worldData){
+                //A buffer to store the clipped Mesh
+                Polygon[] buffer_ = (Polygon[])gO.Children.ViewPortClip();
+                buffer.AddRange((Polygon[])gO.Children.ViewPortClip());
+                bool HasTexture = gO.HasComponent<Texturer>();
+                for(int i = 0;i < buffer_.Length;i++){
+                    if(HasTexture){positionData.Append(TextureData.Count);}
+                    if(HasTexture){TextureData.Append(gO.GetComponent<Texturer>().Texture([buffer_[i].UVPoints]));}else{continue;}
                 }
+            }
         }
         return [];
         //TextureData has been fully filled.
@@ -128,43 +163,5 @@ static partial class ViewPort{
         CalcBuffer.C.Normalise();
         CalcBuffer.C= new Vector3(CalcBuffer.C.X/CalcBuffer.C.Z * Camera.form.Bounds.Width, CalcBuffer.C.Y/CalcBuffer.C.Z  * Camera.form.Bounds.Height, 0);
         return CalcBuffer;
-    }
-
-
-
-
-        static byte[] backBuffer;
-    static WriteableBitmap bmp;
-    public static Bitmap Get(){return bmp.Get();}
-    public static void Update(WriteableBitmap Bmp){
-        bmp = Bmp;
-        backBuffer = new byte[bmp.pixelWidth * bmp.pixelHeight * 4];
-    }
-    public static void Clear(Color c){
-        for(int cc =0;cc < bmp.Count;cc+=4){
-            backBuffer[cc] = c.A;
-            backBuffer[cc] = c.R;
-            backBuffer[cc] = c.G;
-            backBuffer[cc] = c.B;
-        }
-    }
-    public static void Present(){
-        bmp.Update(backBuffer);
-    }
-    public static Point[] DrawBLine(Point a, Point b){
-        int dx = Math.Abs(b.X - a.X);
-        int dy = Math.Abs(b.Y - a.Y);
-        int sx = (a.X < b.X)? 1 : -1;
-        int sy = (a.Y < b.Y)? 1: -1;
-        int err = dx - dy;
-        List<Point> points =[];
-        while(true){
-            points.Add(a);
-            if((a.X == b.X) && (a.Y == b.Y)){break;}
-            int e2 = err*2;
-            if(e2 > -dy){err -= dy;     a.X += sx;}
-            if(e2 < dx){err += dx;      a.Y += sy;}
-        }
-        return [.. points];
     }
 }

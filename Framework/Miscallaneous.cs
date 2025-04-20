@@ -90,10 +90,11 @@ class Light{
 
 abstract class ITextureEffect{
     public abstract int iterations{get; set;}
-    public abstract List<(Point p, Color c)> Apply(List<(Point p, Color c)> data);
+    public abstract TextureDatabase Apply(TextureDatabase data);
 }
-
 class Slide : ITextureEffect{
+    //Acts as a memory store to allow for a reversing of the operation, to 
+    public override int iterations{get; set;}
     Point sD;
     Point slideDirection{
         get{return sD;} 
@@ -101,7 +102,10 @@ class Slide : ITextureEffect{
             float Magnitude = (float)Math.Sqrt(value.X^2 + value.Y^2);
             sD = new Point((int)(value.X/Magnitude), (int)(value.Y/Magnitude));
         }}
-    public override List<(Point p, Color c)> Apply(List<(Point p, Color c)> data){
-        
+    public override TextureDatabase Apply(TextureDatabase data){
+        for(int cc = 0;cc < data.Count;cc++){
+            data[cc] = (new Point(data[cc].p.X + (data[cc].p.X * slideDirection.X), data[cc].p.Y + (data[cc].p.Y * slideDirection.Y)), data[cc].c);
+        }
+        return data;
     }
 }
