@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 
 struct Equation{
     public float XCoff;
@@ -219,8 +218,9 @@ class Mesh : IEnumerable{
 	public void RemoveAt(int index){this.mesh.RemoveAt(index);}
     public void Remove(Polygon p){this.mesh.Remove(p);}
 	public List<Polygon> ToList(){return this.mesh;}
-    
-
+    public Mesh(){
+        this.mesh = [];
+    }
     public Mesh(IEnumerable<Polygon> p){
         this.mesh = p.ToList();
     }
@@ -291,35 +291,5 @@ class Mesh : IEnumerable{
     public static explicit operator Mesh(Polygon[] polygons){return new Mesh(polygons);}
     public static explicit operator Polygon[](Mesh mesh){return mesh.Get();}
 
-    IEnumerator IEnumerable.GetEnumerator(){return (IEnumerator)GetEnumerator();}
-    public MeshEnum GetEnumerator(){ return new MeshEnum(mesh);}
-}
-class MeshEnum : IEnumerator{
-    public Polygon[] mesh;
-    int position = -1;
-    public MeshEnum(IEnumerable<Polygon> mesh){
-        this.mesh = mesh.ToArray();
-    }
-    public bool MoveNext(){
-        position++;
-        return(position < mesh.Length);
-    }
-    public void Reset(){
-        position = -1;
-    }
-    object IEnumerator.Current{
-        get{
-            return Current;
-        }
-    }
-    public Polygon Current{
-        get{
-            try{
-                return this.mesh[this.position];
-            }catch(IndexOutOfRangeException){
-                throw new InvalidOperationException();
-            }
-        }
-    }
-
+    public IEnumerator GetEnumerator() => mesh.GetEnumerator();
 }

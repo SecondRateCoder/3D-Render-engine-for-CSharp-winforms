@@ -1,5 +1,4 @@
-using System.Drawing.Imaging;
-using System.Security.Cryptography;
+using System.Collections;
 using System.Text;
 
 /// <summary>
@@ -19,7 +18,7 @@ class Empty : Rndrcomponent{
     public override void Initialise(){return;}
 
 }
-class TextureData{
+class TextureData : IEnumerable{
     List<(Point point, Color color)> td;
     public (Point p, Color c) this[int index]{
         get{return td[index];}
@@ -28,12 +27,18 @@ class TextureData{
     public TextureData(List<(Point p, Color c)> data){
         this.td = data;
     }
+    public TextureData(){this.td = [];}
     public void Append((Point, Color) data){td.Add(data);}
+    public void Add((Point, Color) data){ _=td.Append(data); }
+    public void Add(List<(Point p, Color c)> data) => this.Append(data);
+    public void Append(List<(Point p, Color c)> data){foreach((Point p, Color c) item in data){this.Append(item);}}
     public static implicit operator List<(Point point, Color color)>(TextureData tD){return tD.td;}
     public static explicit operator TextureData(List<(Point point, Color color)> data){return new TextureData(data);}
+
+    public IEnumerator GetEnumerator() => td.GetEnumerator();
 }
 class Texturer : Rndrcomponent{
-    public static TextureData? textureData;
+    public static TextureData? textureData = [];
     /// <summary>Store the image file in this before Initialising.</summary>
     Bitmap buffer;
     Path filePath;
@@ -102,7 +107,8 @@ class Texturer : Rndrcomponent{
                     }
                 }
             }
-            return new TextureData([]);
+            Texturer.textureData.Append(result);
+            return result;
         }else{return null;}
     }
     public static int Max(int[] numbers){
