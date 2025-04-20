@@ -71,7 +71,7 @@ static partial class ViewPort{
                     bool HasTexture = gO.HasComponent<Texturer>();
                     for(int i = 0;i < buffer_.Length;i++){
                         if(HasTexture){positionData.Append(TextureData.Count+1);}
-                        if(HasTexture){TextureData.Concat(gO.GetComponent<Texturer>().Texture([buffer_[i].UVPoints]));}else{continue;}
+                        if(HasTexture){TextureData.Append(gO.GetComponent<Texturer>().Texture([buffer_[i].UVPoints]));}else{continue;}
                     }
                 }
         }

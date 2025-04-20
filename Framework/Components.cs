@@ -6,13 +6,24 @@ using System.Text;
 /// </summary>
 abstract class Rndrcomponent{
     public abstract int Size{get;}
+    /// <summary>
+    /// Encodes this instance into a byte array.
+    /// </summary>
+    /// <returns>An encoded array that describes this instance.</returns>
     public abstract byte[] ToByte();
+    /// <summary>
+    /// Assigns this instance the decoded byte array.
+    /// </summary>
+    /// <param name="bytes">the encoded array.</param>
     public abstract void FromByte(byte[] bytes);
+    /// <summary>Clear this instance, emptying all data stores to null or 0.</summary>
+    /// <param name="disposing">Should this function Dispose this instance.</param>
     internal void Dispose(bool disposing){}
+    /// <summary>Initialise this instance, filling it's data stores with the necessary information.</summary>
     public abstract void Initialise();
 }
 class Empty : Rndrcomponent{
-    public override void FromByte(byte[] bytes){return this;}
+    public override void FromByte(byte[] bytes){return;}
     public override int Size{get{return 0;}}
     public override byte[] ToByte(){return new byte[0];}
     public override void Initialise(){return;}
@@ -20,6 +31,16 @@ class Empty : Rndrcomponent{
 }
 class TextureDatabase : IEnumerable{
     List<(Point point, Color color)> td;
+    public int Count{get{
+        //If there's been a change the re-assign _c , otherwise move on. 
+        // then return it.
+        if(Unsignedchange){
+            _c = td.Count;
+        }
+        return _c;
+    }}
+    int _c;
+    bool Unsignedchange;
     public (Point p, Color c) this[int index]{
         get{return td[index];}
         set{td[index] = value;}
@@ -28,10 +49,10 @@ class TextureDatabase : IEnumerable{
         this.td = data;
     }
     public TextureDatabase(){this.td = [];}
-    public void Append((Point, Color) data){td.Add(data);}
-    public void Add((Point, Color) data){ _=td.Append(data); }
+    public void Add((Point, Color) data)=> this.Append(data);
     public void Add(List<(Point p, Color c)> data) => this.Append(data);
-    public void Append(List<(Point p, Color c)> data){foreach((Point p, Color c) item in data){this.Append(item);}}
+    public void Append((Point, Color) data){this.Unsignedchange = true; td.Add(data);}
+    public void Append(List<(Point p, Color c)> data){this.Unsignedchange = true; foreach((Point p, Color c) item in data){this.Append(item);}}
     public static implicit operator List<(Point point, Color color)>(TextureDatabase tD){return tD.td;}
     public static explicit operator TextureDatabase(List<(Point point, Color color)> data){return new TextureDatabase(data);}
 
@@ -45,17 +66,6 @@ class Texturer : Rndrcomponent{
     bool Initialised;
     int DataStart;
     int DataEnd;
-    public override int Size{get{return 0;}}
-    public override byte[] ToByte(){
-        List<byte> result = BitConverter.GetBytes(this.filePath.Get().Length).ToList();
-        _ =result.Concat(Encoding.UTF8.GetBytes(this.filePath));
-        _ =result.Concat(BitConverter.GetBytes(this.DataStart));
-        _ =result.Concat(BitConverter.GetBytes(this.DataStart));
-        return result.ToArray();
-    }
-    public override void FromByte(byte[] bytes){
-        
-    }
     public Texturer(){
         this.filePath = new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false);
     }
@@ -64,19 +74,7 @@ class Texturer : Rndrcomponent{
         new Path(filePath, [".bmp", ".jpeg", ".png"], false);
         buffer = new Bitmap(1, 1);
     }
-    public override void Initialise(){_Initialise();}
-    void _Initialise(){
-        this.Initialised = true;
-        FileInfo finfo = new FileInfo(filePath);
-        buffer = (Bitmap)Image.FromFile(filePath);
-    }
-    public new void Dispose(bool disposing = true){
-        base.Dispose(disposing);
-        if (disposing){
-            this.Initialised =false;
-			buffer = new Bitmap(1, 1);
-        }
-    }
+
     public void Reset(string Path){
         this.Dispose(true);
         _Initialise();
@@ -88,6 +86,7 @@ class Texturer : Rndrcomponent{
     /// <param name="Append">Should this function append result to the static Texturer.texturerData buffer, <see cref="Texturer.textureData.Count"/></param>
     /// <returns>A TextureData dataset which contains the texture data of each set of 3 Points in each element in UVPoints.</returns>
     public TextureDatabase Texture(List<Point[]> UVpoints, bool Append = true){
+        if(this.Initialised == false){throw new ObjectDisposedException("Texturer");}
         TextureDatabase result = new TextureDatabase([]);
         //Initialise this component.
         _Initialise();
@@ -144,6 +143,45 @@ class Texturer : Rndrcomponent{
         }
         return scope;
     }
+
+    //! RndrComponent overrides
+    public override int Size{get{return 0;}}
+    public override byte[] ToByte(){
+        List<byte> result = BitConverter.GetBytes(this.filePath.Get().Length).ToList();
+        _ =result.Concat(Encoding.UTF8.GetBytes(this.filePath));
+        _ =result.Concat(BitConverter.GetBytes(this.DataStart));
+        _ =result.Concat(BitConverter.GetBytes(this.DataStart));
+        return result.ToArray();
+    }
+    public override void FromByte(byte[] bytes){
+        this.filePath = (Path)StorageManager.ReadString(bytes, bytes.Length, 0);
+    }
+    public override void Initialise(){_Initialise();}
+    void _Initialise(){
+        this.Initialised = true;
+        FileInfo finfo = new FileInfo(filePath);
+        buffer = (Bitmap)Image.FromFile(filePath);
+    }
+    public new void Dispose(bool disposing = true){
+        base.Dispose(disposing);
+        if (disposing){
+            this.Initialised =false;
+			buffer = new Bitmap(1, 1);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
     /*
         public override int Size{get{return 0;}}
     public override byte[] ToByte(){
@@ -247,8 +285,8 @@ class RigidBdy : Rndrcomponent{
     public RigidBdy(){
         this.Mass = 100;
     }
-    public override RigidBdy FromByte(byte[] bytes){
-        return new RigidBdy(BitConverter.ToInt32(bytes));
+    public override void FromByte(byte[] bytes){
+        this.Mass =BitConverter.ToInt32(bytes);
     }
     public override byte[] ToByte(){
         return BitConverter.GetBytes(this.Mass);

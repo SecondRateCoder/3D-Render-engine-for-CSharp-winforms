@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Text;
 static class StorageManager{
     static string PathProp = "";
     public static string filePath{set{
@@ -91,14 +92,37 @@ static class StorageManager{
 
 
 
+	/// <summary>Read a byte array from <see cref="startFrom"/> argument up until <see cref="startFrom + sizeof(int)"/>.</summary>
+	/// <param name="bytes">The array containing the int32.</param>
+	/// <param name="startFrom">The integer that the decoder should start from in the byte array.</param>
+	/// <returns>An Int32.</returns>
 	public static int ReadInt32(byte[] bytes, int startFrom =0){
 		byte[] integer = new byte[sizeof(int)];
-		for(int cc =startFrom;cc < sizeof(int);cc++){
-			integer[cc] = bytes[cc];
+		for(int cc =0;cc < sizeof(int);cc++){
+			integer[cc] = bytes[cc +startFrom];
 		}
 		return BitConverter.ToInt32(integer);
 	}
-	public static string ReadString(byte[] bytes, )
+	/// <summary>Returns a string that starts from <see cref="startFrom"/> and is <see cref="Length"/> characters long.</summary>
+	/// <param name="bytes">The array the string will be retrieved from.</param>
+	/// <param name="Length">The Length of the string, in characters.</param>
+	/// <param name="startFrom">The position that the decoder should start from.</param>
+	/// <param name="encoding">The encoding that is used in the string.</param>
+	/// <returns>A decoded string in the specified encoding.</returns>
+	/// <remarks>If encoding is left null, then <see cref="Encoding.Default"/> is used</remarks>
+	public static string ReadString(byte[] bytes, int Length, int startFrom =0, Encoding? encoding = null){
+		if(encoding == null){encoding = UTF8Encoding.UTF8;}
+		Length *= Encoding.UTF8.GetByteCount("");
+		if(Length > bytes.Length + startFrom){throw new ArgumentOutOfRangeException();}
+		byte[] buffer = new byte[Length];
+		string buffer_ = "";
+		int ESize = Encoding.UTF8.GetByteCount("");
+		for(int i = 0;i < Length;i++){
+			for(int cc = 0; cc < ESize ;cc++){buffer[cc] = bytes[cc + startFrom];}
+			_ =buffer_.Concat(Encoding.UTF8.GetString(buffer));
+		}
+		return buffer_;
+	}
 }
 class Path{
 	string filePath;
