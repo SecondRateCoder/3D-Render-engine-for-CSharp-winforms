@@ -167,7 +167,8 @@ struct Vector3{
         }
     }
     public override int GetHashCode(){return BitConverter.ToInt32(ComputeHmacSha1Hash($"{this.X} {this.Y} {this.Z}", ""));}
-    public static explicit operator Point(Vector3 v){return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}
+    public static explicit operator Point(Vector3 v){if(v.Z == 0){return new Point((int)v.X, (int)v.Y);}else{return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}}
+    public static explicit operator Vector3(Point p){return new Vector3(p.X, p.Y, 0);}
     public static explicit operator List<float>(Vector3 v){return new List<float>(){v.X, v.Y, v.Z};}
     public static explicit operator byte[](Vector3 v){
         List<byte> result = [.. BitConverter.GetBytes(v.X)];
@@ -365,9 +366,10 @@ class gameObj{
     }
     public int CollisionRange{
         get{
-            float result = Children[0].Furthest(this.Position);
+            float result = Vector3.GetDistance(this.Position, Children[0].Furthest(this.Position));
             for(int cc = 1; cc<Children.Count;cc++){
-                result = result > Children[cc].Furthest(this.Position)? result: Children[cc].Furthest(this.Position);
+                float distance = Vector3.GetDistance(this.Position, Children[0].Furthest(this.Position));
+                result = result > distance? result: distance;
             }
             return (int)(result+.5);
             

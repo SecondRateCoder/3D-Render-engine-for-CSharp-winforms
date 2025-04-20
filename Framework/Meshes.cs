@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 
-/*
 struct Equation{
     public float XCoff;
     public float Y_intercept;
@@ -9,33 +9,40 @@ struct Equation{
         this.XCoff = X_coefficient;
         this.Y_intercept = Y_intercept;
     }
-    public Equate(float X){
+    public float SolveY(float X){
         return (X * XCoff) + Y_intercept;
     }
-    public EquateR(float Y){
+    public float SolveX(float Y){
         return (Y - Y_intercept)/XCoff;
     }
-    public static Equation FomPoints(Point a, Point b){
+    public static Equation FromPoints(Point a, Point b){
         //Simultaenous equation.
         float gradient = (a.Y - b.Y)/(a.X - b.X);
-        float y-intercept = a.Y - (a.X * gradient);
+        float y_intercept = a.Y - (a.X * gradient);
         return new Equation(gradient, y_intercept);
     }
-}
-struct PolyEquation{
-    public Equation A;
-    public Equation B;
-    public Equation C;
-    public PolyEquation(Equation a, Equation b, Equation c){
-        this.A = a;
-        this.B = b;
-        this.C = c;
+    /// <summary>
+    /// Finds the x-coordinate where both Equation a and b equal the same y-coordinate.
+    /// </summary>
+    /// <returns>A Point detailing the x and y coordinates where x and y equal each other.</returns>
+    public static Point WhereEquationEquals(Equation a, Equation b){
+        //a (y = mx + c)
+        //b (y = nx + d)
+        //a = (mx - y = c)
+        //b = (nx - y = d)
+        //Substitution method:
+        //a = (x = (c + y)/m)
+        //b = (n(c + y)/m - y = d)
+        //b = ((nc + ny)/m - y = d)
+        //b = (y - ny/m = d - nc/m)
+        //b = (y(1 - n/m) = d - nc/m)
+        //b = (y = (d - nc/m)/(1 - n/m))
+        Point p = new Point();
+        p.Y = (int)((b.Y_intercept - (b.XCoff * a.Y_intercept/a.XCoff))/(1 - (b.XCoff/a.XCoff)));
+        p.X = (int)a.SolveX(p.Y);
+        return p;
     }
-    public Point SolveAB(int x){
-
-    }
 }
-*/
 [DebuggerDisplay("A: {A}, B: {B}, C: {C}")]
 struct Polygon{
     public Vector3 A;
@@ -123,15 +130,15 @@ struct Polygon{
         C.RotateAround(PrePosition, Rotation);
         C += Position;
     }
-    public float Furthest(Vector3 origin){
-        float result;
+    public Vector3 Furthest(Vector3 origin){
+        Vector3 result;
         float a = Vector3.GetDistance(A, origin);
         float b = Vector3.GetDistance(B, origin);
         float c = Vector3.GetDistance(C, origin);
         if(a>b){
-            result = a>c?a:c;
+            result = a>c?this.A:this.C;
         }else{
-            result = b>c?b:c;
+            result = b>c?this.B:this.C;
         }
         return result;
     }

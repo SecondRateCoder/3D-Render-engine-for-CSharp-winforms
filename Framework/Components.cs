@@ -1,4 +1,5 @@
 using System.Drawing.Imaging;
+using System.Security.Cryptography;
 using System.Text;
 
 /// <summary>
@@ -32,9 +33,9 @@ class TextureData{
     public static explicit operator TextureData(List<(Point point, Color color)> data){return new TextureData(data);}
 }
 class Texturer : Rndrcomponent{
-    public static TextureData textureData;
+    public static TextureData? textureData;
     /// <summary>Store the image file in this before Initialising.</summary>
-    byte[] buffer;
+    Bitmap buffer;
     Path filePath;
     int DataStart;
     int DataEnd;
@@ -46,29 +47,77 @@ class Texturer : Rndrcomponent{
     public Texturer(string? filePath = null){
         this.filePath = filePath == null? new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false):
         new Path(filePath, [".bmp", ".jpeg", ".png"], false);
+        buffer = new Bitmap(1, 1);
     }
-    public override void Initialise(){
+    public override void Initialise(){}
+    void _Initialise(){
         FileInfo finfo = new FileInfo(filePath);
-        buffer = File.ReadAllBytes(filePath);
+        buffer = (Bitmap)Image.FromFile(filePath);
     }
     public new void Dispose(bool disposing = true){
         base.Dispose(disposing);
         if (disposing){
-			buffer = [];
+			buffer = new Bitmap(1, 1);
         }
     }
     public void Reset(string Path){
         this.Dispose(true);
-        Initialise();
+        _Initialise();
     }
-    public TextureData? Texture(Point[] UVpoints){
-        if(UVpoints.Length % 3 == 0){
-            for(int cc =0; cc < UVpoints.Length;cc += 3){
-                Bitmap bmp = (Bitmap)Image.FromFile(filePath);
-                bmp.Clone(new Rectangle(), PixelFormat.DontCare);
+    public TextureData? Texture(List<Point[]> UVpoints){
+        TextureData result = new TextureData([]);
+        if(UVpoints.Count % 3 == 0){
+            //Initialise this component.
+            _Initialise();
+            for(int cc =0; cc < UVpoints.Count;cc ++){
+                //Find tY length of the 2d polygon then find the range
+                int MinY = Texturer.Min([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]);
+                int YRange = Texturer.Max([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]) - MinY;
+                //The mid-point when the gradient of the line around 1 point changes, set on the line opposite it.
+                Point _12mid = new Point((UVpoints[cc][1].X + UVpoints[cc][2].X)/2, (UVpoints[cc][1].Y + UVpoints[cc][2].Y)/2);
+                //Point 0 (UVPoints[cc][0]) to Point 1 (UVPoints[cc][1])
+                Equation p0_p1 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][1]);
+                //Point 1 (UVPoints[cc][1]) to the midPoint
+                Equation p1_p12mid = Equation.FromPoints(UVpoints[cc][1], _12mid);
+                //Point 1 (UVPoints[cc][1]) to Point 2 (UVPoints[cc][2])
+                Equation p1_p2 = Equation.FromPoints(UVpoints[cc][1], UVpoints[cc][2]);
+                for(int y =MinY; y < YRange;y++){
+                    //Iterate the y.
+                    if(y < _12mid.Y){
+                        //Before change in Gradient
+                        float xUpper = p1_p12mid.SolveX(y);
+                        int x =(int)p0_p1.SolveX(y);
+                        while(x <= xUpper){
+                            result.Append((new Point(x, y), buffer.GetPixel(x, y)));
+                            x++;
+                        }
+                    }else{
+                        //After change in Gradient
+                        float xUpper = p1_p2.SolveX(y);
+                        int x =(int)p1_p12mid.SolveX(y);
+                        while(x <= xUpper){
+                            result.Append((new Point(x, y), buffer.GetPixel(x, y)));
+                            x++;
+                        }
+                    }
+                }
             }
             return new TextureData([]);
         }else{return null;}
+    }
+    public static int Max(int[] numbers){
+        int scope = 0;
+        foreach(int i in numbers){
+            scope = i > scope? i : scope;
+        }
+        return scope;
+    }
+    public static int Min(int[] numbers){
+        int scope = 0;
+        foreach(int i in numbers){
+            scope = i < scope? i : scope;
+        }
+        return scope;
     }
     /*
         public override int Size{get{return 0;}}
