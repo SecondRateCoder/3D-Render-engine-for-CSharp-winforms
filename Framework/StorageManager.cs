@@ -103,25 +103,28 @@ static class StorageManager{
 		}
 		return BitConverter.ToInt32(integer);
 	}
-	/// <summary>Returns a string that starts from <see cref="startFrom"/> and is <see cref="Length"/> characters long.</summary>
-	/// <param name="bytes">The array the string will be retrieved from.</param>
-	/// <param name="Length">The Length of the string, in characters.</param>
-	/// <param name="startFrom">The position that the decoder should start from.</param>
-	/// <param name="encoding">The encoding that is used in the string.</param>
-	/// <returns>A decoded string in the specified encoding.</returns>
-	/// <remarks>If encoding is left null, then <see cref="Encoding.Default"/> is used</remarks>
-	public static string ReadString(byte[] bytes, int Length, int startFrom =0, Encoding? encoding = null){
-		if(encoding == null){encoding = UTF8Encoding.UTF8;}
-		Length *= Encoding.UTF8.GetByteCount("");
-		if(Length > bytes.Length + startFrom){throw new ArgumentOutOfRangeException();}
-		byte[] buffer = new byte[Length];
-		string buffer_ = "";
-		int ESize = Encoding.UTF8.GetByteCount("");
-		for(int i = 0;i < Length;i++){
-			for(int cc = 0; cc < ESize ;cc++){buffer[cc] = bytes[cc + startFrom];}
-			_ =buffer_.Concat(Encoding.UTF8.GetString(buffer));
+	/// <summary>Read a byte array from <see cref="startFrom"/> argument up until <see cref="startFrom + sizeof(float)"/>.</summary>
+	/// <param name="bytes">The array containing the float.</param>
+	/// <param name="startFrom">The integer that the decoder should start from in the byte array.</param>
+	/// <returns>A float.</returns>
+	public static float ReadFloat(byte[] bytes, int startFrom =0){
+		byte[] float_ = new byte[sizeof(float)];
+		for(int cc =0;cc < sizeof(float);cc++){
+			float_[cc] = bytes[cc +startFrom];
 		}
-		return buffer_;
+		return BitConverter.ToSingle(float_);
+	}
+	/// <summary>
+	/// Convert the byte array to a string.
+	/// </summary>
+	/// <param name="bytes">The array to be decoded.</param>
+	/// <param name="encoding">The encoding the result string will be formated to.</param>
+	/// <returns></returns>
+	public static string ReadString(byte[] bytes, Encoding encoding){
+		return BitConverter.ToString(Encoding.Convert(Encoding.Default, encoding, bytes));
+	}
+	public static Point ReadPoint(byte[] bytes, int startFrom =0){
+		return new Point(ReadInt32(bytes), ReadInt32(bytes, sizeof(int)));
 	}
 }
 class Path{

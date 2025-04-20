@@ -15,7 +15,7 @@ abstract class Rndrcomponent{
     /// Assigns this instance the decoded byte array.
     /// </summary>
     /// <param name="bytes">the encoded array.</param>
-    public abstract void FromByte(byte[] bytes);
+    public abstract void FromBytes(byte[] bytes);
     /// <summary>Clear this instance, emptying all data stores to null or 0.</summary>
     /// <param name="disposing">Should this function Dispose this instance.</param>
     internal void Dispose(bool disposing){}
@@ -23,7 +23,7 @@ abstract class Rndrcomponent{
     public abstract void Initialise();
 }
 class Empty : Rndrcomponent{
-    public override void FromByte(byte[] bytes){return;}
+    public override void FromBytes(byte[] bytes){return;}
     public override int Size{get{return 0;}}
     public override byte[] ToByte(){return new byte[0];}
     public override void Initialise(){return;}
@@ -66,9 +66,11 @@ class Texturer : Rndrcomponent{
     bool Initialised;
     int DataStart;
     int DataEnd;
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Texturer(){
         this.filePath = new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false);
     }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Texturer(string? filePath = null){
         this.filePath = filePath == null? new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false):
         new Path(filePath, [".bmp", ".jpeg", ".png"], false);
@@ -148,13 +150,13 @@ class Texturer : Rndrcomponent{
     public override int Size{get{return 0;}}
     public override byte[] ToByte(){
         List<byte> result = BitConverter.GetBytes(this.filePath.Get().Length).ToList();
-        _ =result.Concat(Encoding.UTF8.GetBytes(this.filePath));
-        _ =result.Concat(BitConverter.GetBytes(this.DataStart));
-        _ =result.Concat(BitConverter.GetBytes(this.DataStart));
+        result.AddRange(Encoding.UTF8.GetBytes(this.filePath));
+        result.AddRange(BitConverter.GetBytes(this.DataStart));
+        result.AddRange(BitConverter.GetBytes(this.DataStart));
         return result.ToArray();
     }
-    public override void FromByte(byte[] bytes){
-        this.filePath = (Path)StorageManager.ReadString(bytes, bytes.Length, 0);
+    public override void FromBytes(byte[] bytes){
+        this.filePath = (Path)StorageManager.ReadString(bytes, Encoding.Unicode);
     }
     public override void Initialise(){_Initialise();}
     void _Initialise(){
@@ -285,7 +287,7 @@ class RigidBdy : Rndrcomponent{
     public RigidBdy(){
         this.Mass = 100;
     }
-    public override void FromByte(byte[] bytes){
+    public override void FromBytes(byte[] bytes){
         this.Mass =BitConverter.ToInt32(bytes);
     }
     public override byte[] ToByte(){

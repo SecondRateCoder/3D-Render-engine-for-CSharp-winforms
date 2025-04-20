@@ -48,28 +48,13 @@ struct Vector3{
     ///<summary>
     /// This ctor creates a Vector3 from a series of bytes.
     ///</summary>
-    public Vector3(byte[] bytes){
+    public Vector3(byte[] bytes, int startFrom =0){
         if(bytes.Length != sizeof(int)*3){
             this = Vector3.zero;
         }else{
-            byte[] buffer = new byte[sizeof(int)];
-            int i = 0;
-            while(i < 3){
-                for(int cc=0;cc<sizeof(int);cc++){
-                    buffer[cc] = bytes[cc+(i*sizeof(int))];
-                }
-                switch(i){
-                    case 0:
-                        this.X = BitConverter.ToInt32(buffer);
-                        break;
-                    case 1:
-                        this.Y = BitConverter.ToInt32(buffer);
-                        break;
-                    case 2:
-                        this.Z = BitConverter.ToInt32(buffer);
-                        break;
-                }
-            }
+            this.X = StorageManager.ReadFloat(bytes, 0 +startFrom);
+            this.Y = StorageManager.ReadFloat(bytes, sizeof(float) +startFrom);
+            this.Z = StorageManager.ReadFloat(bytes, (sizeof(float) * 2) +startFrom);
         }
     }
     /// <summary>
@@ -147,10 +132,10 @@ struct Vector3{
         return new Vector3(this.X/me.X, this.Y/me.Y, this.Z/me.Z);
     }
     public byte[] ToBytes(){
-        byte[] result = BitConverter.GetBytes(this.X);
-        _=result.Concat(BitConverter.GetBytes(this.Y));
-        _=result.Concat(BitConverter.GetBytes(this.Z));
-        return result;
+        List<byte> result = [..BitConverter.GetBytes(this.X)];
+        result.AddRange(BitConverter.GetBytes(this.Y));
+        result.AddRange(BitConverter.GetBytes(this.Z));
+        return result.ToArray();
     }
     
     public static float ComputeDot(Vector3 vector, Vector3 lightPosition){
@@ -340,7 +325,12 @@ class gameObj{
         }
     }
     public string Name;
-    public Mesh Children;
+    
+    public Mesh Children{
+#pragma warning disable CS8603 // Possible null reference return.
+        get{if(this.HasComponent<Mesh>()){return this.GetComponent<Mesh>();}else{return Mesh.Empty;}}
+#pragma warning restore CS8603 // Possible null reference return.
+    }
     public Vector3 Position;
     private Vector3 rotation;
     public bool isEmpty{get{if(this.Position == Vector3.zero &&this.Rotation == Vector3.zero 
@@ -437,10 +427,9 @@ class gameObj{
 
     public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         this.Position = position;
-        if(children == null){
-            this.Children = (Mesh)Polygon.Mesh();
-        }else{
-            this.Children = new Mesh(children.ToList());
+        if(children != null){
+            this.AddComponent<Mesh>();
+            this.Children.AddRange(children);
         }
         if(Mycomponents == null){
             this.components = new List<(Type ogType, Rndrcomponent rC)>();
@@ -449,10 +438,9 @@ class gameObj{
         }
         this.Rotation = rotation;
         this.Name = name == null? $"{World.worldData.Count+1}": name;
-        World.WorldOrient += this.Translate;
         if(Create){World.worldData.Add(this);}
     }
-    
+    public gameObj Copy(){return new gameObj(this.Position, this.Rotation, false, (Polygon[])this.Children, this.components, this.Name + "(1)");}
 
     public static gameObj operator +(gameObj parent, Polygon[] children){
         parent.Children.AddRange(children);

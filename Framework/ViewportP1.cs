@@ -3,8 +3,6 @@
 ///  This class represents the the Scene and what will be viewed by the user.
 /// </summary>
 static class World{
-    public delegate void Orient_(Vector3 position, Vector3 rotation, bool PrivateTranslation = false);
-    public static Orient_ WorldOrient;
     public static List<gameObj> worldData = new List<gameObj>();
     public static List<Camera> cams = new List<Camera>(){new Camera()};
     public static int camIndex{get; private set;}
@@ -20,6 +18,15 @@ static class World{
     }
     public static void AddLight(int light){
         lightIndex.Append(light);
+    }
+    public static void Call(){
+        Vector3 camPos = 0f-cams[camIndex].Position;
+        Vector3 camRot = 0f-cams[camIndex].Rotation;
+        List<gameObj> buffer = [];
+        foreach(gameObj gO in worldData){
+            gameObj gO_ = gO.Copy();
+            gO_.Translate(camPos, camRot, false);
+        }
     }
 }
 
@@ -66,7 +73,7 @@ static partial class ViewPort{
         }else{
                 foreach(gameObj gO in World.worldData){
                     Polygon[] buffer_ = (Polygon[])gO.Children.ViewPortClip();
-                    buffer.Concat((Polygon[])gO.Children.ViewPortClip());
+                    buffer.AddRange((Polygon[])gO.Children.ViewPortClip());
                     int Position = TextureData.Count+1;
                     bool HasTexture = gO.HasComponent<Texturer>();
                     for(int i = 0;i < buffer_.Length;i++){
@@ -80,70 +87,6 @@ static partial class ViewPort{
         //Transform each Polygon to screen-space and using th normalised point and normalised Polygon to get the position of the color point;
         
     }
-        /*
-        
-        
-    
-    /// <summary>
-    /// <summary>
-    ///  This overload takes the parameter data from the static World class.
-    /// </summary> 
-    /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creates a cube to be rendered./></remarks>
-    static (Point p, Color color)[] Convert_(){
-        if(World.worldData.Count == 0){gameObj gO = new gameObj(Vector3.zero, Vector3.zero, Polygon.Mesh(1, 0, 1, 4));}
-        List<(Color[], Polygon)> parameter = List<(Color[], Polygon)>(gO.Children.Count);
-        Color[] colors = new Color[(int)gO.Children.Volume];
-        for(int cc_=0;cc_ < colors.Length;cc_++){
-            colors[cc_] = Color.Grey;
-        }
-        for(int cc =0;cc < parameter.Count;cc++){
-            parameter.Add((colors, gO.Children[cc]));
-        }
-        return Convert_(parameter);
-    }
-    /// <summary>This overload turns Gameobjs into polygons then runs the main overload(Convert_()).</summary> 
-    public static (Point p, Color color)[] Convert_(List<gameObj> objs = null){
-        List<(Color[], Polygon)> parameter = new List<(Color[], Polygon)>();
-        Color[] colors = new Color[(int)gO.Children.Volume];
-        for(int cc_=0;cc_ < colors.Length;cc_++){
-            colors[cc_] = Color.Grey;
-        }
-        for(int cc = 0;cc < objs.Count;cc++){
-            for(int cc_ = 0; cc_ < objs[cc].Children.Count;cc_++){
-                parameter.Add((colors, objs[cc].Children[cc_]));
-            }
-        }
-        return Convert_(parameter);
-    }
-
-
-    /// <summary>The main Convert_() overload, This function converts the world 3d enviroment into a 2d representation.</summary> 
-    public static (Point p, Color color)[] Convert_(List<(Color[] texture, Polygon poly)> polygons){
-        (Point p, Color color)[] result = new (Point p, Color color)[polygons.Count];
-        if(polygons == null){
-            throw new Exception("Can't be null, you Monkey. \nDo you know how much fricking code I had to write to implement texturing \nDon't fucing do this");
-        }else{
-            //Apply camera transform and clip each polygon.
-            for(int cc = 0; cc < polygons.Count; cc++){
-                if(Vector3.GetRotation(polygons[cc].poly.Normal, World.cams[World.camIndex].Position).Magnitude<90){
-                    polygons[cc].poly.Translate(World.cams[World.camIndex].Position, 0f-World.cams[World.camIndex].Position, 0f-World.cams[World.camIndex].Rotation);
-                    polygons[cc] = Multiply(polygons[cc]);
-                    Point[] array = DrawBLine((Point)polygons[cc].A, (Point)polygons[cc].B);
-                    array.AddRange(DrawBLine((Point)polygons[cc].B, (Point)polygons[cc].C));
-                    array.AddRange(DrawBLine((Point)polygons[cc].C, (Point)polygons[cc].A));
-                    foreach(Point p in array){
-                        result[cc] = (p, Color.Grey);
-                    }
-                }else{
-                    cc++;
-                }
-                polygons[cc] = (polygons[cc].texture, Polygon.PolyClip(polygons[cc].poly, Vector3.zero, World.cams[World.camIndex].far));
-            }
-        }
-        return result;
-    }
-        
-        */
 
     /// <summary>
     /// Will return a polygon whose vector co-ordinaates can be directly converted to points.

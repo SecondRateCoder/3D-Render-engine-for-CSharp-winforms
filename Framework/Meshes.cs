@@ -59,7 +59,7 @@ struct Polygon{
         float ab = Vector3.GetRotation(this).Magnitude;
         return (float)(.5f * ac * bc * Math.Sin(ab));
     }}
-    public static int Size{get{return Vector3.Size * 3;}}
+    public static int Size{get{return (Vector3.Size * 3) + (sizeof(int) * 6);}}
     Point[] uPoints;
     public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{if(value.Length > 3){UpdateTexture(value);}else{this.uPoints = value;}}}
     public void UpdateTexture(Point[] uv){uPoints = new Point[3]; uPoints[0] = uv[0]; uPoints[1] = uv[1]; uPoints[2] = uv[2];}
@@ -84,11 +84,36 @@ struct Polygon{
         this.C = c;
         this.uPoints = new Point[0];
     }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    public Polygon(byte[] bytes){
+        if(bytes.Length < Vector3.Size * 3){throw new TypeInitializationException("Polygon", new ArgumentOutOfRangeException());}
+        List<byte[]> buffer = bytes.Chunk(Vector3.Size).ToList();
+        this.A = new Vector3(buffer[0]);
+        this.B = new Vector3(buffer[1]);
+        this.C = new Vector3(buffer[2]);
+        int cc = Vector3.Size * 3;
+        this.UVPoints = [StorageManager.ReadPoint(bytes, cc), 
+        StorageManager.ReadPoint(bytes, cc + (sizeof(int) * 2)), 
+        StorageManager.ReadPoint(bytes, cc + (sizeof(int) * 4))];
+    }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Polygon(){
         this.A = new Vector3();
         this.B = new Vector3();
         this.C = new Vector3();
         this.uPoints = new Point[0];
+    }
+    public byte[] ToBytes(){
+        List<byte> bytes = [..this.A.ToBytes()];
+        bytes.AddRange(this.B.ToBytes());
+        bytes.AddRange(this.C.ToBytes());
+        bytes.AddRange(BitConverter.GetBytes(this.uPoints[0].X));
+        bytes.AddRange(BitConverter.GetBytes(this.uPoints[0].Y));
+        bytes.AddRange(BitConverter.GetBytes(this.uPoints[1].X));
+        bytes.AddRange(BitConverter.GetBytes(this.uPoints[1].Y));
+        bytes.AddRange(BitConverter.GetBytes(this.uPoints[2].X));
+        bytes.AddRange(BitConverter.GetBytes(this.uPoints[2].Y));
+        return bytes.ToArray();
     }
     public static Polygon PolyClip(Polygon target, Vector3 focus, float Range){
         (bool a, bool b, bool c) item_ = (true, true, true);
@@ -209,6 +234,7 @@ struct Polygon{
 }
 [DebuggerDisplay("Position: {Position}, Rotation: {Rotation}, Count: {Count}")]
 class Mesh : Rndrcomponent, IEnumerable{
+    public static Mesh Empty{get{return new Mesh();}}
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}
     List<Polygon> mesh;
@@ -222,6 +248,11 @@ class Mesh : Rndrcomponent, IEnumerable{
     public Mesh(){
         this.mesh = [];
     }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    public Mesh(byte[] bytes){
+        this.FromBytes(bytes);
+    }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Mesh(IEnumerable<Polygon> p){
         this.mesh = p.ToList();
     }
@@ -266,9 +297,29 @@ class Mesh : Rndrcomponent, IEnumerable{
     !RndrComponents overrides.
     */
     public override int Size{get{return (Vector3.Size * 2) + Polygon.Size * this.Count;}}
-    public override Rndrcomponent FromByte(byte[] bytes){
-        int Count = 
+    public override byte[] ToByte(){
+        List<byte> bytes = [.. BitConverter.GetBytes(this.Count)];
+        foreach(Polygon p in this){
+            bytes.AddRange(p.ToBytes());
+        }
+        bytes.AddRange(this.Position.ToBytes());
+        bytes.AddRange(this.Rotation.ToBytes());
+        return bytes.ToArray();
     }
+    public override void FromBytes(byte[] bytes){
+        int Count = StorageManager.ReadInt32(bytes, 0);
+        this.mesh = new List<Polygon>(Count);
+        int cc =0;
+        int pointer = sizeof(int);
+        for(;pointer < Count;cc++ ,pointer += Polygon.Size){
+            byte[] buffer = new byte[Polygon.Size];
+            for(int i =0; i < Polygon.Size;i++){buffer[i] = bytes[pointer + i];}
+            mesh[cc] = new Polygon(buffer);
+        }
+        this.Position = new Vector3(bytes, cc);
+        this.Rotation = new Vector3(bytes, cc + Vector3.Size);
+    }
+    public override void Initialise(){throw new NotImplementedException();}
 
     /// <summary>
     ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
