@@ -87,3 +87,21 @@ class Light{
         this.Intensity = mag-Radius;
     }
 }
+
+abstract class ITextureEffect{
+    public abstract int iterations{get; set;}
+    public abstract List<(Point p, Color c)> Apply(List<(Point p, Color c)> data);
+}
+
+class Slide : ITextureEffect{
+    Point sD;
+    Point slideDirection{
+        get{return sD;} 
+        set{
+            float Magnitude = (float)Math.Sqrt(value.X^2 + value.Y^2);
+            sD = new Point((int)(value.X/Magnitude), (int)(value.Y/Magnitude));
+        }}
+    public override List<(Point p, Color c)> Apply(List<(Point p, Color c)> data){
+        
+    }
+}
