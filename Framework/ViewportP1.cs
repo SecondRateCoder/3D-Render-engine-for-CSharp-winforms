@@ -55,12 +55,12 @@ static partial class ViewPort{
         //The points in TextureData that represent where a new ogject's data starts, 
         //it soud align with the gameObjs indexing in World.worldData.
         List<int> positionData = [0];
-        List<(Point p, Color c)> TextureData = [];
+        TextureDatabase TextureData = [];
         if(World.worldData.Count == 0){
             gameObj gO = new gameObj(Vector3.zero, Vector3.zero, true, Polygon.Mesh(1, 0, 1, 4));
             gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
                 buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
-                for(int i = 0;i < buffer.Count;i++){TextureData = gO.GetComponent<Texturer>().Texture(buffer[i]).ToList();}
+                for(int i = 0;i < buffer.Count;i++){TextureData = gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints]);}
             buffer =[];
             positionData = [0];
         }else{
@@ -71,7 +71,7 @@ static partial class ViewPort{
                     bool HasTexture = gO.HasComponent<Texturer>();
                     for(int i = 0;i < buffer_.Length;i++){
                         if(HasTexture){positionData.Append(TextureData.Count+1);}
-                        if(HasTexture){TextureData.Concat(gO.GetComponent<Texturer>().Texture(buffer_[i]));}else{continue;}
+                        if(HasTexture){TextureData.Concat(gO.GetComponent<Texturer>().Texture([buffer_[i].UVPoints]));}else{continue;}
                     }
                 }
         }

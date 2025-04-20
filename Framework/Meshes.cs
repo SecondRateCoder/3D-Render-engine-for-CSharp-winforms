@@ -59,6 +59,7 @@ struct Polygon{
         float ab = Vector3.GetRotation(this).Magnitude;
         return (float)(.5f * ac * bc * Math.Sin(ab));
     }}
+    public static int Size{get{return Vector3.Size * 3;}}
     Point[] uPoints;
     public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{if(value.Length > 3){UpdateTexture(value);}else{this.uPoints = value;}}}
     public void UpdateTexture(Point[] uv){uPoints = new Point[3]; uPoints[0] = uv[0]; uPoints[1] = uv[1]; uPoints[2] = uv[2];}
@@ -207,7 +208,7 @@ struct Polygon{
 	}
 }
 [DebuggerDisplay("Position: {Position}, Rotation: {Rotation}, Count: {Count}")]
-class Mesh : IEnumerable{
+class Mesh : Rndrcomponent, IEnumerable{
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}
     List<Polygon> mesh;
@@ -247,6 +248,28 @@ class Mesh : IEnumerable{
         get{return mesh[index];}
         set{mesh[index] = value;}
     }
+
+    /*
+    ! IEnumerable overrides.
+    */
+    public override bool Equals(object? obj){if(obj == null){return false;}else{return this == (Mesh)obj;}}
+    public override int GetHashCode(){
+        int result = 0;
+        foreach(Polygon p in this){
+            result += p.GetHashCode();
+            result /= 2;
+        }
+        return result;
+    }
+
+    /*
+    !RndrComponents overrides.
+    */
+    public override int Size{get{return (Vector3.Size * 2) + Polygon.Size * this.Count;}}
+    public override Rndrcomponent FromByte(byte[] bytes){
+        int Count = 
+    }
+
     /// <summary>
     ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
     /// </summary>
@@ -279,15 +302,6 @@ class Mesh : IEnumerable{
 	public static bool operator !=(Mesh m, Mesh m2){
 		return !(m == m2);
 	}
-    public override bool Equals(object? obj){if(obj == null){return false;}else{return this == (Mesh)obj;}}
-    public override int GetHashCode(){
-        int result = 0;
-        foreach(Polygon p in this){
-            result += p.GetHashCode();
-            result /= 2;
-        }
-        return result;
-    }
     public static explicit operator Mesh(Polygon[] polygons){return new Mesh(polygons);}
     public static explicit operator Polygon[](Mesh mesh){return mesh.Get();}
 

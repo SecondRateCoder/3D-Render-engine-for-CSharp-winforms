@@ -7,61 +7,73 @@ using System.Text;
 abstract class Rndrcomponent{
     public abstract int Size{get;}
     public abstract byte[] ToByte();
-    public abstract Rndrcomponent FromByte(byte[] bytes);
+    public abstract void FromByte(byte[] bytes);
     internal void Dispose(bool disposing){}
     public abstract void Initialise();
 }
 class Empty : Rndrcomponent{
-    public override Rndrcomponent FromByte(byte[] bytes){return this;}
+    public override void FromByte(byte[] bytes){return this;}
     public override int Size{get{return 0;}}
     public override byte[] ToByte(){return new byte[0];}
     public override void Initialise(){return;}
 
 }
-class TextureData : IEnumerable{
+class TextureDatabase : IEnumerable{
     List<(Point point, Color color)> td;
     public (Point p, Color c) this[int index]{
         get{return td[index];}
         set{td[index] = value;}
     }
-    public TextureData(List<(Point p, Color c)> data){
+    public TextureDatabase(List<(Point p, Color c)> data){
         this.td = data;
     }
-    public TextureData(){this.td = [];}
+    public TextureDatabase(){this.td = [];}
     public void Append((Point, Color) data){td.Add(data);}
     public void Add((Point, Color) data){ _=td.Append(data); }
     public void Add(List<(Point p, Color c)> data) => this.Append(data);
     public void Append(List<(Point p, Color c)> data){foreach((Point p, Color c) item in data){this.Append(item);}}
-    public static implicit operator List<(Point point, Color color)>(TextureData tD){return tD.td;}
-    public static explicit operator TextureData(List<(Point point, Color color)> data){return new TextureData(data);}
+    public static implicit operator List<(Point point, Color color)>(TextureDatabase tD){return tD.td;}
+    public static explicit operator TextureDatabase(List<(Point point, Color color)> data){return new TextureDatabase(data);}
 
     public IEnumerator GetEnumerator() => td.GetEnumerator();
 }
 class Texturer : Rndrcomponent{
-    public static TextureData? textureData = [];
+    public static TextureDatabase? textureData = [];
     /// <summary>Store the image file in this before Initialising.</summary>
     Bitmap buffer;
     Path filePath;
+    bool Initialised;
     int DataStart;
     int DataEnd;
     public override int Size{get{return 0;}}
     public override byte[] ToByte(){
-        return Encoding.UTF8.GetBytes(this.filePath);
+        List<byte> result = BitConverter.GetBytes(this.filePath.Get().Length).ToList();
+        _ =result.Concat(Encoding.UTF8.GetBytes(this.filePath));
+        _ =result.Concat(BitConverter.GetBytes(this.DataStart));
+        _ =result.Concat(BitConverter.GetBytes(this.DataStart));
+        return result.ToArray();
     }
-    public override Texturer FromByte(byte[] bytes){throw new NotImplementedException();}
+    public override void FromByte(byte[] bytes){
+        
+    }
+    public Texturer(){
+        this.filePath = new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false);
+    }
     public Texturer(string? filePath = null){
         this.filePath = filePath == null? new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false):
         new Path(filePath, [".bmp", ".jpeg", ".png"], false);
         buffer = new Bitmap(1, 1);
     }
-    public override void Initialise(){}
+    public override void Initialise(){_Initialise();}
     void _Initialise(){
+        this.Initialised = true;
         FileInfo finfo = new FileInfo(filePath);
         buffer = (Bitmap)Image.FromFile(filePath);
     }
     public new void Dispose(bool disposing = true){
         base.Dispose(disposing);
         if (disposing){
+            this.Initialised =false;
 			buffer = new Bitmap(1, 1);
         }
     }
@@ -69,47 +81,54 @@ class Texturer : Rndrcomponent{
         this.Dispose(true);
         _Initialise();
     }
-    public TextureData? Texture(List<Point[]> UVpoints){
-        TextureData result = new TextureData([]);
-        if(UVpoints.Count % 3 == 0){
-            //Initialise this component.
-            _Initialise();
-            for(int cc =0; cc < UVpoints.Count;cc ++){
-                //Find tY length of the 2d polygon then find the range
-                int MinY = Texturer.Min([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]);
-                int YRange = Texturer.Max([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]) - MinY;
-                //The mid-point when the gradient of the line around 1 point changes, set on the line opposite it.
-                Point _12mid = new Point((UVpoints[cc][1].X + UVpoints[cc][2].X)/2, (UVpoints[cc][1].Y + UVpoints[cc][2].Y)/2);
-                //Point 0 (UVPoints[cc][0]) to Point 1 (UVPoints[cc][1])
-                Equation p0_p1 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][1]);
-                //Point 1 (UVPoints[cc][1]) to the midPoint
-                Equation p1_p12mid = Equation.FromPoints(UVpoints[cc][1], _12mid);
-                //Point 1 (UVPoints[cc][1]) to Point 2 (UVPoints[cc][2])
-                Equation p1_p2 = Equation.FromPoints(UVpoints[cc][1], UVpoints[cc][2]);
-                for(int y =MinY; y < YRange;y++){
-                    //Iterate the y.
-                    if(y < _12mid.Y){
-                        //Before change in Gradient
-                        float xUpper = p1_p12mid.SolveX(y);
-                        int x =(int)p0_p1.SolveX(y);
-                        while(x <= xUpper){
-                            result.Append((new Point(x, y), buffer.GetPixel(x, y)));
-                            x++;
-                        }
-                    }else{
-                        //After change in Gradient
-                        float xUpper = p1_p2.SolveX(y);
-                        int x =(int)p1_p12mid.SolveX(y);
-                        while(x <= xUpper){
-                            result.Append((new Point(x, y), buffer.GetPixel(x, y)));
-                            x++;
-                        }
+    /// <summary>
+    /// This generates a TextureData dataset which contains the texture data of each set of 3 Points in each element in UVPoints. 
+    /// </summary>
+    /// <param name="UVpoints">The List of 3 Point elements that represent the space taken for the texture.</param>
+    /// <param name="Append">Should this function append result to the static Texturer.texturerData buffer, <see cref="Texturer.textureData.Count"/></param>
+    /// <returns>A TextureData dataset which contains the texture data of each set of 3 Points in each element in UVPoints.</returns>
+    public TextureDatabase Texture(List<Point[]> UVpoints, bool Append = true){
+        TextureDatabase result = new TextureDatabase([]);
+        //Initialise this component.
+        _Initialise();
+        for(int cc =0; cc < UVpoints.Count;cc ++){
+            //Find tY length of the 2d polygon then find the range
+            int MinY = Texturer.Min([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]);
+            int YRange = Texturer.Max([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]) - MinY;
+            //The mid-point when the gradient of the line around 1 point changes, set on the line opposite it.
+            Point _12mid = new Point((UVpoints[cc][1].X + UVpoints[cc][2].X)/2, (UVpoints[cc][1].Y + UVpoints[cc][2].Y)/2);
+            //Point 0 (UVPoints[cc][0]) to Point 1 (UVPoints[cc][1])
+            Equation p0_p1 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][1]);
+            //Point 1 (UVPoints[cc][1]) to the midPoint
+            Equation p1_p12mid = Equation.FromPoints(UVpoints[cc][1], _12mid);
+            //Point 1 (UVPoints[cc][1]) to Point 2 (UVPoints[cc][2])
+            Equation p1_p2 = Equation.FromPoints(UVpoints[cc][1], UVpoints[cc][2]);
+            for(int y =MinY; y < YRange;y++){
+                //Iterate the y.
+                if(y < _12mid.Y){
+                    //Before change in Gradient
+                    float xUpper = p1_p12mid.SolveX(y);
+                    int x =(int)p0_p1.SolveX(y);
+                    while(x <= xUpper){
+                        result.Append((new Point(x, y), buffer.GetPixel(x, y)));
+                        x++;
+                    }
+                }else{
+                    //After change in Gradient
+                    float xUpper = p1_p2.SolveX(y);
+                    int x =(int)p1_p12mid.SolveX(y);
+                    while(x <= xUpper){
+                        result.Append((new Point(x, y), buffer.GetPixel(x, y)));
+                        x++;
                     }
                 }
             }
+        }
+        if(textureData == null && Append == true){
+            Texturer.textureData = [];
             Texturer.textureData.Append(result);
-            return result;
-        }else{return null;}
+        }
+        return result;
     }
     public static int Max(int[] numbers){
         int scope = 0;

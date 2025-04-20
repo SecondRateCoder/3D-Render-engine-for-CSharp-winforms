@@ -21,7 +21,7 @@ struct Vector3{
     public static readonly Vector3 Forward = new Vector3(0, 0, 1);
     public static readonly Vector3 Right = new Vector3(1, 0, 0);
 
-
+    public static int Size{get{return sizeof(float) * 3;}}
     /// <summary>
     ///  The X co-ordinate of the Vector, (The Horizontal axis).
     /// </summary> 

@@ -88,6 +88,17 @@ static class StorageManager{
 		}
 		throw new Exception("CorruptedSaveFile", new FileFormatException("The file was been saved in a specific format, if this pattern has been broken then the "));
 	}
+
+
+
+	public static int ReadInt32(byte[] bytes, int startFrom =0){
+		byte[] integer = new byte[sizeof(int)];
+		for(int cc =startFrom;cc < sizeof(int);cc++){
+			integer[cc] = bytes[cc];
+		}
+		return BitConverter.ToInt32(integer);
+	}
+	public static string ReadString(byte[] bytes, )
 }
 class Path{
 	string filePath;
