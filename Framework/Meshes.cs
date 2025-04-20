@@ -1,47 +1,6 @@
 using System.Collections;
 using System.Diagnostics;
 
-struct Equation{
-    public float XCoff;
-    public float Y_intercept;
-    public Equation(float X_coefficient, float Y_intercept){
-        this.XCoff = X_coefficient;
-        this.Y_intercept = Y_intercept;
-    }
-    public float SolveY(float X){
-        return (X * XCoff) + Y_intercept;
-    }
-    public float SolveX(float Y){
-        return (Y - Y_intercept)/XCoff;
-    }
-    public static Equation FromPoints(Point a, Point b){
-        //Simultaenous equation.
-        float gradient = (a.Y - b.Y)/(a.X - b.X);
-        float y_intercept = a.Y - (a.X * gradient);
-        return new Equation(gradient, y_intercept);
-    }
-    /// <summary>
-    /// Finds the x-coordinate where both Equation a and b equal the same y-coordinate.
-    /// </summary>
-    /// <returns>A Point detailing the x and y coordinates where x and y equal each other.</returns>
-    public static Point WhereEquationEquals(Equation a, Equation b){
-        //a (y = mx + c)
-        //b (y = nx + d)
-        //a = (mx - y = c)
-        //b = (nx - y = d)
-        //Substitution method:
-        //a = (x = (c + y)/m)
-        //b = (n(c + y)/m - y = d)
-        //b = ((nc + ny)/m - y = d)
-        //b = (y - ny/m = d - nc/m)
-        //b = (y(1 - n/m) = d - nc/m)
-        //b = (y = (d - nc/m)/(1 - n/m))
-        Point p = new Point();
-        p.Y = (int)((b.Y_intercept - (b.XCoff * a.Y_intercept/a.XCoff))/(1 - (b.XCoff/a.XCoff)));
-        p.X = (int)a.SolveX(p.Y);
-        return p;
-    }
-}
 [DebuggerDisplay("A: {A}, B: {B}, C: {C}")]
 struct Polygon{
     public Vector3 A;

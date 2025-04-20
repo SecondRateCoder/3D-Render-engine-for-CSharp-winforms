@@ -29,35 +29,7 @@ class Empty : Rndrcomponent{
     public override void Initialise(){return;}
 
 }
-class TextureDatabase : IEnumerable{
-    List<(Point point, Color color)> td;
-    public int Count{get{
-        //If there's been a change the re-assign _c , otherwise move on. 
-        // then return it.
-        if(Unsignedchange){
-            _c = td.Count;
-        }
-        return _c;
-    }}
-    int _c;
-    bool Unsignedchange;
-    public (Point p, Color c) this[int index]{
-        get{return td[index];}
-        set{td[index] = value;}
-    }
-    public TextureDatabase(List<(Point p, Color c)> data){
-        this.td = data;
-    }
-    public TextureDatabase(){this.td = [];}
-    public void Add((Point, Color) data)=> this.Append(data);
-    public void Add(List<(Point p, Color c)> data) => this.Append(data);
-    public void Append((Point, Color) data){this.Unsignedchange = true; td.Add(data);}
-    public void Append(List<(Point p, Color c)> data){this.Unsignedchange = true; foreach((Point p, Color c) item in data){this.Append(item);}}
-    public static implicit operator List<(Point point, Color color)>(TextureDatabase tD){return tD.td;}
-    public static explicit operator TextureDatabase(List<(Point point, Color color)> data){return new TextureDatabase(data);}
 
-    public IEnumerator GetEnumerator() => td.GetEnumerator();
-}
 class Texturer : Rndrcomponent{
     public static TextureDatabase? textureData = [];
     /// <summary>Store the image file in this before Initialising.</summary>
