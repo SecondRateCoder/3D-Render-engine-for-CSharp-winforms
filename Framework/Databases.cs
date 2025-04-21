@@ -20,8 +20,6 @@ class TextureDatabase : IEnumerable{
         this.td = data;
     }
     public TextureDatabase(){this.td = [];}
-    public void Add((Point, Color) data)=> this.Append(data);
-    public void Add(List<(Point p, Color c)> data) => this.Append(data);
     public void Append((Point, Color) data){this.Unsignedchange = true; td.Add(data);}
     public void Append(List<(Point p, Color c)> data){this.Unsignedchange = true; foreach((Point p, Color c) item in data){this.Append(item);}}
     public static implicit operator List<(Point point, Color color)>(TextureDatabase tD){return tD.td;}

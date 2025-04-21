@@ -62,7 +62,6 @@ class Camera{
     ///</summary>
     ///<remarks>This property cant be changed after being assigned.</remarks>
     public float far{get{return fov_;} set{fov_ = (fov_ == 0? value: fov_);}}
-    public static Form? form{get{return Form.ActiveForm;}}
     public Camera(float Fov = 15f, Vector3? pos = null, Vector3? rot = null){
         this.far = Fov;
         this.Position = pos == null? Vector3.zero: pos.Value;

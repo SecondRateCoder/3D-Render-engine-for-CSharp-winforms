@@ -34,8 +34,8 @@ static class World{
 ///  This class represents the viewport of the user, the Camera property is what will be used to select the viewpoint.
 /// </summary> 
 static class ViewPort{
-    static byte[] backBuffer;
-    static WriteableBitmap bmp;
+    static byte[] backBuffer= [];
+    static WriteableBitmap bmp = WriteableBitmap.Empty;
     public static Bitmap Get(){return bmp.Get();}
     public static void Update(WriteableBitmap Bmp){
         bmp = Bmp;
@@ -73,7 +73,7 @@ static class ViewPort{
     /// </summary>
     ///<remarks>The left(l) and bottom(b) properties are set to 0, 
     /// whilst the right(r) and top(t) properties hold the window width and height, respectively.</remarks>
-    public static readonly (float r, float l, float b, float t) boundary = (Camera.form.DisplayRectangle.Width, 0, 0, Camera.form.DisplayRectangle.Height);
+    public static readonly (float r, float l, float b, float t) boundary = (Entry.f.DisplayRectangle.Width, 0, 0, Entry.f.DisplayRectangle.Height);
     /// <summary>
     ///  This property represents the 4x4 Matrix that will convert all viewable vector positions to Perspective projection.
     /// </summary>
@@ -87,10 +87,9 @@ static class ViewPort{
 
 
     /// <summary>
-    /// <summary>
     ///  This takes the gameObj data from the static World class.
     /// </summary> 
-    /// <remarks>If <seealso cref="World.worldData.Count" == 0, then it creates a cube to be rendered./></remarks>
+    /// <remarks>If <see cref="World.worldData.Count"/> == 0, then it creates a cube to be rendered.</remarks>
     public static (Point p, Color c)[] Convert_(){
         //Store all the clipped polygons overall, using positionData to define the points between each.
         List<Polygon> buffer = [];
@@ -102,7 +101,7 @@ static class ViewPort{
             gameObj gO = new gameObj(Vector3.zero, Vector3.zero, true, Polygon.Mesh(1, 0, 1, 4));
             gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
                 buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
-                for(int i = 0;i < buffer.Count;i++){ViewPort.bmp.Initialise(gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints]));}
+                for(int i = 0;i < buffer.Count;i++){gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints]);}
             buffer =[];
             positionData = [0];
         }else{
@@ -116,6 +115,7 @@ static class ViewPort{
                     if(HasTexture){TextureData.Append(gO.GetComponent<Texturer>().Texture([buffer_[i].UVPoints]));}else{continue;}
                 }
             }
+            ViewPort.bmp.Initialise(TextureData, Entry.f.Width, Entry.f.Height);
         }
         return [];
         //TextureData has been fully filled.
@@ -139,7 +139,7 @@ static class ViewPort{
         CalcBuffer.A /= wA;
         //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.A.Normalise();
-        CalcBuffer.A = new Vector3(CalcBuffer.A.X/CalcBuffer.A.Z * Camera.form.Bounds.Width, CalcBuffer.A.Y/CalcBuffer.A.Z  * Camera.form.Bounds.Height, 0);
+        CalcBuffer.A = new Vector3(CalcBuffer.A.X/CalcBuffer.A.Z * Entry.f.Bounds.Width, CalcBuffer.A.Y/CalcBuffer.A.Z  * Entry.f.Bounds.Height, 0);
         //For Point B
         CalcBuffer.B = new Vector3(
             (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
@@ -150,7 +150,7 @@ static class ViewPort{
         CalcBuffer.B /= wB;
         //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.B.Normalise();
-        CalcBuffer.B = new Vector3(CalcBuffer.B.X/CalcBuffer.B.Z * Camera.form.Bounds.Width, CalcBuffer.B.Y/CalcBuffer.B.Z  * Camera.form.Bounds.Height, 0);
+        CalcBuffer.B = new Vector3(CalcBuffer.B.X/CalcBuffer.B.Z * Entry.f.Bounds.Width, CalcBuffer.B.Y/CalcBuffer.B.Z  * Entry.f.Bounds.Height, 0);
         //For Point C
         CalcBuffer.C = new Vector3(
             (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
@@ -161,7 +161,7 @@ static class ViewPort{
         CalcBuffer.C /= wC;
         //Normalise then multiply by the form dimensions to scale it.
         CalcBuffer.C.Normalise();
-        CalcBuffer.C= new Vector3(CalcBuffer.C.X/CalcBuffer.C.Z * Camera.form.Bounds.Width, CalcBuffer.C.Y/CalcBuffer.C.Z  * Camera.form.Bounds.Height, 0);
+        CalcBuffer.C= new Vector3(CalcBuffer.C.X/CalcBuffer.C.Z * Entry.f.Bounds.Width, CalcBuffer.C.Y/CalcBuffer.C.Z  * Entry.f.Bounds.Height, 0);
         return CalcBuffer;
     }
 }
