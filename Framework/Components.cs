@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Text;
-
 /// <summary>
 ///  This abstract class is created to act as a link between different component types.
 /// </summary>
