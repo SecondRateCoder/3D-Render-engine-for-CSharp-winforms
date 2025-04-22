@@ -20,8 +20,6 @@ class TextureDatabase : IEnumerable{
         this.td = data;
     }
     public TextureDatabase(){this.td = [];}
-    public void Add((Point, Color) data)=> this.Append(data);
-    public void Add(List<(Point p, Color c)> data) => this.Append(data);
     public void Append((Point, Color) data){this.Unsignedchange = true; td.Add(data);}
     public void Append(List<(Point p, Color c)> data){this.Unsignedchange = true; foreach((Point p, Color c) item in data){this.Append(item);}}
     public static implicit operator List<(Point point, Color color)>(TextureDatabase tD){return tD.td;}
@@ -30,7 +28,7 @@ class TextureDatabase : IEnumerable{
     public IEnumerator GetEnumerator() => td.GetEnumerator();
 }
 class CollisionDatabase : IEnumerable{
-	List<(gameObj gameObject, int Mass, Vector3 velocity)>[] collidingObjects;
+	List<(gameObj gameObject, int Mass, Vector3 velocity)>[] collidingObjects = [];
 	public int Length{get{return collidingObjects.Length;}}
 	public (gameObj gameObject, int Mass, Vector3 velocity) this[int Row, int Column]{
 		get{
@@ -41,6 +39,7 @@ class CollisionDatabase : IEnumerable{
 			this.collidingObjects[Row][Column] = value;
 		}
 	}
+    public CollisionDatabase(){this.collidingObjects = [];}
     public List<(gameObj gameObject, int Mass, Vector3 velocity)> this[int Row]{
         get{return this.collidingObjects[Row];}
         set{if(Row > collidingObjects.Length){collidingObjects.Append(value);}

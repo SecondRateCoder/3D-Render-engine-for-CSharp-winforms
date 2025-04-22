@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 /// <summary>
 ///  A 3-dimensional point and rotation.
@@ -375,7 +377,6 @@ class gameObj{
             components.Add(rc);
         }
     }
-
     public bool HasComponent<RComponent>()where RComponent : Rndrcomponent, new(){
         if(GetComponent<RComponent>() == null){return false;}else{return true;}
     }
@@ -390,7 +391,7 @@ class gameObj{
     /// </summary>
     /// <typeparam name="Component">This is the RndrCcomponent type that should be returned.</typeparam>
     /// <returns>Returns the 1st instance of the expected component.</returns>
-    public Component? GetComponent<Component>() where Component : Rndrcomponent, new(){
+    public Component GetComponent<Component>() where Component : Rndrcomponent, new(){
         for(int cc = 0; cc < components.Count;cc++){
             if(this.components[cc].ogType == typeof(Component)){
                 return (Component?)this.components[cc].rC;

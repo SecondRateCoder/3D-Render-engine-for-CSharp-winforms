@@ -2,22 +2,17 @@ using Timer = System.Timers.Timer;
 using System.Timers;
 using System.ComponentModel;
 class Entry{
-    public static CancellationTokenSource cts{get; private set;}
+    public static CancellationTokenSource cts{get; private set;} = new CancellationTokenSource();
     public static ElapsedEventHandler TUpdate;
-    public static Action Update;
-    public static Action Start;
-    static Pen def;
-    static List<Point> pointBuffer;
-    static Thread T;
-    static Form1 f = new Form1();
+    public static Action Update = Paint3D;
+    public static Action Start = ExternalControl.StartTimer;
+    static Pen def = new(Color.Black);
+    static List<Point> pointBuffer = [];
+    public static Form1 f = new Form1();
     public static void Main(){
         ApplicationConfiguration.Initialize();
 		StorageManager.filePath = AppDomain.CurrentDomain.BaseDirectory;
 		ExternalControl.Initialise();
-        cts = new CancellationTokenSource();
-		Start = ExternalControl.StartTimer;
-		Update = Paint3D;
-        T = Thread.CurrentThread;
         Loop();
         Application.Run(f);
     }
@@ -70,11 +65,10 @@ class Entry{
 }
 static class ExternalControl{
     public static int fps{get; private set;}
-    static void ZeroFrames(object sender, ElapsedEventArgs e){fps = 0;}
-    static ElapsedEventHandler ZFHandler = ZeroFrames;
+    static ElapsedEventHandler ZFHandler = (sender, e) => {fps = 0;};
     static void IncrementFrames(){fps++;}
 
-    static Timer _1 = new Timer();
+    public static Timer _1 = new Timer();
     public static void Initialise(){
         _1.AutoReset = true;
         _1.Interval = 1000;
@@ -90,9 +84,11 @@ public partial class Form1 : Form{
     Graphics GrphcsPrprty;
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Graphics G {get{return GrphcsPrprty == null? this.CreateGraphics() : GrphcsPrprty;} private set{GrphcsPrprty = value;}}
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Form1(){
         InitializeComponent();
     }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     override protected void OnLoad(EventArgs e){
         base.OnLoad(e);
         Entry.Start();

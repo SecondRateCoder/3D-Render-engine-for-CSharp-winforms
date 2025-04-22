@@ -120,8 +120,12 @@ static class StorageManager{
 	/// <param name="bytes">The array to be decoded.</param>
 	/// <param name="encoding">The encoding the result string will be formated to.</param>
 	/// <returns></returns>
-	public static string ReadString(byte[] bytes, Encoding encoding){
-		return BitConverter.ToString(Encoding.Convert(Encoding.Default, encoding, bytes));
+	public static string ReadString(byte[] bytes, Encoding encoding, int endAt, int startFrom = 0){
+		byte[] buffer = new byte[endAt - startFrom];
+		for(int cc = 0;cc < endAt - startFrom;cc++){
+			buffer[cc] = bytes[cc+startFrom];
+		}
+		return BitConverter.ToString(Encoding.Convert(Encoding.Default, encoding, buffer));
 	}
 	public static Point ReadPoint(byte[] bytes, int startFrom =0){
 		return new Point(ReadInt32(bytes), ReadInt32(bytes, sizeof(int)));
