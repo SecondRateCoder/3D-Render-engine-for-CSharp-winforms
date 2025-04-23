@@ -321,11 +321,8 @@ struct Vector3{
 /// <summary>Represents a 3-Dimensional object.</summary>
 [DebuggerDisplay("Position: {Positon}, Rotation = {Rotation}", Name = "{Name}")]
 class gameObj{
-    public static gameObj Empty{
-        get{
-            return new gameObj(Vector3.zero, Vector3.zero, false, [], [], "");
-        }
-    }
+    public static gameObj Empty{get{return new gameObj(Vector3.zero, Vector3.zero, false, [], [], "");}}
+    public gameObj Copy(){return new gameObj(this.Position, this.Rotation, false, (Polygon[])this.Children, this.components, this.Name + "(1)");}
     public string Name;
     
     public Mesh Children{
@@ -441,7 +438,6 @@ class gameObj{
         this.Name = name == null? $"{World.worldData.Count+1}": name;
         if(Create){World.worldData.Add(this);}
     }
-    public gameObj Copy(){return new gameObj(this.Position, this.Rotation, false, (Polygon[])this.Children, this.components, this.Name + "(1)");}
 
     public static gameObj operator +(gameObj parent, Polygon[] children){
         parent.Children.AddRange(children);
