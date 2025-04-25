@@ -180,13 +180,15 @@ class RigidBdy : Rndrcomponent{
         set{_velocity =  2*(value/(this.Mass^2));}
     }
     public Vector3 GetEnergy(){return (this.Mass/2) * (this._velocity^2);}
-    public RigidBdy(int m = 1, PhysicsMaterial pM = null, ColliderShape cS = null){
+    public RigidBdy(int m = 1, PhysicsMaterial? pM = null, ColliderShape? cS = null){
         this.pM = pM == null?PhysicsMaterial.GlazedWood: pM;
         this.cS = cS == null?ColliderShape.Cube: cS;
         this.Mass = m;
     }
     public RigidBdy(){
         this.Mass = 100;
+        this.pM = PhysicsMaterial.GlazedWood;
+        this.cS = ColliderShape.Cube;
     }
     public override void FromBytes(byte[] bytes){
         this.Mass =BitConverter.ToInt32(bytes);

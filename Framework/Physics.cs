@@ -2,9 +2,18 @@ using System.Collections;
 using System.Timers;
 
 class ColliderShape{
-    public TrueCollider Type{get; private set;}
+    public TrueCollider Type{get{return (TrueCollider)_type;}}
+    int _type;
+    public Mesh Shape{get{return this.Buffer;}}
+    Mesh Buffer;
     public ColliderShape(TrueCollider tC){
-        this.Type = tC;
+        this._type = tC.type;
+    }
+    public void Initialise(){this.Buffer = TrueCollider.GetMesh(this.Type);}
+    public void Dispose(bool disposing = true){
+        if(disposing){
+            Buffer.Dispose(true);
+        }
     }
 
 
@@ -69,7 +78,7 @@ class ColliderShape{
         public static explicit operator int(TrueCollider tC){
             return tC.type;
         }
-        public static Mesh GetCollider(TrueCollider tC){
+        public static Mesh GetMesh(TrueCollider tC){
             int bevel;
             switch(tC.type){
                 case 1: bevel = 0;  break;
