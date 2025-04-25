@@ -316,18 +316,15 @@ class Mesh : Rndrcomponent, IEnumerable{
     public static explicit operator Polygon[](Mesh mesh){return mesh.Get();}
 
     ///<summary>Translates this mesh by the Vector3 v.</summary>
-    public static operator +(Mesh m, Vector3 v){
-        m.Translate(v, Vector3.zero);
+    public static Mesh operator +(Mesh m, Vector3 v){
+        m.Translate(v, Vector3.Zero);
+        return m;
     }
 
     ///<summary>Scales the Mesh by the Vector3 v</summary>
-    public static operator *(Mesh m, Vector3 v){
-        m.Translate(m.Position - (m.Position * v), Vector3.zero);
-        for(int cc =0; cc< m.Count;cc++){
-            m[cc].A *= v;
-            m[cc].B *= v;
-            m[cc].C *= v;
-        }
+    public static Mesh operator *(Mesh m, Vector3 v){
+        m.Translate(m.Position - (m.Position * v), Vector3.Zero);
+        return m;
     }
 
     public IEnumerator GetEnumerator() => mesh.GetEnumerator();

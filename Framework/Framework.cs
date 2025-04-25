@@ -11,7 +11,7 @@ struct Vector3{
     /// <summary>
     ///  This property represents a Vector, which has it's x, y and z values set to 0.
     /// </summary> 
-    public static readonly Vector3 zero = new Vector3();
+    public static readonly Vector3 Zero = new Vector3();
     /// <summary>
     ///  This property represents a Vector, which has it's x, y and z values set to Float.infinity.
     /// </summary> 
@@ -53,7 +53,7 @@ struct Vector3{
     ///</summary>
     public Vector3(byte[] bytes, int startFrom =0){
         if(bytes.Length != sizeof(int)*3){
-            this = Vector3.zero;
+            this = Vector3.Zero;
         }else{
             this.X = StorageManager.ReadFloat(bytes, 0 +startFrom);
             this.Y = StorageManager.ReadFloat(bytes, sizeof(float) +startFrom);
@@ -317,7 +317,7 @@ struct Vector3{
 /// <summary>Represents a 3-Dimensional object.</summary>
 [DebuggerDisplay("Position: {Positon}, Rotation = {Rotation}", Name = "{Name}")]
 class gameObj{
-    public static gameObj Empty{get{return new gameObj(Vector3.zero, Vector3.zero, false, [], [], "");}}
+    public static gameObj Empty{get{return new gameObj(Vector3.Zero, Vector3.Zero, false, [], [], "");}}
     public gameObj Copy(){return new gameObj(this.Position, this.Rotation, false, (Polygon[])this.Children, this.components, this.Name + "(1)");}
     public string Name;
     
@@ -328,7 +328,7 @@ class gameObj{
     }
     public Vector3 Position;
     private Vector3 rotation;
-    public bool isEmpty{get{if(this.Position == Vector3.zero &&this.Rotation == Vector3.zero 
+    public bool isEmpty{get{if(this.Position == Vector3.Zero &&this.Rotation == Vector3.Zero 
     &&components.Count == 0 &&Children.Count == 0){return true;}else{return false;}}}
     /// <summary>
     ///  The list containing all of this gameObject's components
@@ -347,7 +347,7 @@ class gameObj{
     }
     public Vector3 Rotation{
         get{return this.rotation;}
-        set{this.rotation = this.Children.Count > 0? value: Vector3.zero;}
+        set{this.rotation = this.Children.Count > 0? value: Vector3.Zero;}
     }
     public int CollisionRange{
         get{

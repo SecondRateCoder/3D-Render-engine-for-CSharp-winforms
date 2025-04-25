@@ -6,7 +6,7 @@ static class World{
     public static List<gameObj> worldData = new List<gameObj>();
     public static List<Camera> cams = new List<Camera>(){new Camera()};
     public static int camIndex{get; private set;}
-    public static List<Light> lights = new List<Light>(){new Light(Vector3.zero, Color.White, 15)};
+    public static List<Light> lights = new List<Light>(){new Light(Vector3.Zero, Color.White, 15)};
     public static List<int> activeLights = [0];
     public static void setCam(int index){
         if(index < cams.Count){
@@ -98,7 +98,7 @@ static class ViewPort{
         List<int> positionData = [0];
         TextureDatabase TextureData = [];
         if(World.worldData.Count == 0){
-            gameObj gO = new gameObj(Vector3.zero, Vector3.zero, true, Polygon.Mesh(1, 0, 1, 4));
+            gameObj gO = new gameObj(Vector3.Zero, Vector3.Zero, true, Polygon.Mesh(1, 0, 1, 4));
             gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
                 buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
                 for(int i = 0;i < buffer.Count;i++){gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints]);}
