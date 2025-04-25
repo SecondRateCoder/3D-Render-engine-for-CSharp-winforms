@@ -13,6 +13,17 @@ class Entry{
         ApplicationConfiguration.Initialize();
 		StorageManager.filePath = AppDomain.CurrentDomain.BaseDirectory;
 		ExternalControl.Initialise();
+        Update += () => {
+            if(f.InvokeRequired){
+                f.Invoke(() => {
+                    if(f != null){
+                        f.Refresh();
+                        f.G.Clear(Color.White);
+                        if(pointBuffer != null){f.G.DrawPolygon(def, pointBuffer.ToArray());}
+                    }
+                });
+            }
+        };
         Loop();
         Application.Run(f);
     }
@@ -46,19 +57,6 @@ class Entry{
             if(!int.IsEvenInteger(Buffer.Count)){Buffer.RemoveAt(Buffer.Count-1);}
             pointBuffer.AddRange(Buffer);
         }
-		//
-		if(f.InvokeRequired){
-			f.Invoke(() => {
-        if(f != null){
-            f.Refresh();
-            f.G.Clear(Color.White);
-            if(pointBuffer != null){f.G.DrawPolygon(def, pointBuffer.ToArray());}
-        }
-    });
-		}else{
-			return;
-		}
-		//
         
         
     }
