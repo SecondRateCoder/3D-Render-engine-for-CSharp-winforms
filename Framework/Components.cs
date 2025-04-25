@@ -77,7 +77,7 @@ class Texturer : Rndrcomponent{
     /// <returns>A TextureData dataset which contains the texture data of each set of 3 Points in each element in UVPoints.</returns>
     public TextureDatabase Texture(List<Point[]> UVpoints, bool Append = true){
         ObjectDisposedException.ThrowIf(!this.Initialised, this);
-        TextureDatabase result = new TextureDatabase([]);
+        TextureDatabase result = new(new List<(Point p, Color c)>());
         //Initialise this component.
         _Initialise();
         for(int cc =0; cc < UVpoints.Count;cc ++){

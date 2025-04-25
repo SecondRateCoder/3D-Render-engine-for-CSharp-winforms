@@ -108,9 +108,6 @@ class PhysicsMaterial{
 
 
 static class CollisionManager{
-    static CollisionManager(){
-        //Entry.TUpdate += Collider;
-    }
     ///<summary>A property with a nested iterative function.</summary>
     ///<returns>A CollisionDatabase describing the collisions occuring in the program at the current frame.</returns>
     ///<remarks>This property runs an internal function when getting is attempted, assigning the return to a CollisionDatabase variable is best practice.</remarks>
