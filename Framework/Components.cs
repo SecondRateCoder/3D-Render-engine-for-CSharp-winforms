@@ -168,10 +168,17 @@ class RigidBdy : Rndrcomponent{
     /// This is the size of the class 
     ///</summary>
     public override int Size {get{return (sizeof(int)*2)+(sizeof(float)*3);}}
+    public PhysicsMaterial pM;
+    public ColliderShape;
     public static int size {get{return new RigidBdy().Size;}}
     public int Mass;
     public int Speed;
-    public Vector3 velocity;
+    Vector3 _velocity;
+    public Vector3 velocity{
+        get{return _velocity;}
+        set{_velocity =  2*(value/(this.Mass^2));}
+    }
+    public Vector3 GetEnergy(){return (this.Mass/2) * (this._velocity^2);}
     public RigidBdy(int m = 1){
         this.Mass = m;
     }

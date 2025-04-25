@@ -128,11 +128,6 @@ struct Vector3{
         this = v;
         return v;
     }
-    public Vector3 GetNormal(){
-        Vector3 me = this;
-        me.Normalise();
-        return new Vector3(this.X/me.X, this.Y/me.Y, this.Z/me.Z);
-    }
     public byte[] ToBytes(){
         List<byte> result = [..BitConverter.GetBytes(this.X)];
         result.AddRange(BitConverter.GetBytes(this.Y));

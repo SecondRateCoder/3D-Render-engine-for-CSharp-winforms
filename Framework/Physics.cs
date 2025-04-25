@@ -1,28 +1,103 @@
 using System.Collections;
 using System.Timers;
+
+class ColliderShape{
+    class TrueCollider{
+        //public static readonly TrueCollider Sphere = 0;
+        public static readonly TrueCollider Cube = 1;
+        public static readonly TrueCollider Cylinder = 2;
+
+        internal string Name{get; private set;}
+        internal int type;
+
+        public (int height, int width) Dimensions{get; private set;}
+        public void UpdateDimensions(int height, int width){this.Dimensions = (height, width);}
+
+        internal TrueCollider(int tyPe){
+            if(IsCollider(tyPe)){
+                this.Name = ColliderShape.GetCollider(tyPe);
+                this.type = tyPe;
+            }
+        }
+
+        public static bool IsCollider(int type){
+            switch(type){
+                case 1: return true;
+                case 2: return true;
+                default: return false;
+            }
+        }
+        public static string GetCollider(int type){
+            if(!IsCollider(type)){return "";}else{
+                switch(type){
+                    case 1: return  "Cube";
+                    case 2: return "Cylinder";
+                    default: return "";
+                }
+            }
+        }
+        public static explicit operator TrueCollider?(int type){
+            if(IsCollider(type){return new TrueCollider(type)else{return null};
+        }
+        public static explicit operator int(TrueCollider tC){
+            return tC.type;
+        }
+        public static Mesh GetCollider(TrueCollider tC){
+            int bevel;
+            switch(tC.type){
+                case 1: bevel = 0;
+                case 2: bevel = 2;
+            }
+            return (Mesh)Polygon.Mesh(tC.dimensions.height, tC.dimensions.width, bevel);
+        }
+    }
+
+
+
+    public TrueCollider Type{get; private set;}
+    public ColliderShape(TrueCollider tC){
+        this.Type = tC;
+    }
+
+    public static implicit operator ColliderShape(int tyPe){return new ColliderShape(tyPe);}
+}
+
+
+class PhysicsMaterial{
+    public static readonly PhysicsMaterial SandPaper = new PhysicsMaterial(10, 0);
+    public static readonly PhysicsMaterial Rubber = new PhysicsMaterial(5, 7);
+    public static readonly PhysicsMaterial GlazedWood = new PhysicsMaterial(3, 1);
+
+    public int Friction{get; private set;}
+    public int Bounciness{get; private set;}
+    public PhysicsMaterial(int Friction, int Bounciness){
+        this.Friction = Friction;
+        this.Bounciness = Bounciness;
+    }
+}
+
+
+
 static class CollisionManager{
     static CollisionManager(){
         //Entry.TUpdate += Collider;
     }
-    ///<summary>
-    /// This returns a 2d list that contains the data of colliding gameObjs, 
-    ///</summary>
-    ///<returns>The list is in the structure where for every gameObj(the 1st item on the 2nd dimension), 
-    /// all the recorded collisions are recorded on every entry below the 1st.</returns>
-    ///<remarks>This property runs an internal function when getting is attempted, saving the return to a list is suggested.</remarks>
-    public static CollisionDatabase BoundaryCollisions{
+    ///<summary>A property with a nested iterative function.</summary>
+    ///<returns>A CollisionDatabase describing the collisions occuring in the program at the current frame.</returns>
+    ///<remarks>This property runs an internal function when getting is attempted, assigning the return to a CollisionDatabase variable is best practice.</remarks>
+    public static CollisionDatabase LooseCollisions{
         get{
             CollisionDatabase list = new CollisionDatabase();
             gameObj scope = World.worldData[0];
             for(int cc = 1;cc < World.worldData.Count;cc++, scope = World.worldData[cc]){
-                RigidBdy? pM = scope.GetComponent<RigidBdy>();
-                if(pM == null){continue;}else{
+                if(!scope.HasComponent<RigidBdy>()){continue;}else{
                     list.Append(new List<(gameObj, int, Vector3)>());
-                    list.AddRange(list.Length, SubSearch(scope));
+                    list[cc].AddRange(list.Length, SubSearch(scope));
                 }
             }
             return list;
     }}
+    ///<summary>Searches in the World.worldData list for any objects colliding with gameObj</summary>
     static (gameObj gO, int Mass, Vector3 velocity)[] SubSearch(gameObj scope){
         (gameObj gO, int Mass, Vector3 velocity)[] result = [];
         foreach(gameObj gO in World.worldData){
@@ -42,24 +117,14 @@ static class CollisionManager{
         }
     }
     public static void Collider(object? sender, ElapsedEventArgs e){
-        //Much of the properties in this tuple list is for the physics itself.
-        /*Next is to make a function that gets the angle(as Vector3) of the colliding polygon
-        Ill do this by finding the polygon closest to the colliding object then ill invert the velocity with that polygon as the normal
-		get Vector3 v (position of the colliding obj)
-		new float array a[children.Length]
-		for Polygon p in Children{
-			a[cc] = p.GetDistance(v)
-		}
-		foreach(float f in a){
-			float scope;
-			if (f > scope){
-				scope = f
-			}
-			when completed{
-				p = Children[cc]
-			}
-		}
-		this.invert Velocity(Vector3 angle = p.GetAngle)
-        */
+        CollisionDatabase cD = LooseCollisions;
+        //For now just apply the Normal between the colliding polygons as a force.
+        for(int y =0; y < cD.Length;y++){
+            for(int x =1; x < cD[y].Count;x++){
+                cD[y][0].gameObject.GetComponent<RigidBdy>().velocity = 
+                    Vector3.CProduct(cD[y][0].gameObject.Position, 
+                        cD[y][x].gameObject.Position * cD[y][x].gameObject.getComponent<RigidBdy>().getEnergy())/10;
+            }
+        }
     }
 }

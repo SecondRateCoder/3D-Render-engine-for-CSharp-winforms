@@ -28,8 +28,9 @@ class TextureDatabase : IEnumerable{
     public IEnumerator GetEnumerator() => td.GetEnumerator();
 }
 class CollisionDatabase : IEnumerable{
-	List<(gameObj gameObject, int Mass, Vector3 velocity)>[] collidingObjects = [];
+	List<List<(gameObj gameObject, int Mass, Vector3 velocity)>> collidingObjects = [];
 	public int Length{get{return collidingObjects.Length;}}
+
 	public (gameObj gameObject, int Mass, Vector3 velocity) this[int Row, int Column]{
 		get{
 			return this.collidingObjects[Row][Column];
@@ -39,12 +40,12 @@ class CollisionDatabase : IEnumerable{
 			this.collidingObjects[Row][Column] = value;
 		}
 	}
-    public CollisionDatabase(){this.collidingObjects = [];}
     public List<(gameObj gameObject, int Mass, Vector3 velocity)> this[int Row]{
         get{return this.collidingObjects[Row];}
         set{if(Row > collidingObjects.Length){collidingObjects.Append(value);}
         else{collidingObjects[Row] = value;}}
     }
+    public CollisionDatabase(){this.collidingObjects = [];}
 	public void SetOrAppend(Point p, (gameObj gameObject, int Mass, Vector3 velocity) data){
 		if(p.X >= collidingObjects.Length){collidingObjects.Append([data]);}else
 		if(p.Y >= collidingObjects[p.X].Count){collidingObjects[p.X].Append(data);}else
