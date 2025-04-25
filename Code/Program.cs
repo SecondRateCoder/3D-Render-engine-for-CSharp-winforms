@@ -7,7 +7,7 @@ class Entry{
     public static ElapsedEventHandler TUpdate;
     public static Action Update;
     public static Action Start;
-    static WriteableBitmap Buffer;
+    public static unsafe WriteableBitmap Buffer;
     public static Form1 f;
     public static void Main(){
         ApplicationConfiguration.Initialize();
@@ -27,7 +27,7 @@ class Entry{
         Loop();
         Application.Run(f);
     }
-    static void Initialise(){
+    static unsafe void Initialise(){
         cts = new CancellationTokenSource();
         TUpdate = CollisionManager.Collider;
         Update = Paint3D;
@@ -88,7 +88,6 @@ static class ExternalControl{
 
 public partial class Form1 : Form{
     Graphics GrphcsPrprty;
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public Graphics G {get{return GrphcsPrprty == null? this.CreateGraphics() : GrphcsPrprty;} private set{GrphcsPrprty = value;}}
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Form1(){

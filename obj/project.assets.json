@@ -3380,11 +3380,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/workspaces/3D-Render-engine-for-CSharp-winforms/MapGameWinforms.csproj",
+      "projectUniqueName": "/home/codespace/3D-Render-engine-for-CSharp-winforms/MapGameWinforms.csproj",
       "projectName": "MapGameWinforms",
-      "projectPath": "/workspaces/3D-Render-engine-for-CSharp-winforms/MapGameWinforms.csproj",
+      "projectPath": "/home/codespace/3D-Render-engine-for-CSharp-winforms/MapGameWinforms.csproj",
       "packagesPath": "/home/codespace/.nuget/packages/",
-      "outputPath": "/workspaces/3D-Render-engine-for-CSharp-winforms/obj/",
+      "outputPath": "/home/codespace/3D-Render-engine-for-CSharp-winforms/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/home/codespace/.nuget/NuGet/NuGet.Config"
