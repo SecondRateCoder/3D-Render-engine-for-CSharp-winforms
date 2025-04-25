@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
@@ -136,7 +137,7 @@ struct Vector3{
     }
     
     public static float ComputeDot(Vector3 vector, Vector3 lightPosition){
-        Vector3 normal = vector.GetNormal().GetNormalised();
+        Vector3 normal = Vector3.CProduct(vector, lightPosition).GetNormalised();
         lightPosition.Normalise();
         return Math.Max(0, Vector3.DProduct(normal, lightPosition - vector));
     }
@@ -386,10 +387,10 @@ class gameObj{
     public Component GetComponent<Component>() where Component : Rndrcomponent, new(){
         for(int cc = 0; cc < components.Count;cc++){
             if(this.components[cc].ogType == typeof(Component)){
-                return (Component?)this.components[cc].rC;
+                return (Component)this.components[cc].rC;
             }
         }
-        return null;
+        return (Component)EmptyComponent.Empty;
     }
     public void Translate(Vector3 position, Vector3 rotation, bool PrivateTranslation = false){
         this.Position += position;

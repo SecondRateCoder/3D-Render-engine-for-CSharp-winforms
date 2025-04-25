@@ -2,10 +2,34 @@ using System.Collections;
 using System.Timers;
 
 class ColliderShape{
-    class TrueCollider{
+    public TrueCollider Type{get; private set;}
+    public ColliderShape(TrueCollider tC){
+        this.Type = tC;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public static implicit operator ColliderShape?(int tyPe){return new ColliderShape((TrueCollider)tyPe);}
+    public static explicit operator ColliderShape(TrueCollider tC){return new ColliderShape(tC);}
+    public static readonly ColliderShape Cube = (ColliderShape)TrueCollider.Cube;
+    public static readonly ColliderShape Capsule = (ColliderShape)TrueCollider.Capsule;
+    public class TrueCollider{
         //public static readonly TrueCollider Sphere = 0;
-        public static readonly TrueCollider Cube = 1;
-        public static readonly TrueCollider Cylinder = 2;
+        public static TrueCollider Cube{get{_cube.Dimensions = (5, 5); return _cube;}}
+        static readonly TrueCollider _cube = (TrueCollider)1;
+        public static TrueCollider Capsule{get{_capsule.Dimensions = (5, 3); return _capsule;}}
+        static readonly TrueCollider _capsule = (TrueCollider)1;
 
         internal string Name{get; private set;}
         internal int type;
@@ -13,10 +37,15 @@ class ColliderShape{
         public (int height, int width) Dimensions{get; private set;}
         public void UpdateDimensions(int height, int width){this.Dimensions = (height, width);}
 
-        internal TrueCollider(int tyPe){
+        internal TrueCollider(int tyPe, int Height = 10, int Width = 3){
             if(IsCollider(tyPe)){
-                this.Name = ColliderShape.GetCollider(tyPe);
+                this.Name = TrueCollider.GetCollider(tyPe);
                 this.type = tyPe;
+                this.Dimensions = (Height, Width);
+            }else{
+                this.Name = "Cube";
+                this.type = TrueCollider.Cube.type;
+                this.Dimensions = TrueCollider.Cube.Dimensions;
             }
         }
 
@@ -36,30 +65,21 @@ class ColliderShape{
                 }
             }
         }
-        public static explicit operator TrueCollider?(int type){
-            if(IsCollider(type){return new TrueCollider(type)else{return null};
-        }
+        public static explicit operator TrueCollider?(int type){if(IsCollider(type)){return new TrueCollider(type);}else{return null;}}
         public static explicit operator int(TrueCollider tC){
             return tC.type;
         }
         public static Mesh GetCollider(TrueCollider tC){
             int bevel;
             switch(tC.type){
-                case 1: bevel = 0;
-                case 2: bevel = 2;
+                case 1: bevel = 0;  break;
+                case 2: bevel = 2;  break;
+                default: bevel = 0; break;
             }
-            return (Mesh)Polygon.Mesh(tC.dimensions.height, tC.dimensions.width, bevel);
+            return (Mesh)Polygon.Mesh(tC.Dimensions.height, tC.Dimensions.width, bevel);
         }
+        public static void Assign(TrueCollider tC1, TrueCollider tC2){tC1 = tC2;}
     }
-
-
-
-    public TrueCollider Type{get; private set;}
-    public ColliderShape(TrueCollider tC){
-        this.Type = tC;
-    }
-
-    public static implicit operator ColliderShape(int tyPe){return new ColliderShape(tyPe);}
 }
 
 
@@ -92,7 +112,7 @@ static class CollisionManager{
             for(int cc = 1;cc < World.worldData.Count;cc++, scope = World.worldData[cc]){
                 if(!scope.HasComponent<RigidBdy>()){continue;}else{
                     list.Append(new List<(gameObj, int, Vector3)>());
-                    list[cc].AddRange(list.Length, SubSearch(scope));
+                    list[cc].AddRange(SubSearch(scope));
                 }
             }
             return list;
@@ -123,7 +143,7 @@ static class CollisionManager{
             for(int x =1; x < cD[y].Count;x++){
                 cD[y][0].gameObject.GetComponent<RigidBdy>().velocity = 
                     Vector3.CProduct(cD[y][0].gameObject.Position, 
-                        cD[y][x].gameObject.Position * cD[y][x].gameObject.getComponent<RigidBdy>().getEnergy())/10;
+                        cD[y][x].gameObject.Position * cD[y][x].gameObject.GetComponent<RigidBdy>().GetEnergy())/10;
             }
         }
     }

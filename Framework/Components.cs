@@ -21,7 +21,8 @@ abstract class Rndrcomponent{
     /// <summary>Initialise this instance, filling it's data stores with the necessary information.</summary>
     public abstract void Initialise();
 }
-class Empty : Rndrcomponent{
+class EmptyComponent : Rndrcomponent{
+    public static Rndrcomponent Empty = new EmptyComponent();
     public override void FromBytes(byte[] bytes){return;}
     public override int Size{get{return 0;}}
     public override byte[] ToByte(){return new byte[0];}
@@ -169,7 +170,7 @@ class RigidBdy : Rndrcomponent{
     ///</summary>
     public override int Size {get{return (sizeof(int)*2)+(sizeof(float)*3);}}
     public PhysicsMaterial pM;
-    public ColliderShape;
+    public ColliderShape cS;
     public static int size {get{return new RigidBdy().Size;}}
     public int Mass;
     public int Speed;
@@ -179,7 +180,9 @@ class RigidBdy : Rndrcomponent{
         set{_velocity =  2*(value/(this.Mass^2));}
     }
     public Vector3 GetEnergy(){return (this.Mass/2) * (this._velocity^2);}
-    public RigidBdy(int m = 1){
+    public RigidBdy(int m = 1, PhysicsMaterial pM = null, ColliderShape cS = null){
+        this.pM = pM == null?PhysicsMaterial.GlazedWood: pM;
+        this.cS = cS == null?ColliderShape.Cube: cS;
         this.Mass = m;
     }
     public RigidBdy(){
