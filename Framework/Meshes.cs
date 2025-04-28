@@ -255,6 +255,17 @@ class Mesh : Rndrcomponent, IEnumerable{
     /*
     !RndrComponents overrides.
     */
+    /// <summary>Dispose this Mesh.</summary>
+    /// <param name="disposing">Should this Mesh be completely ERASED, True if no, False to save to a temporary file.</param>
+    public new void Dispose(bool disposing){
+        if(!disposing){
+            byte[] me = this.ToByte();
+            AsyncCallback? callback = (ar) => {if(!ar.IsCompleted){throw new ArgumentException();}};
+            File.Create(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Temp" + $"({Directory.EnumerateFiles(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Temp")}).Msh").
+            BeginWrite(me, 0, me.Length, callback, Thread.CurrentThread.Name);
+        }
+        this.mesh = [];
+    }
     public override int Size{get{return (Polygon.Size * this.Count) + (Vector3.Size * 2);}}
     public override byte[] ToByte(){
         List<byte> bytes = [.. BitConverter.GetBytes(this.Count)];

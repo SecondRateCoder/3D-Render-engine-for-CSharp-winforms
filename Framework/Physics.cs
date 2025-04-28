@@ -1,20 +1,40 @@
 using System.Collections;
 using System.Timers;
 
-class ColliderShape{
-    public TrueCollider Type{get{return (TrueCollider)_type;}}
+class Collider{
+    /// <summary>Get the TrueCollider cast of this instance.</summary>
+    /// <remarks>If it's null, then this collider is custom.</remarks> 
+    public TrueCollider? Type{get{return (TrueCollider?)_type;}}
+    //The underlying store for this class' TrueCollider convert.
     int _type;
-    public Mesh Shape{get{return this.Buffer;}}
-    Mesh Buffer;
-    public ColliderShape(TrueCollider tC){
-        this._type = tC.type;
+    /// <summary>Get the Mesh that describes the bounds of this Collider.</summary>
+    /// <remarks>Will always return a Mesh.</remarks>
+    public Mesh Shape{get{return this.Buffer ?? TrueCollider.GetMesh((TrueCollider?)_type);}}
+    //The underlying Mesh that stores a custom Mesh.
+    Mesh? Buffer;
+    //Is this Collider custom
+    bool isCustom;
+    public Collider(TrueCollider? tC = null){
+        if(tC == null){
+            this.isCustom = true;
+            this.Buffer = (Mesh)Polygon.Mesh();
+        }else{
+            this._type = tC.type;
+            this.isCustom = false;
+        }
     }
-    public void Initialise(){this.Buffer = TrueCollider.GetMesh(this.Type);}
+    public void Initialise(){
+        this.Buffer = TrueCollider.GetMesh(this.Type);
+    }
     public void Dispose(bool disposing = true){
         if(disposing){
             Buffer.Dispose(true);
         }
     }
+    public static explicit operator Collider?(int tyPe){return new Collider((TrueCollider)tyPe);}
+    public static explicit operator Collider(TrueCollider tC){return new Collider(tC);}
+    public static readonly Collider Cube = (Collider)TrueCollider.Cube;
+    public static readonly Collider Capsule = (Collider)TrueCollider.Capsule;
 
 
 
@@ -22,23 +42,12 @@ class ColliderShape{
 
 
 
-
-
-
-
-
-
-
-    public static explicit operator ColliderShape?(int tyPe){return new ColliderShape((TrueCollider)tyPe);}
-    public static explicit operator ColliderShape(TrueCollider tC){return new ColliderShape(tC);}
-    public static readonly ColliderShape Cube = (ColliderShape)TrueCollider.Cube;
-    public static readonly ColliderShape Capsule = (ColliderShape)TrueCollider.Capsule;
     public class TrueCollider{
         //public static readonly TrueCollider Sphere = 0;
         public static TrueCollider Cube{get{_cube.Dimensions = (5, 5); return _cube;}}
-        static readonly TrueCollider _cube = (TrueCollider)1;
+        static readonly TrueCollider _cube = (TrueCollider?)1;
         public static TrueCollider Capsule{get{_capsule.Dimensions = (5, 3); return _capsule;}}
-        static readonly TrueCollider _capsule = (TrueCollider)1;
+        static readonly TrueCollider _capsule = (TrueCollider?)2;
 
         internal string Name{get; private set;}
         internal int type;
@@ -131,7 +140,7 @@ class ForceMode{
     public static readonly ForceMode Acceleration;
     ///<summary>Apply a force that ignores the object's mass.</summary>
     public static readonly ForceMode VelocityChange;
-    public static explicit operator ForceMode(int type){if(IsForceMode(type)){return new ForceMode(type);}else{return ForceMode.Impulse;}}
+    public static explicit operator ForceMode?(int type){if(IsForceMode(type)){return new ForceMode(type);}else{return null;}}
     public static bool IsForceMode(int type){
         switch(type){
             case 0: return true;
@@ -189,7 +198,7 @@ static class CollisionManager{
             if(Vector3.GetDistance(scope.Position, gO.Position) < gO.CollisionRange+scope.CollisionRange){
                 RigidBdy? rG = gO.GetComponent<RigidBdy>();
                 if(rG == null){continue;}else{
-                    result.Append((gO, rG.Mass, rG.Velocity));
+                    result.Append((gO, rG.Mass, rG.velocity));
                 }
             }
         }
@@ -206,9 +215,9 @@ static class CollisionManager{
         //For now just apply the Normal between the colliding polygons as a force.
         for(int y =0; y < cD.Length;y++){
             for(int x =1; x < cD[y].Count;x++){
-                cD[y][0].gameObject.GetComponent<RigidBdy>().Velocity = 
+                cD[y][0].gameObject.GetComponent<RigidBdy>().velocity = 
                     Vector3.CProduct(cD[y][0].gameObject.Position, 
-                        cD[y][x].gameObject.Position * cD[y][x].gameObject.GetComponent<RigidBdy>().GetEnergy())/10;
+                        cD[y][x].gameObject.Position * cD[y][x].gameObject.GetComponent<RigidBdy>().TrueVelocity)/10;
             }
         }
     }

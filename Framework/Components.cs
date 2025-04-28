@@ -136,7 +136,7 @@ class Texturer : Rndrcomponent{
     }
 
     //! RndrComponent overrides
-    public override unsafe int Size{get{return ();}}
+    public override unsafe int Size{get{return (0);}}
     public override byte[] ToByte(){
         List<byte> result = BitConverter.GetBytes(this.filePath.Get().Length).ToList();
         result.AddRange(Encoding.UTF8.GetBytes(this.filePath));
@@ -163,50 +163,12 @@ class Texturer : Rndrcomponent{
         }
     }
 }
-class RigidBdyMetadata{
-    public static readonly RigidBdyMetadata Default = new RigidBdyMetadata(PhysicsMaterial.GlazedWood, ColliderShape.Cube, ForceMode.Impulse);
-    public PhysicsMaterial? pM;
-    public ColliderShape? cS;
-    public ForceMode? fM;
-    public RigidBdyMetadata(PhysicsMaterial pM, ColliderShape cS, ForceMode fM){
-        this.pM = pM;
-        this.cS = cS;
-        this.fM = fM;
-        this.disposed = false;
-    }
-    public RigidBdyMetadata(int pM, int cS, int fM){
-        this.pM = (PhysicsMaterial)pM;
-        this.cS = (ColliderShape)cS;
-        this.fM = (ForceMode)fM;
-        disposed = false;
-    }
 
-    public void DefaultInitialise(){
-        this.pM = PhysicsMaterial.GlazedWood;
-        this.cS = ColliderShape.Cube;
-        this.fM = ForceMode.Impulse;
-        disposed = false;
-    }
-    bool disposed;
-    public void Disposed(bool disposing = true){
-        if(disposing){
-            this.pM = null;
-            this.cS = null;
-            this.fM = null;
-            disposed = true;
-        }
-    }
-
-    public void Apply(RigidBdy rB, Vector3 v){
-        ObjectDisposedException.ThrowIf(disposed);
-        this.fM.Apply(rB, v);
-    }
-}
 class RigidBdy : Rndrcomponent{
     ///<summary>
     /// This is the size of the class 
     ///</summary>
-    public override unsafe int Size {get{return sizeof(this);}}
+    public override unsafe int Size {get{return sizeof(RigidBdy);}}
     public static int size {get{return new RigidBdy().Size;}}
     public RigidBdyMetadata MetaData{get; private set;}
     public int Mass;
@@ -217,16 +179,19 @@ class RigidBdy : Rndrcomponent{
         set{_velocity = value;}
     }
     public Vector3 TrueVelocity{get{return (this.Mass/2) * (this._velocity^2);}}
-    public RigidBdy(int m = 1, PhysicsMaterial? pM = null, ColliderShape? cS = null){
-        this.pM = pM == null?PhysicsMaterial.GlazedWood: pM;
-        this.cS = cS == null?ColliderShape.Cube: cS;
+    public RigidBdy(int m = 1, PhysicsMaterial? pM = null, Collider? cS = null, ForceMode? fM = null){
+        this.MetaData = RigidBdyMetadata.Default;
+        this.MetaData.pM = pM == null?PhysicsMaterial.GlazedWood: pM;
+        this.MetaData.cS = cS == null?Collider.Cube: cS;
+        this.MetaData.fM = fM == null? ForceMode.Impulse: fM;
         this.Mass = m;
-        this.MetaData = MetaData.Default;
     }
     public RigidBdy(){
         this.Mass = 100;
-        this.pM = PhysicsMaterial.GlazedWood;
-        this.cS = ColliderShape.Cube;
+        this.MetaData = RigidBdyMetadata.Default;
+        this.MetaData.pM = PhysicsMaterial.GlazedWood;
+        this.MetaData.cS = Collider.Cube;
+        this.MetaData.fM = ForceMode.Impulse;
     }
     public override void FromBytes(byte[] bytes){
         this.Mass =BitConverter.ToInt32(bytes);
@@ -235,4 +200,47 @@ class RigidBdy : Rndrcomponent{
         return BitConverter.GetBytes(this.Mass);
     }
     public override void Initialise(){throw new NotImplementedException();}
+
+
+
+    public class RigidBdyMetadata{
+        public static readonly RigidBdyMetadata Default = new(PhysicsMaterial.GlazedWood, Collider.Cube, ForceMode.Impulse);
+        public PhysicsMaterial? pM;
+        public Collider? cS;
+        public ForceMode? fM;
+        internal RigidBdyMetadata(PhysicsMaterial pM, Collider cS, ForceMode fM){
+            this.pM = pM;
+            this.cS = cS;
+            this.fM = fM;
+            this.disposed = false;
+        }
+        public RigidBdyMetadata((int f, int m) pM, int cS, int fM){
+            this.pM = (PhysicsMaterial)pM;
+            this.cS = (Collider?)cS ?? Collider.Cube;
+            this.fM = (ForceMode?)fM ?? ForceMode.Impulse;
+            disposed = false;
+        }
+
+        public void DefaultInitialise(){
+            this.pM = PhysicsMaterial.GlazedWood;
+            this.cS = Collider.Cube;
+            this.fM = ForceMode.Impulse;
+            disposed = false;
+        }
+        bool disposed;
+        public void Disposed(bool disposing = true){
+            if(disposing){
+                this.pM = null;
+                this.cS = null;
+                this.fM = null;
+                disposed = true;
+            }
+        }
+
+        public void Apply(RigidBdy rB, Vector3 v){
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if(this.fM == null){this.fM = ForceMode.Impulse;}
+            this.fM.Apply(rB, v);
+        }
+    }
 }
