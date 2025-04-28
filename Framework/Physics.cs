@@ -29,7 +29,7 @@ class ColliderShape{
 
 
 
-    public static implicit operator ColliderShape?(int tyPe){return new ColliderShape((TrueCollider)tyPe);}
+    public static explicit operator ColliderShape?(int tyPe){return new ColliderShape((TrueCollider)tyPe);}
     public static explicit operator ColliderShape(TrueCollider tC){return new ColliderShape(tC);}
     public static readonly ColliderShape Cube = (ColliderShape)TrueCollider.Cube;
     public static readonly ColliderShape Capsule = (ColliderShape)TrueCollider.Capsule;
@@ -105,6 +105,54 @@ class PhysicsMaterial{
     }
 }
 
+static class ForceMode{
+    static ForceMode(){
+        Impulse = (ForceMode)0;
+        Acceleration = (ForceMode)1;
+        VelocityChange = (ForceMode)2;
+    }
+    ///<summary>Apply a force that is affected by the gameObjects mass and is multiplied by <see cref"ExternalControl.deltaTime"></summary>
+    /// <remarks>This is also the default ForceMode value.</remarks>
+    public static readonly ForceMode Impulse;
+    ///<summary>Apply a force that is affected by the gameObjects mass.</summary>
+    public static readonly ForceMode Acceleration;
+    ///<summary>Apply a force that ignores the object's mass.</summary>
+    public static readonly ForceMode VelocityChange;
+    static explicit operator ForceMode(int type){
+        if(IsForceMode(type)){return new ForceMode(type)}else{return ForceMode.Impulse;}
+    }
+    public static bool IsForceMode(int type){
+        switch(type){
+            case 0: return true;
+            case 1: return true;
+            case 2: return true;
+            default: return false;
+        }
+    }
+
+    public int type;
+    internal public ForceMode(int type){this.type = type;}
+    public void Apply(RigidBdy rB, Vector3 v){
+        if(!ForceMode.IsForceMode(this.type)){return;}else{
+            switch(this.type){
+                case 0:
+                    //Is Impulse.
+                    rB.Velocity += Math.Sqrt(v/(rB.Mass/2)) * ExternalControl.deltaTime;
+                    break;
+                case 0:
+                    //Is Acceleration.
+                    rB.velocity += Math.Sqrt(v/(rB.Mass/2));
+                    break;
+                case 0:
+                    //Is VelocityChange.
+                    rB.velocity = v;
+                    break;
+                default:    return;
+            }
+        }
+    }
+}
+
 
 
 static class CollisionManager{
@@ -124,13 +172,13 @@ static class CollisionManager{
             return list;
     }}
     ///<summary>Searches in the World.worldData list for any objects colliding with gameObj</summary>
-    static (gameObj gO, int Mass, Vector3 velocity)[] SubSearch(gameObj scope){
-        (gameObj gO, int Mass, Vector3 velocity)[] result = [];
+    static (gameObj gO, int Mass, Vector3 Velocity)[] SubSearch(gameObj scope){
+        (gameObj gO, int Mass, Vector3 Velocity)[] result = [];
         foreach(gameObj gO in World.worldData){
             if(Vector3.GetDistance(scope.Position, gO.Position) < gO.CollisionRange+scope.CollisionRange){
                 RigidBdy? rG = gO.GetComponent<RigidBdy>();
                 if(rG == null){continue;}else{
-                    result.Append((gO, rG.Mass, rG.velocity));
+                    result.Append((gO, rG.Mass, rG.Velocity));
                 }
             }
         }
@@ -147,7 +195,7 @@ static class CollisionManager{
         //For now just apply the Normal between the colliding polygons as a force.
         for(int y =0; y < cD.Length;y++){
             for(int x =1; x < cD[y].Count;x++){
-                cD[y][0].gameObject.GetComponent<RigidBdy>().velocity = 
+                cD[y][0].gameObject.GetComponent<RigidBdy>().Velocity = 
                     Vector3.CProduct(cD[y][0].gameObject.Position, 
                         cD[y][x].gameObject.Position * cD[y][x].gameObject.GetComponent<RigidBdy>().GetEnergy())/10;
             }

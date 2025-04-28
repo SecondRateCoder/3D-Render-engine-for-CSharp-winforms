@@ -4,7 +4,7 @@ using System.Text;
 ///  This abstract class is created to act as a link between different component types.
 /// </summary>
 abstract class Rndrcomponent{
-    public abstract int Size{get;}
+    public unsafe abstract int Size{get;}
     /// <summary>
     /// Encodes this instance into a byte array.
     /// </summary>
@@ -24,7 +24,7 @@ abstract class Rndrcomponent{
 class EmptyComponent : Rndrcomponent{
     public static Rndrcomponent Empty = new EmptyComponent();
     public override void FromBytes(byte[] bytes){return;}
-    public override int Size{get{return 0;}}
+    public override unsafe int Size{get{return 0;}}
     public override byte[] ToByte(){return new byte[0];}
     public override void Initialise(){return;}
 
@@ -136,7 +136,7 @@ class Texturer : Rndrcomponent{
     }
 
     //! RndrComponent overrides
-    public override int Size{get{return 0;}}
+    public override unsafe int Size{get{return sizeof(this);}}
     public override byte[] ToByte(){
         List<byte> result = BitConverter.GetBytes(this.filePath.Get().Length).ToList();
         result.AddRange(Encoding.UTF8.GetBytes(this.filePath));
@@ -163,27 +163,65 @@ class Texturer : Rndrcomponent{
         }
     }
 }
+class RigidBdyMetadata{
+    public static readonly RigidBdyMetadata Default = new RigidBdyMetadata(PhysicsMaterial.GlazedWood, ColliderShape.Cube, ForceMode.Impulse);
+    public PhysicsMaterial? pM;
+    public ColliderShape? cS;
+    public ForceMode? fM;
+    public RigidBdyMetadata(PhysicsMaterial pM, ColliderShape cS, ForceMode fM){
+        this.pM = pM;
+        this.cS = cS;
+        this.fM = fM;
+        this.disposed = false;
+    }
+    public RigidBdyMetadata(int pM, int cS, int fM){
+        this.pM = (PhysicsMaterial)pM;
+        this.cS = (ColliderShape)cS;
+        this.fM = (ForceMode)fM;
+        disposed = false;
+    }
 
+    public void DefaultInitialise(){
+        this.pM = PhysicsMaterial.GlazedWood;
+        this.cS = ColliderShape.Cube;
+        this.fM = ForceMode.Impulse;
+        disposed = false;
+    }
+    bool disposed;
+    public void Disposed(bool disposing = true){
+        if(disposing){
+            this.pM = null;
+            this.cS = null;
+            this.fM = null;
+            disposed = true;
+        }
+    }
+
+    public void Apply(RigidBdy rB, Vector3 v){
+        ObjectDisposedException.ThrowIf(disposed);
+        this.fM.Apply(rB, v);
+    }
+}
 class RigidBdy : Rndrcomponent{
     ///<summary>
     /// This is the size of the class 
     ///</summary>
-    public override int Size {get{return (sizeof(int)*2)+(sizeof(float)*3);}}
-    public PhysicsMaterial pM;
-    public ColliderShape cS;
+    public override unsafe int Size {get{return sizeof(this);}}
     public static int size {get{return new RigidBdy().Size;}}
+    public RigidBdyMetadata MetaData{get; private set;}
     public int Mass;
     public int Speed;
     Vector3 _velocity;
     public Vector3 velocity{
         get{return _velocity;}
-        set{_velocity =  2*(value/(this.Mass^2));}
+        set{_velocity = value;}
     }
-    public Vector3 GetEnergy(){return (this.Mass/2) * (this._velocity^2);}
+    public Vector3 TrueVelocity{get{return (this.Mass/2) * (this._velocity^2);}}
     public RigidBdy(int m = 1, PhysicsMaterial? pM = null, ColliderShape? cS = null){
         this.pM = pM == null?PhysicsMaterial.GlazedWood: pM;
         this.cS = cS == null?ColliderShape.Cube: cS;
         this.Mass = m;
+        this.MetaData = MetaData.Default;
     }
     public RigidBdy(){
         this.Mass = 100;

@@ -68,6 +68,7 @@ class Entry{
     }
 }
 static class ExternalControl{
+    public static int deltaTime{get{return 1/fps;}}
     public static int fps{get; private set;}
     static ElapsedEventHandler ElapsedHandler = (sender, e) => {
         fps = 0;

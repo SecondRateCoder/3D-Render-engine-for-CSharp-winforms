@@ -24,7 +24,7 @@ struct Vector3{
     public static readonly Vector3 Forward = new Vector3(0, 0, 1);
     public static readonly Vector3 Right = new Vector3(1, 0, 0);
 
-    public static int Size{get{return sizeof(float) * 3;}}
+    public static unsafe int Size{get{return sizeof(Vector3);}}
     /// <summary>
     ///  The X co-ordinate of the Vector, (The Horizontal axis).
     /// </summary> 
@@ -335,16 +335,7 @@ class gameObj{
     /// </summary>
     List<(Type ogType, Rndrcomponent rC)> components;
     public int compLength{get{return this.components.Count;}}
-    public int Size{
-        get{
-            int Vects = sizeof(float)*6*Children.Count;
-            int Comps = 0;
-            for(int cc =0;cc < (this.components.Count == 0? -1: this.components.Count);cc++){
-                Comps += components[cc].rC.ToByte().Length;
-            }
-            return Comps+Vects;
-        }
-    }
+    public unsafe int Size{get{return sizeof(this);}}
     public Vector3 Rotation{
         get{return this.rotation;}
         set{this.rotation = this.Children.Count > 0? value: Vector3.Zero;}
