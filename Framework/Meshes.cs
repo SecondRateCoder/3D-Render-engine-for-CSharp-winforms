@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 [DebuggerDisplay("A: {A}, B: {B}, C: {C}")]
 struct Polygon{
@@ -172,7 +173,7 @@ struct Polygon{
     /// <param name="Bevel">The length at which the centre of the cross-section of the mesh meets the main length of the mesh</param>
 	/// <returns>An array of polygons describing a mesh</returns>
 	/// <remarks>This method programmatically generates a prism with the inputted number of sides.</remarks>
-	public static Polygon[] Mesh(int Height =10, int bevel =0, int width =10, int sides =3){
+	public static Polygon[] Mesh(int Height =10, int width =10, int bevel =0, int sides =3){
 		if(sides < 2){sides = 3;}
 		List<Polygon> result = new List<Polygon>();
 		Vector3 height = new Vector3(0, Height, 0);
@@ -257,11 +258,13 @@ class Mesh : Rndrcomponent, IEnumerable{
     */
     /// <summary>Dispose this Mesh.</summary>
     /// <param name="disposing">Should this Mesh be completely ERASED, True if no, False to save to a temporary file.</param>
-    public new void Dispose(bool disposing){
+    public void Dispose(bool disposing, bool Collider = false){
         if(!disposing){
             byte[] me = this.ToByte();
             AsyncCallback? callback = (ar) => {if(!ar.IsCompleted){throw new ArgumentException();}};
-            File.Create(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Temp" + $"({Directory.EnumerateFiles(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Temp")}).Msh").
+            File.Create(AppDomain.CurrentDomain.BaseDirectory + 
+            @"Cache\Temp" + 
+            Directory.EnumerateFiles(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Temp").Count()+1 + (Collider? ".cll": ".msh")).
             BeginWrite(me, 0, me.Length, callback, Thread.CurrentThread.Name);
         }
         this.mesh = [];
@@ -291,6 +294,10 @@ class Mesh : Rndrcomponent, IEnumerable{
     }
     public override void Initialise(){throw new NotImplementedException();}
 
+    /*
+    !Static functions and stuff
+    */
+
     /// <summary>
     ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
     /// </summary>
@@ -299,8 +306,9 @@ class Mesh : Rndrcomponent, IEnumerable{
 	/// <param name="Tolerance">This is the parameter the the similarity Quotient will be compared to</param>
     /// <returns>A bool.</returns>
 	/// <remarks>Both meshes must be same sized.</remarks>
-    public static bool operator ==(Mesh m, Mesh m2){
+    public static bool operator ==(Mesh? m, Mesh? m2){
         int sQ = 0;
+        if(object.Equals(m, null) | object.Equals(m2, null)){return false;}
         if(m.Count != m2.Count){
             return false;
         }else{
@@ -320,7 +328,7 @@ class Mesh : Rndrcomponent, IEnumerable{
 	/// <param name="m2">The 2nd mesh to be compared.</param>
 	/// <returns>A boolean value.</returns>
 	/// <remarks>Both meshes must be same-sized.</remarks>
-	public static bool operator !=(Mesh m, Mesh m2){
+	public static bool operator !=(Mesh? m, Mesh? m2){
 		return !(m == m2);
 	}
     public static explicit operator Mesh(Polygon[] polygons){return new Mesh(polygons);}

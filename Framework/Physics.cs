@@ -1,18 +1,19 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Timers;
 
 class Collider{
     /// <summary>Get the TrueCollider cast of this instance.</summary>
     /// <remarks>If it's null, then this collider is custom.</remarks> 
-    public TrueCollider? Type{get{return (TrueCollider?)_type;}}
+    public TrueCollider? Type{get{if(TrueCollider.IsCollider(this._type)){return (TrueCollider)this._type;}else{return null;}}}
     //The underlying store for this class' TrueCollider convert.
     int _type;
     /// <summary>Get the Mesh that describes the bounds of this Collider.</summary>
     /// <remarks>Will always return a Mesh.</remarks>
-    public Mesh Shape{get{return this.Buffer ?? TrueCollider.GetMesh((TrueCollider?)_type);}}
+    public Mesh Shape{get{return this.Buffer ?? TrueCollider.GetMesh((TrueCollider)_type);}}
     //The underlying Mesh that stores a custom Mesh.
     Mesh? Buffer;
-    //Is this Collider custom
+    //Is this Collider custom?
     bool isCustom;
     public Collider(TrueCollider? tC = null){
         if(tC == null){
@@ -27,11 +28,11 @@ class Collider{
         this.Buffer = TrueCollider.GetMesh(this.Type);
     }
     public void Dispose(bool disposing = true){
-        if(disposing){
-            Buffer.Dispose(true);
+        if(disposing && this.isCustom && (this.Buffer != null)){
+            Buffer.Dispose(true, true);
         }
     }
-    public static explicit operator Collider?(int tyPe){return new Collider((TrueCollider)tyPe);}
+    public static explicit operator Collider(int tyPe){return new Collider((TrueCollider)tyPe);}
     public static explicit operator Collider(TrueCollider tC){return new Collider(tC);}
     public static readonly Collider Cube = (Collider)TrueCollider.Cube;
     public static readonly Collider Capsule = (Collider)TrueCollider.Capsule;
@@ -41,13 +42,14 @@ class Collider{
 
 
 
-
     public class TrueCollider{
         //public static readonly TrueCollider Sphere = 0;
         public static TrueCollider Cube{get{_cube.Dimensions = (5, 5); return _cube;}}
+#pragma warning disable CS8601 // Possible null reference assignment.
         static readonly TrueCollider _cube = (TrueCollider?)1;
         public static TrueCollider Capsule{get{_capsule.Dimensions = (5, 3); return _capsule;}}
         static readonly TrueCollider _capsule = (TrueCollider?)2;
+#pragma warning restore CS8601 // Possible null reference assignment.
 
         internal string Name{get; private set;}
         internal int type;
@@ -83,12 +85,13 @@ class Collider{
                 }
             }
         }
-        public static explicit operator TrueCollider?(int type){if(IsCollider(type)){return new TrueCollider(type);}else{return null;}}
+        public static explicit operator TrueCollider(int type){if(IsCollider(type)){return new TrueCollider(type);}else{return TrueCollider.Cube;}}
         public static explicit operator int(TrueCollider tC){
             return tC.type;
         }
-        public static Mesh GetMesh(TrueCollider tC){
-            int bevel;
+        public static Mesh GetMesh(TrueCollider? tC){
+            int bevel = 0;
+            if(tC == null){return (Mesh)Polygon.Mesh(10, 10, bevel);}
             switch(tC.type){
                 case 1: bevel = 0;  break;
                 case 2: bevel = 2;  break;
@@ -128,10 +131,12 @@ class PhysicsMaterial{
 }
 
 class ForceMode{
+#pragma warning disable CS8601 // Possible null reference assignment.
     static ForceMode(){
-        Impulse = (ForceMode)0;
-        Acceleration = (ForceMode)1;
-        VelocityChange = (ForceMode)2;
+        Impulse = (ForceMode?)0;
+        Acceleration = (ForceMode?)1;
+        VelocityChange = (ForceMode?)2;
+#pragma warning restore CS8601 // Possible null reference assignment.
     }
     ///<summary>Apply a force that is affected by the gameObjects mass and is multiplied by <see cref"ExternalControl.deltaTime"></summary>
     /// <remarks>This is also the default ForceMode value.</remarks>
