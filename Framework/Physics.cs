@@ -98,7 +98,12 @@ class PhysicsMaterial{
     public static readonly PhysicsMaterial GlazedWood = new PhysicsMaterial(3, 1);
     public static explicit operator PhysicsMaterial((int a, int b) tC){return new PhysicsMaterial(tC);}
     public static bool IsPhysicsMaterial((int f, int b) item){
-        switch(item)
+        switch(item){
+            case (10, 0): return true;
+            case (5, 7): return true;
+            case (3, 1): return true;
+            default: return false;
+        }
     }
 
     public int Friction{get; private set;}
