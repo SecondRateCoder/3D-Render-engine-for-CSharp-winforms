@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Diagnostics;
-using System.Numerics;
 
 [DebuggerDisplay("A: {A}, B: {B}, C: {C}")]
 struct Polygon{
@@ -19,7 +18,7 @@ struct Polygon{
         float ab = Vector3.GetRotation(this).Magnitude;
         return (float)(.5f * ac * bc * Math.Sin(ab));
     }}
-    public static unsafe int Size{get{return sizeof(this);}}
+    public static unsafe int Size{get{return (Vector3.Size * 3) + sizeof(Point) * 3;}}
     Point[] uPoints;
     public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{if(value.Length > 3){UpdateTexture(value);}else{this.uPoints = value;}}}
     public void UpdateTexture(Point[] uv){uPoints = new Point[3]; uPoints[0] = uv[0]; uPoints[1] = uv[1]; uPoints[2] = uv[2];}
@@ -256,7 +255,7 @@ class Mesh : Rndrcomponent, IEnumerable{
     /*
     !RndrComponents overrides.
     */
-    public override int Size{get{return sizeof(this);}}
+    public override int Size{get{return (Polygon.Size * this.Count) + (Vector3.Size * 2);}}
     public override byte[] ToByte(){
         List<byte> bytes = [.. BitConverter.GetBytes(this.Count)];
         foreach(Polygon p in this){

@@ -96,12 +96,20 @@ class PhysicsMaterial{
     public static readonly PhysicsMaterial SandPaper = new PhysicsMaterial(10, 0);
     public static readonly PhysicsMaterial Rubber = new PhysicsMaterial(5, 7);
     public static readonly PhysicsMaterial GlazedWood = new PhysicsMaterial(3, 1);
+    public static explicit operator PhysicsMaterial((int a, int b) tC){return new PhysicsMaterial(tC);}
+    public static bool IsPhysicsMaterial((int f, int b) item){
+        switch(item)
+    }
 
     public int Friction{get; private set;}
     public int Bounciness{get; private set;}
     public PhysicsMaterial(int Friction, int Bounciness){
         this.Friction = Friction;
         this.Bounciness = Bounciness;
+    }
+    public PhysicsMaterial((int f, int b) item){
+        this.Friction = item.f;
+        this.Bounciness = item.b;
     }
 }
 
@@ -118,9 +126,7 @@ class ForceMode{
     public static readonly ForceMode Acceleration;
     ///<summary>Apply a force that ignores the object's mass.</summary>
     public static readonly ForceMode VelocityChange;
-    static explicit operator ForceMode(int type){
-        if(IsForceMode(type)){return new ForceMode(type)}else{return ForceMode.Impulse;}
-    }
+    public static explicit operator ForceMode(int type){if(IsForceMode(type)){return new ForceMode(type);}else{return ForceMode.Impulse;}}
     public static bool IsForceMode(int type){
         switch(type){
             case 0: return true;
@@ -131,19 +137,19 @@ class ForceMode{
     }
 
     public int type;
-    internal public ForceMode(int type){this.type = type;}
+    internal ForceMode(int type){this.type = type;}
     public void Apply(RigidBdy rB, Vector3 v){
-        if(!ForceMode.IsForceMode(this.type)){return;}else{
+        if(!ForceMode.IsForceMode(rB.MetaData.fM.type)){return;}else{
             switch(this.type){
                 case 0:
                     //Is Impulse.
-                    rB.Velocity += Math.Sqrt(v/(rB.Mass/2)) * ExternalControl.deltaTime;
+                    rB.velocity += new Vector3((float)Math.Sqrt(v.X/(rB.Mass/2)), (float)Math.Sqrt(v.Y/(rB.Mass/2)), (float)Math.Sqrt(v.Z/(rB.Mass/2))) * ExternalControl.deltaTime;
                     break;
-                case 0:
+                case 1:
                     //Is Acceleration.
-                    rB.velocity += Math.Sqrt(v/(rB.Mass/2));
+                    rB.velocity += new Vector3((float)Math.Sqrt(v.X/(rB.Mass/2)), (float)Math.Sqrt(v.Y/(rB.Mass/2)), (float)Math.Sqrt(v.Z/(rB.Mass/2)));
                     break;
-                case 0:
+                case 2:
                     //Is VelocityChange.
                     rB.velocity = v;
                     break;

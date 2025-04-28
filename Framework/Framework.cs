@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
@@ -335,7 +334,7 @@ class gameObj{
     /// </summary>
     List<(Type ogType, Rndrcomponent rC)> components;
     public int compLength{get{return this.components.Count;}}
-    public unsafe int Size{get{return sizeof(this);}}
+    public unsafe int Size{get{return sizeof(gameObj) + this.Children.Size;}}
     public Vector3 Rotation{
         get{return this.rotation;}
         set{this.rotation = this.Children.Count > 0? value: Vector3.Zero;}
