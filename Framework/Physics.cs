@@ -105,7 +105,7 @@ class PhysicsMaterial{
     }
 }
 
-static class ForceMode{
+class ForceMode{
     static ForceMode(){
         Impulse = (ForceMode)0;
         Acceleration = (ForceMode)1;

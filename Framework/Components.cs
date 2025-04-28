@@ -136,7 +136,7 @@ class Texturer : Rndrcomponent{
     }
 
     //! RndrComponent overrides
-    public override unsafe int Size{get{return sizeof(this);}}
+    public override unsafe int Size{get{return ();}}
     public override byte[] ToByte(){
         List<byte> result = BitConverter.GetBytes(this.filePath.Get().Length).ToList();
         result.AddRange(Encoding.UTF8.GetBytes(this.filePath));
