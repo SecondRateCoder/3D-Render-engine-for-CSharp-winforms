@@ -14,16 +14,7 @@ class Entry{
         Initialise();
 		StorageManager.filePath = AppDomain.CurrentDomain.BaseDirectory;
 		ExternalControl.Initialise();
-        Update += () => {
-            if(f.InvokeRequired){
-                f.Invoke(() => {
-                    if(f != null && (f.Focused | Debugger.IsAttached)){
-                        f.Refresh();
-                        if(Buffer != null){f.G.DrawImage((Bitmap)Buffer, Point.Empty);}
-                    }
-                });
-            }
-        };
+        Update += f._Invoke;
         Loop();
         Application.Run(f);
     }
@@ -98,6 +89,14 @@ public partial class Form1 : Form{
     override protected void OnLoad(EventArgs e){
         base.OnLoad(e);
         Entry.Start();
+    }
+    public void _Invoke(){
+        if(this.InvokeRequired){
+            if(this.Focused | Debugger.IsAttached){
+                this.Refresh();
+                if(Entry.Buffer != null){this.G.DrawImage((Bitmap)Entry.Buffer, Point.Empty);}
+            }
+        }
     }
     protected override void OnClosing(CancelEventArgs e){
         base.OnClosing(e);
