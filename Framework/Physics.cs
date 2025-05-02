@@ -1,7 +1,8 @@
-using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using System.Timers;
 
+/// <summary>
+/// A Collider
+/// </summary>
 class Collider{
     /// <summary>Get the TrueCollider cast of this instance.</summary>
     /// <remarks>If it's null, then this collider is custom.</remarks> 
@@ -41,7 +42,9 @@ class Collider{
 
 
 
-
+    /// <summary>
+    /// The true shape of a Collider
+    /// </summary>
     public class TrueCollider{
         //public static readonly TrueCollider Sphere = 0;
         public static TrueCollider Cube{get{_cube.Dimensions = (5, 5); return _cube;}}
@@ -103,7 +106,9 @@ class Collider{
     }
 }
 
-
+/// <summary>
+/// This will affect how physics interacts with the attached object.
+/// </summary>
 class PhysicsMaterial{
     public static readonly PhysicsMaterial SandPaper = new PhysicsMaterial(10, 0);
     public static readonly PhysicsMaterial Rubber = new PhysicsMaterial(5, 7);
@@ -130,6 +135,9 @@ class PhysicsMaterial{
     }
 }
 
+/// <summary>
+/// Affects how velocity is Applied to the attached object.
+/// </summary>
 class ForceMode{
 #pragma warning disable CS8601 // Possible null reference assignment.
     static ForceMode(){
@@ -179,12 +187,14 @@ class ForceMode{
 }
 
 
-
+/// <summary>
+/// The static class that controls how gameObjs interact.
+/// </summary>
 static class CollisionManager{
     ///<summary>A property with a nested iterative function.</summary>
     ///<returns>A CollisionDatabase describing the collisions occuring in the program at the current frame.</returns>
     ///<remarks>This property runs an internal function when getting is attempted, assigning the return to a CollisionDatabase variable is best practice.</remarks>
-    public static CollisionDatabase LooseCollisions{
+    public static unsafe CollisionDatabase LooseCollisions{
         get{
             CollisionDatabase list = new CollisionDatabase();
             gameObj scope = World.worldData[0];
