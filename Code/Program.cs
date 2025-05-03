@@ -92,10 +92,13 @@ public partial class Form1 : Form{
     }
     public void _Invoke(){
         if(this.InvokeRequired){
-            if(this.Focused | Debugger.IsAttached){
-                this.Refresh();
-                if(Entry.Buffer != null){this.G.DrawImage((Bitmap)Entry.Buffer, Point.Empty);}
-            }
+            this.Invoke(
+                () => {
+                    if(this.Focused | Debugger.IsAttached){
+                        this.Refresh();
+                        if(Entry.Buffer != null){this.G.DrawImage((Bitmap)Entry.Buffer, Point.Empty);}
+                    }
+            });
         }
     }
     protected override void OnClosing(CancelEventArgs e){
