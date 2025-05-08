@@ -20,21 +20,22 @@ class TextureDatabase : IEnumerable{
         set{td[index] = value;}
     }
     public TextureDatabase(){this.td = [];}
-    public TextureDatabase(int count = 0){this.td = new List<(Point point, Color color)>[count];}
+    public TextureDatabase(int count = 0){this.td = new List<(Point point, Color color)>();}
     public TextureDatabase(List<(Point p, Color c)> data){this.td = data; this.isSorted = false;}
     public TextureDatabase(IEnumerable<Point> points){
         this.td = [];
         foreach(Point p in points){td.Add((p, Color.White));}
     }
     public int AllThat(ForEachDelegateConditional fDC){
-        int inc;
+        int inc = 0;
         foreach((Point point, Color color) item in this.td){
             inc = fDC(item)? inc+1: inc;
         }
+        return inc;
     }
-    public void Append((Point p, Color c) data){
+    public void Append((Point p, Color c) item){
         this.Unsignedchange = true;
-        td.Add(data);
+        td.Add(item);
         this.isSorted = this[Count-1].p.X<item.p.X && this[Count-1].p.Y<item.p.Y?true:false;
     }
     public void Foreach(ForEachDelegate fE){
@@ -47,20 +48,20 @@ class TextureDatabase : IEnumerable{
     public static explicit operator TextureDatabase(List<(Point point, Color color)> data){return new TextureDatabase(data);}
     ///<summary>Sort this List.</summary>
     public async void Sort(){
-        bool swapped;
+        bool swapped = false;
         await Task.Run(() => {
             do{
                 //Hold the index at list.
                 for(int cc =0; cc < this.Count;cc++){
                     swapped = false;
                     //Swap Ys first.
-                    foreach(int _ in [0, 1, 2, 3]){
+                    foreach(int _ in new int[0, 1, 2, 3]){
                         if(this[cc].p.Y > this[cc+1].p.Y){
                             swapped = true;
-                            int cc_ = cc;
+                            int cc_ = cc+1;
                             do{
                                 cc_++;
-                                if(this[cc].p.Y =< this[cc_].p.Y){
+                                if(this[cc].p.Y <= this[cc_].p.Y){
                                     (Point p, Color c) buffBuff = this[cc_];
                                     this[cc_] = this[cc];
                                     this[cc] = buffBuff;
@@ -70,7 +71,7 @@ class TextureDatabase : IEnumerable{
                         }
                     }
                     //Swap Xs next
-                    foreach(int _ in [0, 1, 2, 3]){
+                    foreach(int _ in new int[0, 1, 2, 3]){
                         if((this[cc].p.X > this[cc+1].p.X) && (this[cc].p.Y == this[cc+1].p.Y)){
                             swapped = true;
                             (Point p, Color c) buffBuff = this[cc];
@@ -93,7 +94,7 @@ class CollisionDatabase : IEnumerable{
 	List<List<(gameObj gameObject, int Mass, Vector3 velocity)>> collidingObjects = [];
 	public int Length{get{return collidingObjects.Count;}}
     public void Foreach(ForEachDelegateExpandable fE){
-        for(int cc = 0;cc < this.Count;cc++){
+        for(int cc = 0;cc < this.Length;cc++){
             this[cc] = fE(this[cc]);
         }
     }

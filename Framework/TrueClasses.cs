@@ -1,15 +1,18 @@
 public class TextureStyles{
+    public static TextureStyles Empty = (TextureStyles)10;
     public static TextureStyles StretchToFit = (TextureStyles)0;
     public static TextureStyles EdgeFillBlack = (TextureStyles)1;
     public static TextureStyles EdgeFillWhite = (TextureStyles)2;
     public static TextureStyles ClipToFit = (TextureStyles)3;
-    public static explicit operator TextureStyles(int i){if(IsStyle(i)){return new TextureStyles(i);}}
+    public static explicit operator TextureStyles(int i){if(IsStyle(i)){return new TextureStyles(i);}else{return TextureStyles.Empty;}}
     public static implicit operator int(TextureStyles t){return t.type;}
-    public static IsStyle(int type){
+    public static bool IsStyle(int type){
         switch(type){
             case 0:
                 return true;
             case 1:
+                return true;
+            case 10:
                 return true;
             case 2:
                 return true;
@@ -23,30 +26,37 @@ public class TextureStyles{
     internal TextureStyles(int i){this.type = i;}
 
     /// <summary>Take the TextureData and it's corresponding Mesh, stretching and squashing the colors to ensure they fit</summary>
-    static TextureDatabase StretchToFit(TextureDatabase tD, Mesh m, 
-    Point _12mid, Equation p0_p1, Equation p1_p12mid, Equation p1_p2){
-        m.Foreach((Polygon p) => {
-            for(int cc =0; cc < p.UVPoints;cc++){
+    static TextureDatabase StretchToFit_(TextureDatabase tD, Mesh m, Point _12mid, Equation p0_p1, Equation p1_p12mid, Equation p1_p2){
+        int point = 0;
+        m.Foreach((p) => {
+            //This will manipulate use p's UVPoint data to manipulate tD
+            for(int cc =0; cc < p.UVPoints.Length;cc++){
                 //TextureDatabase stores a Point and the corresponding color, 
                 //so simply find the bounding X-Coordinates at each Y-Coordinate.
                 //And for all the Points on that Y, find an increment and blend the colors together
                 //With the increment as a reference point.
                 Equation perpendicular = Equation.FromPoints(p.UVPoints[0], 
-                new Point((p.UVPoints[0].X + p.UVPoints[0].X)/2, p.UVPoints[0].Y + p.UVPoints[0].Y)/2));
-                int UVarea = ;
-                for(int y =MinY; y < YRange;y++){
-                    float increment = (tD.AllThat(((Point point, Color color) item) => {
-                        if((item.point.X > p0_p1.SolveX(y) & item.point.X < p1_p12mid.SolveX(y)) &&
-                        item.point.Y == y){return true;}}))/(p1_p12mid.SolveX(y) - p0_p1.SolveX(y));
+                //Midpoint between p.UVPoints[1] and p.UVPoints[2]
+                new Point((p.UVPoints[1].Y + p.UVPoints[2].Y)/2, (p.UVPoints[1].X + p.UVPoints[2].X)/2));
+                int MinY = Texturer.Min([p.UVPoints[0].Y, p.UVPoints[1].Y, p.UVPoints[2].Y]);
+                int MaxY = Texturer.Max([p.UVPoints[0].Y, p.UVPoints[1].Y, p.UVPoints[2].Y]);
+                for(int y =MinY; y < MaxY - MinY;y++){
+                        float increment = tD.AllThat(((Point point, Color color) item) => {
+                            if((item.point.X > p0_p1.SolveX(y) & item.point.X < p1_p12mid.SolveX(y)) &&
+                            item.point.Y == y){return true;}else{return false;}});
+                        increment /= p1_p12mid.SolveX(y) - p0_p1.SolveX(y);
+                        //Ive now got the multiplier the shrink or stretch the textureData.
                 }
             }
-        }
+            return p;
+        });
+    return tD;
     }
-
+}
 /// <summary>
 /// The true shape of a Collider
 /// </summary>
-public class TrueCollider{
+class TrueCollider{
     //public static readonly TrueCollider Sphere = 0;
     public static TrueCollider Cube{get{_cube.Dimensions = (5, 5); return _cube;}}
 #pragma warning disable CS8601 // Possible null reference assignment.
@@ -93,15 +103,15 @@ public class TrueCollider{
     public static explicit operator int(TrueCollider tC){
         return tC.type;
     }
-    public static Mesh GetMesh(TrueCollider? tC){
+    public static Polygon[] GetMesh(TrueCollider? tC){
         int bevel = 0;
-        if(tC == null){return (Mesh)Polygon.Mesh(10, 10, bevel);}
-        switch(tC.type){
-            case 1: bevel = 0;  break;
-            case 2: bevel = 2;  break;
-            default: bevel = 0; break;
-        }
-        return (Mesh)Polygon.Mesh(tC.Dimensions.height, tC.Dimensions.width, bevel);
+        if(tC == null){return Polygon.Mesh(10, 10, bevel);}
+        bevel = tC.type switch{
+            1 => 0,
+            2 => 2,
+            _ => 0,
+        };
+        return Polygon.Mesh(tC.Dimensions.height, tC.Dimensions.width, bevel);
     }
     public static void Assign(TrueCollider tC1, TrueCollider tC2){tC1 = tC2;}
 }

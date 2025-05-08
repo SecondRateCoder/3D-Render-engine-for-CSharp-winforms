@@ -91,16 +91,17 @@ static class ViewPort{
     /// </summary> 
     /// <remarks>If <see cref="World.worldData.Count"/> == 0, then it creates a cube to be rendered.</remarks>
     public static (Point p, Color c)[] TransformToScreenSpace_Normalised(){
-        (TextureDatabase textureData, Polygon[] polygonData, Polygon[] positionData) buffer = GetTextures_PolygonData();
-        Polygon[] MultipliedPolygons = new Polygon[buffer.polygonData.Count]
+        (TextureDatabase textureData, Polygon[] polygonData, int[] positionData) buffer = GetTextures_PolygonData();
+        Polygon[] MultipliedPolygons = new Polygon[buffer.polygonData.Length];
         int pointer = 0;
-        foreach(Polygon p in buffer.polygonData, pointer++){
+        foreach(Polygon p in buffer.polygonData){
+            pointer++;
             MultipliedPolygons[pointer] = Multiply(p);
         }
         return [];
         
     }
-    static (TextureDatabase, List<Polygon>, List<int>) GetTextures_PolygonData(){
+    static (TextureDatabase, Polygon[], int[]) GetTextures_PolygonData(){
         TextureDatabase TextureData = [];
         List<Polygon> buffer = [];
         List<int> positionData = [0];
@@ -109,7 +110,7 @@ static class ViewPort{
             gameObj gO = new gameObj(Vector3.Zero, Vector3.Zero, true, Polygon.Mesh(1, 0, 1, 4));
             gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
             buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
-            for(int i = 0;i < buffer.Count;i++){gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints]);}
+            for(int i = 0;i < buffer.Count;i++){gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints], TextureStyles.StretchToFit);}
             buffer =[];
             positionData = [0];
         }else{
@@ -124,7 +125,7 @@ static class ViewPort{
             }
             ViewPort.bmp.Initialise(TextureData, Entry.f.Width, Entry.f.Height);
         }
-        return (TextureData, buffer);
+        return (TextureData, buffer.ToArray(), positionData.ToArray());
     }
 
     /// <summary>

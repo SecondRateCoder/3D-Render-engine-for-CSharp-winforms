@@ -31,8 +31,8 @@ class EmptyComponent : Rndrcomponent{
 }
 //TODO Atp i might as well just move the texturer into a whole new file cus ts is extensive.
 class Texturer : Rndrcomponent{
-    public static Texturer(){textureData = [];}
-    public static TextureDatabase textureData = [];
+    static Texturer(){textureData = [];}
+    public static TextureDatabase textureData;
     /// <summary>Store the image file in this before Initialising.</summary>
     Bitmap buffer;
     Path filePath;
@@ -87,7 +87,7 @@ class Texturer : Rndrcomponent{
         if((this.DataStart != 0) && (this.DataEnd != 0)){
             TextureDatabase tD = new TextureDatabase(DataEnd - DataStart);
             int cc_ = 0;
-            for(int cc= DataStart; int cc < DataEnd;cc++, cc_++){
+            for(int cc= DataStart; cc < DataEnd;cc++, cc_++){
                 tD[cc_] = Texturer.textureData[cc];
             }
             return tD;
