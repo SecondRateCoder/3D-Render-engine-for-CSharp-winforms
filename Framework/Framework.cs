@@ -389,6 +389,15 @@ class gameObj{
             this.Children.Translate(this.Position - position, rotation);
         }
     }
+    public TextureDatabase Texture(){
+        if(HasComponent<Texturer>()){
+            Texturer t = this.GetComponent<Texturer>();
+            if(t.IsEvenTextured){
+                return t.Texture(this.Children);
+            }
+        }
+        return tD;
+    }
     ///<summary>
     /// This method returns the Polygon closest to the Position parameter.
     ///</summary>

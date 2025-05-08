@@ -194,6 +194,7 @@ struct Polygon{
 }
 [DebuggerDisplay("Position: {Position}, Rotation: {Rotation}, Count: {Count}")]
 class Mesh : Rndrcomponent, IEnumerable{
+    public delegate Polygon ForEachDelegate(Polygon p);
     public static Mesh Empty{get{return new Mesh();}}
     public Vector3 Position{get; private set;}
     public Vector3 Rotation{get; private set;}
@@ -225,6 +226,11 @@ class Mesh : Rndrcomponent, IEnumerable{
 				m[cc].Translate(m.Position - position, position, rotation);
 			}
 		});
+    }
+    public void Foreach(ForEachDelegate fE){
+        for(int cc = 0;cc < this.Count;cc++){
+            this[cc] = fE(this[cc]);
+        }
     }
     public Mesh ViewPortClip(){
         Camera cam = World.cams[World.camIndex];

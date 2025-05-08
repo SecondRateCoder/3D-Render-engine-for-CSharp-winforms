@@ -79,8 +79,6 @@ static class ExternalControl{
 
 
 public partial class Form1 : Form{
-    Graphics GrphcsPrprty;
-    public Graphics G {get{return GrphcsPrprty == null? this.CreateGraphics() : GrphcsPrprty;} private set{GrphcsPrprty = value;}}
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Form1(){
         InitializeComponent();
@@ -96,7 +94,6 @@ public partial class Form1 : Form{
                 () => {
                     if(this.Focused | Debugger.IsAttached){
                         this.Refresh();
-                        if(Entry.Buffer != null){this.G.DrawImage((Bitmap)Entry.Buffer, Point.Empty);}
                     }
             });
         }
@@ -109,6 +106,6 @@ public partial class Form1 : Form{
 
     protected override void OnPaint(PaintEventArgs e){
         base.OnPaint(e);
-        G = e.Graphics;
+        if(Entry.Buffer != null){e.Graphics.DrawImage((Bitmap)Entry.Buffer, Point.Empty);}
     }
 }

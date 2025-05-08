@@ -29,13 +29,16 @@ class EmptyComponent : Rndrcomponent{
     public override void Initialise(){return;}
 
 }
-
+//TODO Atp i might as well just move the texturer into a whole new file cus ts is extensive.
 class Texturer : Rndrcomponent{
+    public static Texturer(){textureData = [];}
     public static TextureDatabase textureData = [];
     /// <summary>Store the image file in this before Initialising.</summary>
     Bitmap buffer;
     Path filePath;
     bool Initialised;
+    bool _Textured;
+    public bool isEvenTextured{get{return _Textured;} set{if(value){_Textured = true;}else{this.Dispose(true);  this._Textured = false;}}}
     int DataStart;
     int DataEnd;
 #pragma warning disable CS8618
@@ -75,40 +78,51 @@ class Texturer : Rndrcomponent{
     /// <param name="UVpoints">The List of 3 Point elements that represent the space taken for the texture.</param>
     /// <param name="Append">Should this function append result to the static Texturer.texturerData buffer, <see cref="Texturer.textureData.Count"/></param>
     /// <returns>A TextureData dataset which contains the texture data of each set of 3 Points in each element in UVPoints.</returns>
-    public TextureDatabase Texture(List<Point[]> UVpoints, bool Append = true){
+    public TextureDatabase Texture(List<Point[]> UVpoints, TextureStyles tS, bool Append = true){
         ObjectDisposedException.ThrowIf(!this.Initialised, this);
-        TextureDatabase result = new(new List<(Point p, Color c)>());
-        //Initialise this component.
-        _Initialise();
-        for(int cc =0; cc < UVpoints.Count;cc ++){
-            //Find tY length of the 2d polygon then find the range
-            int MinY = Texturer.Min([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]);
-            int YRange = Texturer.Max([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]) - MinY;
-            //The mid-point when the gradient of the line around 1 point changes, set on the line opposite it.
-            Point _12mid = new Point((UVpoints[cc][1].X + UVpoints[cc][2].X)/2, (UVpoints[cc][1].Y + UVpoints[cc][2].Y)/2);
-            //Point 0 (UVPoints[cc][0]) to Point 1 (UVPoints[cc][1])
-            Equation p0_p1 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][1]);
-            //Point 1 (UVPoints[cc][1]) to the midPoint
-            Equation p1_p12mid = Equation.FromPoints(UVpoints[cc][1], _12mid);
-            //Point 1 (UVPoints[cc][1]) to Point 2 (UVPoints[cc][2])
-            Equation p1_p2 = Equation.FromPoints(UVpoints[cc][1], UVpoints[cc][2]);
-            for(int y =MinY; y < YRange;y++){
-                //Iterate the y.
-                if(y < _12mid.Y){
-                    //Before change in Gradient
-                    float xUpper = p1_p12mid.SolveX(y);
-                    int x =(int)p0_p1.SolveX(y);
-                    while(x <= xUpper){
-                        result.Append((new Point(x, y), buffer.GetPixel(x, y)));
-                        x++;
-                    }
-                }else{
-                    //After change in Gradient
-                    float xUpper = p1_p2.SolveX(y);
-                    int x =(int)p1_p12mid.SolveX(y);
-                    while(x <= xUpper){
-                        result.Append((new Point(x, y), buffer.GetPixel(x, y)));
-                        x++;
+        TextureDatabase result = [];
+        //Does this component have a texture, if not then just return the empty database.
+        if(!this.isEvenTextured){return result;}
+        //!If this component has already appended it's data to the static textureData list then that is lovely, all this intensive math can chill.
+        if((this.DataStart != 0) && (this.DataEnd != 0)){
+            TextureDatabase tD = new TextureDatabase(DataEnd - DataStart);
+            int cc_ = 0;
+            for(int cc= DataStart; int cc < DataEnd;cc++, cc_++){
+                tD[cc_] = Texturer.textureData[cc];
+            }
+            return tD;
+        }else{
+        //!If this component has not already appended it's data to the static textureData list then that is peak, ur stuff gon lag like crazy.
+            for(int cc =0; cc < UVpoints.Count;cc ++){
+                //Find tY length of the 2d polygon then find the range
+                int MinY = Texturer.Min([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]);
+                int YRange = Texturer.Max([UVpoints[cc][0].Y, UVpoints[cc][1].Y, UVpoints[cc][2].Y]) - MinY;
+                //The mid-point when the gradient of the line around 1 point changes, set on the line opposite it.
+                Point _12mid = new Point((UVpoints[cc][1].X + UVpoints[cc][2].X)/2, (UVpoints[cc][1].Y + UVpoints[cc][2].Y)/2);
+                //Point 0 (UVPoints[cc][0]) to Point 1 (UVPoints[cc][1])
+                Equation p0_p1 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][1]);
+                //Point 1 (UVPoints[cc][1]) to the midPoint
+                Equation p1_p12mid = Equation.FromPoints(UVpoints[cc][1], _12mid);
+                //Point 1 (UVPoints[cc][1]) to Point 2 (UVPoints[cc][2])
+                Equation p1_p2 = Equation.FromPoints(UVpoints[cc][1], UVpoints[cc][2]);
+                for(int y =MinY; y < YRange;y++){
+                    //Iterate the y.
+                    if(y < _12mid.Y){
+                        //Before change in Gradient
+                        float xUpper = p1_p12mid.SolveX(y);
+                        int x =(int)p0_p1.SolveX(y);
+                        while(x <= xUpper){
+                            result.Append((new Point(x, y), buffer.GetPixel(x, y)));
+                            x++;
+                        }
+                    }else{
+                        //After change in Gradient
+                        float xUpper = p1_p2.SolveX(y);
+                        int x =(int)p1_p12mid.SolveX(y);
+                        while(x <= xUpper){
+                            result.Append((new Point(x, y), buffer.GetPixel(x, y)));
+                            x++;
+                        }
                     }
                 }
             }

@@ -17,6 +17,12 @@ struct Equation{
         float y_intercept = a.Y - (a.X * gradient);
         return new Equation(gradient, y_intercept);
     }
+    public static GetPerpendicular(Equation e, Point p){
+        int y = e.SolveY(p.X);
+        float gradient = -(1/e.gradient);
+        float y_intercept = y - (p.X * gradient);
+        return new Equation(gradient, y_intercept);
+    }
     /// <summary>
     /// Finds the x-coordinate where both Equation a and b equal the same y-coordinate.
     /// </summary>
