@@ -309,7 +309,6 @@ class Mesh : Rndrcomponent, IEnumerable{
     /// </summary>
     /// <param name="m">The 1st mesh to be compared to.</param>
     /// <param name="m2">The 2nd mesh to be compared to.</param>
-	/// <param name="Tolerance">This is the parameter the the similarity Quotient will be compared to</param>
     /// <returns>A bool.</returns>
 	/// <remarks>Both meshes must be same sized.</remarks>
     public static bool operator ==(Mesh? m, Mesh? m2){
@@ -326,6 +325,31 @@ class Mesh : Rndrcomponent, IEnumerable{
 			}
             }
         return sQ > .9f? true: false;
+	}
+     /// <summary>
+    ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
+    /// </summary>
+    /// <param name="m">The 1st mesh to be compared to.</param>
+    /// <param name="m2">The 2nd mesh to be compared to.</param>
+	/// <param name="Tolerance">This is the parameter the the similarity Quotient will be compared to</param>
+    /// <returns>A bool.</returns>
+	/// <remarks>Both meshes must be same sized.</remarks>
+    public static bool operator ==(Mesh? m, Mesh? m2, float Tolerance){
+		Tolerance = Tolerance > 1? .9f: Tolerance;
+ 		Tolerance = Tolerance < 0? .1f: Tolerance;
+        int sQ = 0;
+        if(object.Equals(m, null) | object.Equals(m2, null)){return false;}
+        if(m.Count != m2.Count){
+            return false;
+        }else{
+			int increment = 1/m.Count;
+            for(int cc = 0; cc < m.Count; cc++){
+				if(m[cc] == m2[cc]){
+					sQ += increment;
+				}
+			}
+            }
+        return sQ > Tolerance? true: false;
 	}
 	/// <summary>
 	/// Checks how similar two meshes are and returns the inverse of that value.
