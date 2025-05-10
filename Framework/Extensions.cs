@@ -1,8 +1,13 @@
+using Timer = System.Timers.Timer;
+using System.Timers;
+using NUnit.Framework;
+using System.Collections.Concurrent;
+
 public class TextureStyles{
-    public static TextureStyles Empty = EdgeFillBlack;
     public static TextureStyles StretchToFit = (TextureStyles)0;
     public static TextureStyles EdgeFillBlack = (TextureStyles)1;
     public static TextureStyles EdgeFillWhite = (TextureStyles)2;
+    public static TextureStyles Empty = EdgeFillBlack;
     public static TextureStyles ClipToFit = (TextureStyles)3;
     public static explicit operator TextureStyles(int i){if(IsStyle(i)){return new TextureStyles(i);}else{return TextureStyles.Empty;}}
     public static implicit operator int(TextureStyles t){return t.type;}
@@ -35,7 +40,6 @@ public class TextureStyles{
     /// <param name="Start">The starting index of the Polygon's TextureData</param>
     /// <param name="End">The ending index of the Polygon's TextureData</param>
     static TextureDatabase StretchToFit_(TextureDatabase tD, Polygon p, int index){
-        int point = 0;
         //This will use p's UVPoint data to manipulate tD
         for(int cc =0; cc < p.UVPoints.Length;cc++){
             
@@ -345,5 +349,70 @@ static class CustomSort{
         int x = Math.Abs(a.X - b.X);
         int y = Math.Abs(a.Y - b.Y);
         return (float)Math.Sqrt((x^2) + (y^2));
+    }
+}
+[Serializable]
+class InconsistentDimensionException : Exception{
+    public InconsistentDimensionException(string message) : base(message){}
+    public InconsistentDimensionException(string message, Exception inner) : base(message, inner){}
+    public InconsistentDimensionException(){}
+    public override string Message => base.Message;
+    public void ThrowIf(bool condition, string message){
+        if(condition){throw new InconsistentDimensionException(message);}
+    }
+}
+
+
+/// <summary>Represents a scheduled job that runs within a lock to prevent deadlocks.</summary>
+class LockJob{
+	static LockJob Empty{get{return new LockJob(-1, -1, null);}}
+	DateTime LockStart;
+    int _ID;
+    int _Timeout;
+	Action Job;
+	IAsyncResult AsyncResult;
+    LockJob(int ID, int Timeout, Action? job = null){
+        this.LockStart = DateTime.Now;
+        this._ID = ID;
+		if(job != null){this.Job = job;}
+        this._Timeout = Timeout;
+    }
+	void Initialise(Action job){this.Job = job;}
+	async void Start(CancellationToken token){
+		this.LockStart = DateTime.Now;	
+		await Task.Run(() => {if(!token.IsCancellationRequested){this.Job();}}, token);
+	}
+	void Break(object sender, ElapsedEventArgs e){
+		try{
+			Job.EndInvoke(AsyncResult);
+		}catch(Exception ex){
+			System.Windows.Forms.MessageBox.Show($"Error in LockJob: {ex.Message}");
+		}
+	}
+	void Sleep(){this.LockStart = DateTime.MinValue;}
+	public static bool operator ==(LockJob l1, LockJob l2){
+		if(l1._ID == l2._ID){
+			if(l1.LockStart == l2.LockStart){
+				if(l1._Timeout == l2._Timeout){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	public static bool operator !=(LockJob l1, LockJob l2){return !(l1 == l2);}
+	public override int GetHashCode(){return HashCode.Combine(_ID, LockStart, _Timeout);}
+
+
+    public static class LockJobHandler{
+		static readonly object _lock = new();
+		static readonly ConcurrentQueue<CancellationToken> tokens = new();
+		static readonly ConcurrentQueue<LockJob> jobs = new ConcurrentQueue<LockJob>();
+		public static void AddJob(LockJob lJ){jobs.Enqueue(lJ);}
+		public static async Task ProcessJobs(){
+			while (jobs.TryDequeue(out LockJob job)){
+				await Task.Run(() => job.Start(tokens.TryDequeue(out CancellationToken token) ? token : CancellationToken.None));
+			}
+    	}
     }
 }

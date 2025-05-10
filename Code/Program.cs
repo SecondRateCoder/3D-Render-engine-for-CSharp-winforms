@@ -60,7 +60,7 @@ class Entry{
         for(int cc =0; cc < values.Length-1; cc++){
             List<Point> Buffer = [.. ViewPort.DrawBLine(values[cc].p, values[cc+1].p)];
             if(!int.IsEvenInteger(Buffer.Count)){Buffer.RemoveAt(Buffer.Count-1);}
-            Entry.Buffer.Initialise(new TextureDatabase(Buffer), formWidth, formHeight);
+            Entry.Buffer.Initialise(new TextureDatabase(Buffer, Color.White), formWidth, formHeight);
         }
         
         

@@ -11,12 +11,10 @@ class WriteableBitmap{
     public Bitmap Get(){return this.bmp;}
     public int pixelHeight{get; private set;}
     public int pixelWidth{get; private set;}
-    public int Count{get{return (pixelHeight == null | pixelWidth == null? 0: pixelWidth*pixelHeight);}}
-    (Point p, Color c) this[int x, int y]{
+    public int Count{get{return pixelWidth*pixelHeight;}}
+    public (Point p, Color c) this[int x, int y]{
         get{
-            lock (this){
-                
-            }
+            return this.Get(x, y);
         }
         set{
             this.Set(value.c.A, value.c.R, value.c.G, value.c.B, x, y);
@@ -206,10 +204,10 @@ class WriteableBitmap{
         int index =0;
         for(int y =0; y < bmp.pixelHeight; y++){
             for(int x =0; x < bmp.pixelWidth;x++, index += sizeof(Color)){
-                result[index] = bmp[x, y].A;
-                result[index+1] = bmp[x, y].R;
-                result[index+2] = bmp[x, y].G;
-                result[index+3] = bmp[x, y].B;
+                result[index] = bmp[x, y].c.A;
+                result[index+1] = bmp[x, y].c.R;
+                result[index+2] = bmp[x, y].c.G;
+                result[index+3] = bmp[x, y].c.B;
             }
         }
         return result;

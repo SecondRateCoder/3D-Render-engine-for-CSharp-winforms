@@ -66,9 +66,20 @@ class TextureDatabase : IEnumerable{
     public TextureDatabase(){this.td = [];}
     public TextureDatabase(int count = 0){this.td = new List<(Point point, Color color)>();}
     public TextureDatabase(List<(Point p, Color c)> data){this.td = data; this.isSorted = false;}
-    public TextureDatabase(IEnumerable<Point> points){
+    public TextureDatabase(IEnumerable<Point> points, Color color){
         this.td = [];
-        foreach(Point p in points){td.Add((p, Color.White));}
+        foreach(Point p in points){td.Add((p, color));}
+    }
+    public TextureDatabase(WriteableBitmap bmp){
+        this.td = new List<(Point point, Color color)>(bmp.pixelWidth * bmp.pixelHeight);
+        int cc =0;
+        for(int y = 0;y < bmp.pixelHeight;y++){
+            for(int x = 0;x < bmp.pixelWidth;x++){
+                td[cc] = bmp[x, y];
+                cc++;
+            }
+        }
+        
     }
     public int AllThat(ForEachDelegateConditional fDC){
         int inc = 0;
@@ -109,9 +120,14 @@ class TextureDatabase : IEnumerable{
     }
     public void Append(List<(Point p, Color c)> data){foreach((Point p, Color c) item in data){this.Append(item);}}
     public static WriteableBitmap ToWriteableBitmap(TextureDatabase tD, int width, int height){
+        new InconsistentDimensionException().ThrowIf(tD.Count != width * height, "The TextureData's dimensions do not match the Bitmap's dimensions.");
         WriteableBitmap wB = new(width, height);
-        for(int cc = 0;cc < tD.Count;cc++){
-            wB[tD[cc]]
+        int cc= 0;
+        for(int y= 0;y < height;y++){
+            for(int x = 0;x < width;x++){
+                wB[x, y] = tD[cc];
+                cc++;
+            }
         }
         return wB;
     }
