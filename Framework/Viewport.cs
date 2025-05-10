@@ -8,24 +8,21 @@ static class World{
     public static int camIndex{get; private set;}
     public static List<Light> lights = new List<Light>(){new Light(Vector3.Zero, Color.White, 15)};
     public static List<int> activeLights = [0];
-    public static void setCam(int index){
-        if(index < cams.Count){
+    public static bool TrySetCam(int index){
+        if(index < cams.Count && index >= 0){
             camIndex = index;
+            return true;
         }
-    }
-    public static void SetLights(IEnumerable<int> lights){
-        activeLights = lights.ToList();
+        return false;
     }
     public static void AddLight(int light){
-        activeLights.Append(light);
+        activeLights.Add(light);
     }
     public static void Call(){
         Vector3 camPos = 0f-cams[camIndex].Position;
         Vector3 camRot = 0f-cams[camIndex].Rotation;
-        List<gameObj> buffer = [];
         foreach(gameObj gO in worldData){
-            gameObj gO_ = gO.Copy();
-            gO_.Translate(camPos, camRot, false);
+            gO.Translate(camPos, camRot, false);
         }
     }
 }
@@ -44,9 +41,9 @@ static class ViewPort{
     public static void Clear(Color c){
         for(int cc =0;cc < bmp.Count;cc+=4){
             backBuffer[cc] = c.A;
-            backBuffer[cc] = c.R;
-            backBuffer[cc] = c.G;
-            backBuffer[cc] = c.B;
+            backBuffer[cc+1] = c.R;
+            backBuffer[cc+2] = c.G;
+            backBuffer[cc+3] = c.B;
         }
     }
     public static void Present(){
@@ -77,12 +74,22 @@ static class ViewPort{
     /// <summary>
     ///  This property represents the 4x4 Matrix that will convert all viewable vector positions to Perspective projection.
     /// </summary>
-    static float[,] PPMatrix {get;} = new float[4, 4]{
-        {(float)(1/(boundary.r/boundary.t)*Math.Tan(World.cams[World.camIndex].theta/2)), 0f, 0f, 0f},
-        {0f, (float)(1/Math.Tan(World.cams[World.camIndex].theta/2)), 0f, 0f},
-        {0f, 0f, World.cams[World.camIndex].far/(World.cams[World.camIndex].far-World.cams[World.camIndex].near), -World.cams[World.camIndex].far*World.cams[World.camIndex].near/(World.cams[World.camIndex].far-World.cams[World.camIndex].near)},
-        {0f, 0f, 1f, 0f}};
-
+    static float[,] PPMatrix {get{
+        if(_ppMatrixDirty){
+            _ppMatrix = new float[4, 4]{
+                {(float)(1/(boundary.r/boundary.t)*Math.Tan(World.cams[World.camIndex].theta/2)), 0f, 0f, 0f},
+                {0f, (float)(1/Math.Tan(World.cams[World.camIndex].theta/2)), 0f, 0f},
+                {0f, 0f, World.cams[World.camIndex].far/(World.cams[World.camIndex].far-World.cams[World.camIndex].near), -World.cams[World.camIndex].far*World.cams[World.camIndex].near/(World.cams[World.camIndex].far-World.cams[World.camIndex].near)},
+                {0f, 0f, 1f, 0f}};
+            _ppMatrixDirty = false;
+        }
+        return _ppMatrix;
+    }}
+    static float[,] _ppMatrix;
+    static bool _ppMatrixDirty;
+    public static void MarkPPMatrixDirty(){
+        _ppMatrixDirty = true;
+    }
 
 
 
@@ -133,40 +140,19 @@ static class ViewPort{
     /// </summary>
     /// <returns>A polygon whose vector co-ordinaates can be directly converted to points.</returns>
     public static Polygon Multiply(Polygon polygon){
-        Polygon CalcBuffer = new Polygon();
-        //For Point A
-        CalcBuffer.A = new Vector3(
-            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
-            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+PPMatrix[3, 1],
-            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.A.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.A.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.A.Z/World.cams[World.camIndex].far)+PPMatrix[3, 2]
+        return new Polygon(Multiply(polygon.A), Multiply(polygon.B), Multiply(polygon.C));
+    }
+    static Vector3 Multiply(Vector3 v){
+        v = new Vector3(
+            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * v.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * v.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * v.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
+            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * v.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * v.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * v.Z/World.cams[World.camIndex].far)+PPMatrix[3, 1],
+            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * v.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * v.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * v.Z/World.cams[World.camIndex].far)+PPMatrix[3, 2]
             );
-        float wA = PPMatrix[0, 3] * CalcBuffer.A.X + PPMatrix[1, 3] * CalcBuffer.A.Y + PPMatrix[2, 3] * CalcBuffer.A.Z + PPMatrix[3, 3];
-        CalcBuffer.A /= wA;
+        float wC = PPMatrix[0, 3] * v.X + PPMatrix[1, 3] * v.Y + PPMatrix[2, 3] * v.Z + PPMatrix[3, 3];
+        v /= wC;
         //Normalise then multiply by the form dimensions to scale it.
-        CalcBuffer.A.Normalise();
-        CalcBuffer.A = new Vector3(CalcBuffer.A.X/CalcBuffer.A.Z * Entry.f.Bounds.Width, CalcBuffer.A.Y/CalcBuffer.A.Z  * Entry.f.Bounds.Height, 0);
-        //For Point B
-        CalcBuffer.B = new Vector3(
-            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
-            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+PPMatrix[3, 1],
-            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.B.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.B.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.B.Z/World.cams[World.camIndex].far)+PPMatrix[3, 2]
-            );
-        float wB = PPMatrix[0, 3] * CalcBuffer.B.X + PPMatrix[1, 3] * CalcBuffer.B.Y + PPMatrix[2, 3] * CalcBuffer.B.Z + PPMatrix[3, 3];
-        CalcBuffer.B /= wB;
-        //Normalise then multiply by the form dimensions to scale it.
-        CalcBuffer.B.Normalise();
-        CalcBuffer.B = new Vector3(CalcBuffer.B.X/CalcBuffer.B.Z * Entry.f.Bounds.Width, CalcBuffer.B.Y/CalcBuffer.B.Z  * Entry.f.Bounds.Height, 0);
-        //For Point C
-        CalcBuffer.C = new Vector3(
-            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
-            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+PPMatrix[3, 1],
-            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * polygon.C.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * polygon.C.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * polygon.C.Z/World.cams[World.camIndex].far)+PPMatrix[3, 2]
-            );
-        float wC = PPMatrix[0, 3] * CalcBuffer.C.X + PPMatrix[1, 3] * CalcBuffer.C.Y + PPMatrix[2, 3] * CalcBuffer.C.Z + PPMatrix[3, 3];
-        CalcBuffer.C /= wC;
-        //Normalise then multiply by the form dimensions to scale it.
-        CalcBuffer.C.Normalise();
-        CalcBuffer.C= new Vector3(CalcBuffer.C.X/CalcBuffer.C.Z * Entry.f.Bounds.Width, CalcBuffer.C.Y/CalcBuffer.C.Z  * Entry.f.Bounds.Height, 0);
-        return CalcBuffer;
+        v.Normalise();
+        v= new Vector3(v.X/v.Z * Entry.f.Bounds.Width, v.Y/v.Z  * Entry.f.Bounds.Height, 0);
+        return v;
     }
 }

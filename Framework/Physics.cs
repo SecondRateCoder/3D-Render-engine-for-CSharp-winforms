@@ -1,4 +1,5 @@
 using System.Timers;
+using NUnit.Framework;
 
 /// <summary>
 /// A Collider
@@ -11,7 +12,17 @@ class Collider{
     int _type;
     /// <summary>Get the Mesh that describes the bounds of this Collider.</summary>
     /// <remarks>Will always return a Mesh.</remarks>
-    public Mesh Shape{get{return this.Buffer ?? TrueCollider.GetMesh((TrueCollider)_type);}}
+    public Mesh Shape{
+        get{
+            if(this.Buffer != null){
+                return Buffer;
+            }
+            if (TrueCollider.IsCollider(_type)) {
+                return (Mesh)TrueCollider.GetMesh((TrueCollider)_type);
+            }
+            throw new InvalidOperationException("Invalid Collider state.");
+        }
+    }
     //The underlying Mesh that stores a custom Mesh.
     Mesh? Buffer;
     //Is this Collider custom?
@@ -26,11 +37,15 @@ class Collider{
         }
     }
     public void Initialise(){
-        this.Buffer = TrueCollider.GetMesh(this.Type);
+        if (Buffer != null) {
+            Buffer.Dispose(true); // Dispose the existing buffer to avoid memory leaks
+        }
+        Buffer = (Mesh)TrueCollider.GetMesh(Type);
     }
     public void Dispose(bool disposing = true){
         if(disposing && this.isCustom && (this.Buffer != null)){
             Buffer.Dispose(true, true);
+            Buffer = null;
         }
     }
     public static explicit operator Collider(int tyPe){return new Collider((TrueCollider)tyPe);}
@@ -50,27 +65,29 @@ static class CollisionManager{
     public static unsafe CollisionDatabase LooseCollisions{
         get{
             CollisionDatabase list = new CollisionDatabase();
-            gameObj scope = World.worldData[0];
-            for(int cc = 1;cc < World.worldData.Count;cc++, scope = World.worldData[cc]){
-                if(!scope.HasComponent<RigidBdy>()){continue;}else{
-                    list.Append(new List<(gameObj, int, Vector3)>());
-                    list[cc].AddRange(SubSearch(scope));
+            for(int cc = 1;cc < World.worldData.Count;cc++){
+                gameObj scope = World.worldData[cc];
+                if(!scope.HasComponent<RigidBdy>()){continue;}
+                (gameObj gO, int Mass, Vector3 Velocity)[] collisions = SubSearch(scope);
+                if(collisions.Length > 0){
+                    list.Append(collisions);
                 }
             }
             return list;
     }}
     ///<summary>Searches in the World.worldData list for any objects colliding with gameObj</summary>
     static (gameObj gO, int Mass, Vector3 Velocity)[] SubSearch(gameObj scope){
-        (gameObj gO, int Mass, Vector3 Velocity)[] result = [];
+        List<(gameObj gO, int Mass, Vector3 Velocity)> result = [];
         foreach(gameObj gO in World.worldData){
             if(Vector3.GetDistance(scope.Position, gO.Position) < gO.CollisionRange+scope.CollisionRange){
+                if(!gO.HasComponent<RigidBdy>()){continue;}
                 RigidBdy? rG = gO.GetComponent<RigidBdy>();
                 if(rG == null){continue;}else{
                     result.Append((gO, rG.Mass, rG.velocity));
                 }
             }
         }
-        return result;
+        return result.ToArray();
     }
 
     public static CollisionDatabase FineCollisions{

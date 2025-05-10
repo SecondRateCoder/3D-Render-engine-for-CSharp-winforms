@@ -1,22 +1,30 @@
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using NUnit.Framework;
 using SharpDX;
 
 class WriteableBitmap{
+    bool disposed = false;
     public static WriteableBitmap Empty = new WriteableBitmap(0, 0);
     Bitmap bmp;
+    public int bytesPerPixel{get{lock(this.bmp){return Image.GetPixelFormatSize(this.bmp.PixelFormat) / 8;}}}
     public Bitmap Get(){return this.bmp;}
     public int pixelHeight{get; private set;}
     public int pixelWidth{get; private set;}
     public int Count{get{return (pixelHeight == null | pixelWidth == null? 0: pixelWidth*pixelHeight);}}
     Color this[int x, int y]{
         get{
-            if(x > pixelWidth | y > pixelHeight){return bmp.GetPixel(pixelWidth, pixelHeight);}else{
-                return bmp.GetPixel(x, y);
+            lock(this){
+                if(x > pixelWidth | y > pixelHeight){return bmp.GetPixel(pixelWidth, pixelHeight);}else{
+                    return bmp.GetPixel(x, y);
+                }
             }
         }
         set{
-            if(x > pixelWidth | y > pixelHeight){throw new ArgumentOutOfRangeException();}else{
-                this.bmp.SetPixel(x, y, value);
+            lock(this){
+                if(x > pixelWidth | y > pixelHeight){throw new ArgumentOutOfRangeException();}else{
+                    this.bmp.SetPixel(x, y, value);
+                }
             }
         }
     }
@@ -29,8 +37,9 @@ class WriteableBitmap{
         this.bmp = new Bitmap(Width, Height);
     }
     public WriteableBitmap(IEnumerable<byte> bytes, int Width = 200, int Height = 200){
-        bmp = new Bitmap(Width, Height);
-		this.pixelHeight = Height;
+        this.Initialise(bytes, Width, Height);
+		/*
+        this.pixelHeight = Height;
 		this.pixelWidth = Width;
         int cc =0;
         for(int y =0;y < Height;y++){
@@ -42,14 +51,31 @@ class WriteableBitmap{
                 }
             }
         }
+        */
     }
     public void Set(byte a, byte r, byte g, byte b, int x, int y){
-        bmp.SetPixel(x, y, Color.FromArgb((int)a, (int)r, (int)g, (int)b));
+        lock(this){
+            Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
+            BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            IntPtr ptr = bitmapData.Scan0;
+            int stride = bitmapData.Stride;
+            unsafe{
+                byte* pixel = (byte*)ptr + (y * stride) + (x * bytesPerPixel);
+                pixel[0] = b;
+                pixel[1] = g;
+                pixel[2] = r;
+                if(this.bytesPerPixel == 4){
+                    pixel[3] = a;
+                }
+            }
+            bmp.UnlockBits(bitmapData);
+        }
+        //bmp.SetPixel(x, y, Color.FromArgb((int)a, (int)r, (int)g, (int)b));
     }
     public void Set(TextureDatabase TextureData){
         int cc =0;
         for((Point p, Color c) bit = TextureData[cc]; cc < TextureData.Count;cc++, bit = TextureData[cc]){
-            bmp.SetPixel(bit.p.X, bit.p.Y, bit.c);
+            Set(bit.c.A, bit.c.R, bit.c.G, bit.c.B, bit.p.X, bit.p.Y);
         }
     }
     /// <summary>
@@ -58,21 +84,32 @@ class WriteableBitmap{
     /// <param name="disposing">If true then this instance fully disposes, 
     /// if false this instance saves it's bitmap to a file named (number).png</param>
     public void Dispose(bool disposing = true){
-        if(this.bmp != null){
+        if(this.bmp != null && !this.disposed){
             if(disposing){
-                this.bmp.Dispose();
-                this.bmp = new Bitmap(0, 0);
+                Dispoze();
+                GC.SuppressFinalize(this);
             }else{
                 string filePath = AppDomain.CurrentDomain.BaseDirectory + 
                 @"Cache\Images\" + 
                 $"({Directory.EnumerateFiles(AppDomain.CurrentDomain.BaseDirectory + 
                 @"Cache\Images\").Count()}).png";
+                Directory.CreateDirectory(filePath);
                 File.Create(filePath);
                 this.bmp.Save(filePath);
                 this.bmp.Dispose();
                 this.bmp = new Bitmap(0, 0);
             }
         }
+    }
+    protected virtual void Dispoze(){
+        if(!this.disposed){
+            this.bmp.Dispose();
+            this.bmp = null;
+            this.disposed = true;
+        }
+    }
+    ~WriteableBitmap(){
+        this.Dispose(false);
     }
     public void Initialise_Save(TextureDatabase tD, int Width, int Height, bool ExceedClear = true){
         this.Dispose(false);
@@ -89,6 +126,7 @@ class WriteableBitmap{
     /// <param name="Width">The width of the new Bitmap.</param>
     /// <param name="Height">The height of the new Bitmap.</param>
     /// <param name="ExceedClear">Should this function write still write to the Bitmap if Points in TextureData exceeds Bitmap dimensions.</param>
+    /// <remarks>If ExceedClear is false, this method WILL throw exceptions when it faces invalid arguments.</remarks>
     public void Initialise(TextureDatabase tD, int Width, int Height, bool ExceedClear = true){
         this.bmp = new Bitmap(Width, Height);
         for(int cc =0; cc < tD.Count;cc++){
@@ -110,20 +148,35 @@ class WriteableBitmap{
         this.Dispose(true);
         this.pixelHeight = Height;
         this.pixelWidth = Width;
-        if((bytes.Count() != Width * Height * 4) | bytes.Count() % 4 != 0){throw new ArgumentOutOfRangeException();}else{
+        ArgumentNullException.ThrowIfNull(bytes);
+        ArgumentOutOfRangeException.ThrowIfLessThan<int>(Width, 0, "Width must be positive.");
+        ArgumentOutOfRangeException.ThrowIfLessThan<int>(Height, 0, "Height must be positive.");
+        if((bytes.Count() != Width * Height * 4) | bytes.Count() % 4 != 0){throw new ArgumentOutOfRangeException("Initialise(IEnumerable<byte> bytes, int Width, int Height)");}else{
             this.bmp = new Bitmap(Width, Height);
             this.Update(bytes);
         }
     }
-    public void Update(IEnumerable<byte> bytes){
-		if((bytes.Count() > this.pixelHeight * this.pixelWidth * 4)){throw new ArgumentOutOfRangeException(nameof(bytes), "Parameter cannot have a length that exceeds the bounds of this bitmap");}
-        for(int y =0; y < this.pixelHeight;y++){
-            for(int x =0; x < this.pixelWidth;x++){
-                int index = (x + (y * pixelWidth) * 4);
-                this.bmp.SetPixel(x, y, 
-                Color.FromArgb(bytes.ElementAt(index), bytes.ElementAt(index+1), bytes.ElementAt(index+2), bytes.ElementAt(index+3)));
-            }
+    public void Update(IEnumerable<byte> Bytes){
+        Span<byte> bytes = Bytes.ToArray();
+        if(bytes.Length > this.pixelHeight * this.pixelWidth * 4){
+            throw new ArgumentOutOfRangeException(nameof(bytes), "Parameter cannot exceed the bounds of this bitmap.");
         }
+		if(bytes.Length > this.pixelHeight * this.pixelWidth * 4){throw new ArgumentOutOfRangeException(nameof(bytes), "Parameter cannot have a length that exceeds the bounds of this bitmap");}
+        lock(this){
+            var rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+            var bitmapData = bmp.LockBits(rect, ImageLockMode.WriteOnly, bmp.PixelFormat);
+
+            IntPtr ptr = bitmapData.Scan0;
+            Marshal.Copy(bytes.ToArray(), 0, ptr, bytes.Length);
+
+            bmp.UnlockBits(bitmapData);
+        }
+    }
+    [Test]
+    public void TestWriteableBitmapInitialization() {
+        var bitmap = new WriteableBitmap(100, 100);
+        Assert.That(bitmap.pixelWidth, Is.EqualTo(100));
+        Assert.That(bitmap.pixelHeight, Is.EqualTo(100));
     }
     public static explicit operator WriteableBitmap(Bitmap bmp){
 		return new WriteableBitmap(bmp);

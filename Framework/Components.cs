@@ -15,11 +15,34 @@ abstract class Rndrcomponent{
     /// </summary>
     /// <param name="bytes">the encoded array.</param>
     public abstract void FromBytes(byte[] bytes);
-    /// <summary>Clear this instance, emptying all data stores to null or 0.</summary>
-    /// <param name="disposing">Should this function Dispose this instance.</param>
-    internal void Dispose(bool disposing){}
     /// <summary>Initialise this instance, filling it's data stores with the necessary information.</summary>
     public abstract void Initialise();
+
+
+    bool disposed;
+    public void Dispose(){
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    /// <summary>Clear this instance, emptying all data stores to null or 0.</summary>
+    /// <param name="disposing">Should this function Dispose this instance.</param>
+    protected virtual void Dispose(bool disposing) {
+        if (!disposed) {
+            if (disposing) {
+                // Release managed resources here (if any)
+            }
+
+            // Release unmanaged resources here (if any)
+
+            disposed = true;
+        }
+    }
+    ~Rndrcomponent(){
+        if(!this.disposed){
+            Dispose(false); // Dispose only unmanaged resources
+            this.disposed = true;
+        }
+    }
 }
 class EmptyComponent : Rndrcomponent{
     public static Rndrcomponent Empty = new EmptyComponent();
