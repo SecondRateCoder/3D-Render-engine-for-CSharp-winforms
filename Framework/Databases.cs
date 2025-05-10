@@ -1,23 +1,67 @@
 using System.Collections;
 
 class TextureDatabase : IEnumerable{
+    public static TextureDatabase Empty{get{return [];}}
     public delegate (Point point, Color color) ForEachDelegate((Point point, Color color) item);
     public delegate bool ForEachDelegateConditional((Point point, Color color) item);
     List<(Point point, Color color)> td;
+    /// <summary>This serves to define sections of TextureData within the td List.</summary>
+    List<(int Start, int End)> PerSectionRanges{get; set;} = [];
+    /// <summary>True if the TextureData is sorted.</summary>
     public bool isSorted{get; private set;}
-    public int Count{get{
-        //If there's been a change the re-assign _c , otherwise move on. 
-        // then return it.
-        if(Unsignedchange){
-            _c = td.Count;
-        }
-        return _c;
-    }}
+    public int Count{get{return td.Count;}}
     int _c;
-    bool Unsignedchange;
     public (Point p, Color c) this[int index]{
         get{return td[index];}
         set{td[index] = value;}
+    }
+    /// <summary>Interaction with the Bounding points of a section's TextureData.</summary>
+    /// <param name="index">The index of the section's bounding data.</param>
+    /// <param name="b">Interacting with it won't make a difference, 
+    /// serves as a placeholder to distinguish between The TextureData and the Section Bounding Data</param>
+    /// <returns>The bounding points of the section's TextureData.</returns>
+    public (int Start, int End) this[int index, bool b]{
+        get{return PerSectionRanges[index];}
+        set{PerSectionRanges[index] = value;}
+    }
+    /// <summary>Retrive the TextureData of a singular Section within this TextureDatabase.</summary>
+    /// <param name="index">The index of PerSectionRanges that contains the selected Section's bounding TextureData.</param>
+    /// <returns>The TextureData of a singular Section.</returns>
+    public TextureDatabase RetrieveTexture_PerSectionBasis(int index){
+        TextureDatabase tD = new();
+        for(int cc = PerSectionRanges[index].Start;cc < PerSectionRanges[index].End;cc++){
+            tD.Append(this[cc]);
+        }
+        return tD;
+    }
+    /// <summary>
+    /// Define the bounds of a singular Section's TextureData within this TextureDatabase.
+    /// </summary>
+    /// <param name="Start">The index of this TextureDatabase where this Section's TextureData starts.</param>
+    /// <param name="UVArea">The UVArea of the Section, can be retrieved with X.UVArea.</param>
+    /// <returns>Was this Section's BoundingData successfully Defined</returns>
+    public bool DefineSectionBounds(int Start, float UVArea){
+        lock(PerSectionRanges){
+            if(Start > 0 && (Start + UVArea) < this.Count){
+                PerSectionRanges.Add((Start, Start + (int)UVArea));
+                return true;
+            }else{return false;}
+        }
+    }
+    /// <summary>
+    /// Re-define the bounds of a singular Section's TextureData within this TextureDatabase.
+    /// </summary>
+    /// <param name="index">The index of PerSectionRanges that contains the selected Section's bounding TextureData.</param>
+    /// <param name="Start">The index of this TextureDatabase where this Section's TextureData starts.</param>
+    /// <param name="UVArea">The UVArea of the Section, can be retrieved with X.UVArea.</param>
+    /// <returns>Was this Section's BoundingData successfully Re-defined</returns>
+    public bool ReDefineSectionBounds(int index, int Start, float UVArea){
+        lock(PerSectionRanges){
+            if(Start > 0 && (Start + UVArea) < this.Count){
+                PerSectionRanges.Add((Start, Start + (int)UVArea));
+                return true;
+            }else{return false;}
+        }
     }
     public TextureDatabase(){this.td = [];}
     public TextureDatabase(int count = 0){this.td = new List<(Point point, Color color)>();}
@@ -33,58 +77,46 @@ class TextureDatabase : IEnumerable{
         }
         return inc;
     }
-    public void Append((Point p, Color c) item){
-        this.Unsignedchange = true;
-        td.Add(item);
-        this.isSorted = this[Count-1].p.X<item.p.X && this[Count-1].p.Y<item.p.Y?true:false;
-    }
     public void Foreach(ForEachDelegate fE){
         for(int cc = 0;cc < this.Count;cc++){
             this[cc] = fE(this[cc]);
         }
     }
-    public void Append(List<(Point p, Color c)> data){this.Unsignedchange = true; foreach((Point p, Color c) item in data){this.Append(item);}}
+    public void AddAt(int index, (Point p, Color c) item){
+        if(index > this.Count){this.Append(item);}else{
+            td.Insert(index, item);
+            this.isSorted = this[index].p.X<item.p.X && this[index].p.Y<item.p.Y?true:false;
+        }
+    }
+    public void AddRangeAt(int index, IEnumerable<(Point p, Color c)> data){
+        if(index > this.Count){this.Append(data.ToList());}else{
+            foreach((Point p, Color c) item in data){
+                td.Insert(index, item);
+                this.isSorted = this[index].p.X<item.p.X && this[index].p.Y<item.p.Y?true:false;
+            }
+        }
+    }
+    public void AssignRangeAt(int index, IEnumerable<(Point p, Color c)> data){
+        if(index + data.Count() > this.Count){throw new ArgumentOutOfRangeException("The range of data to be assigned is out of bounds.");}
+        for(int cc =0; cc < data.Count();cc++){
+            td[index + cc] = data.ElementAt(cc);
+            this.isSorted = this[index + cc].p.X<data.ElementAt(cc).p.X && this[index + cc].p.Y<data.ElementAt(cc).p.Y?true:false;
+        }
+    }
+    public void Append((Point p, Color c) item){
+        td.Add(item);
+        this.isSorted = this[Count-1].p.X<item.p.X && this[Count-1].p.Y<item.p.Y?true:false;
+    }
+    public void Append(List<(Point p, Color c)> data){foreach((Point p, Color c) item in data){this.Append(item);}}
+    public static WriteableBitmap ToWriteableBitmap(TextureDatabase tD, int width, int height){
+        WriteableBitmap wB = new(width, height);
+        for(int cc = 0;cc < tD.Count;cc++){
+            wB[tD[cc]]
+        }
+        return wB;
+    }
     public static implicit operator List<(Point point, Color color)>(TextureDatabase tD){return tD.td;}
     public static explicit operator TextureDatabase(List<(Point point, Color color)> data){return new TextureDatabase(data);}
-    ///<summary>Sort this List.</summary>
-    public async void Sort(){
-        bool swapped = false;
-        await Task.Run(() => {
-            do{
-                //Hold the index at list.
-                for(int cc =0; cc < this.Count;cc++){
-                    swapped = false;
-                    //Swap Ys first.
-                    foreach(int _ in new int[0, 1, 2, 3]){
-                        if(this[cc].p.Y > this[cc+1].p.Y){
-                            swapped = true;
-                            int cc_ = cc+1;
-                            do{
-                                cc_++;
-                                if(this[cc].p.Y <= this[cc_].p.Y){
-                                    (Point p, Color c) buffBuff = this[cc_];
-                                    this[cc_] = this[cc];
-                                    this[cc] = buffBuff;
-                                    break;
-                                }
-                            }while((this[cc_].p.Y > this[cc_+1].p.Y) | cc_< this.Count);
-                        }
-                    }
-                    //Swap Xs next
-                    foreach(int _ in new int[0, 1, 2, 3]){
-                        if((this[cc].p.X > this[cc+1].p.X) && (this[cc].p.Y == this[cc+1].p.Y)){
-                            swapped = true;
-                            (Point p, Color c) buffBuff = this[cc];
-                            this[cc] = this[cc+1];
-                            this[cc+1] = buffBuff;
-                        }
-                    }
-                }
-            }while(swapped);
-        });
-    }
-
-
     public IEnumerator GetEnumerator() => td.GetEnumerator();
 }
 

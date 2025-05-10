@@ -20,9 +20,6 @@ struct Polygon{
         return (float)(.5f * ac * bc * Math.Sin(ab));
     }}
     public static unsafe int Size{get{return (Vector3.Size * 3) + sizeof(Point) * 3;}}
-    Point[] uPoints;
-    public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{if(value.Length > 3){UpdateTexture(value);}else{this.uPoints = value;}}}
-    public void UpdateTexture(Point[] uv){uPoints = new Point[3]; uPoints[0] = uv[0]; uPoints[1] = uv[1]; uPoints[2] = uv[2];}
     public Vector3 Normal{
         get{
             Vector3 a = Vector3.CProduct(this.A, this.B);
@@ -37,6 +34,28 @@ struct Polygon{
         this.C = c;
         this.UpdateTexture(uVPoints.ToArray());
     }
+    Point[] uPoints;
+    
+    public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{if(value.Length > 3){UpdateTexture(value);}else{this.uPoints = value;}}}
+    /// <summary>
+    /// Returns the normalised area of this Polygon's UV map.
+    /// </summary>
+    /// <returns>The normalised area.</returns>
+    /// <remarks>Multiplying this number by the Texture Image's resolution would provide an accurate representation of this Polygon's UV size.</remarks>
+    public float UVArea{
+        get{
+            lock(this.uPoints){
+                this.uPoints = CustomSort.SortPointArray_BySize(this.uPoints).Result;
+                float area = Math.Abs(
+                    (uPoints[0].X * (uPoints[1].Y - uPoints[2].Y) +
+                    uPoints[1].X * (uPoints[2].Y - uPoints[0].Y) +
+                    uPoints[2].X * (uPoints[0].Y - uPoints[1].Y)) / 2f
+                );
+            }
+            return 0f;
+        }
+    }
+    public void UpdateTexture(Point[] uv){uPoints = [uv[0], uv[1], uv[2]];}
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Polygon(Vector3 a, Vector3 b, Vector3 c){
         this.A = a;
@@ -303,7 +322,23 @@ class Mesh : Rndrcomponent, IEnumerable{
     /*
     !Static functions and stuff
     */
-
+    public static bool CompareTo(Mesh m, Mesh m2, int Tolerance){
+        Tolerance = Tolerance > 1? 1: Tolerance;
+        Tolerance = Tolerance < 0? 0: Tolerance;
+        int sQ = 0;
+        if(object.Equals(m, null) | object.Equals(m2, null)){return false;}
+        if(m.Count != m2.Count){
+            return false;
+        }else{
+			int increment = 1/m.Count;
+            for(int cc = 0; cc < m.Count; cc++){
+				if(m[cc] == m2[cc]){
+					sQ += increment;
+				}
+			}
+            }
+        return sQ >= Tolerance? true: false;
+    }
     /// <summary>
     ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
     /// </summary>
@@ -324,34 +359,9 @@ class Mesh : Rndrcomponent, IEnumerable{
 				}
 			}
             }
-        return sQ > .9f? true: false;
+        return sQ >= 1? true: false;
 	}
-     /// <summary>
-    ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
-    /// </summary>
-    /// <param name="m">The 1st mesh to be compared to.</param>
-    /// <param name="m2">The 2nd mesh to be compared to.</param>
-	/// <param name="Tolerance">This is the parameter the the similarity Quotient will be compared to</param>
-    /// <returns>A bool.</returns>
-	/// <remarks>Both meshes must be same sized.</remarks>
-    public static bool operator ==(Mesh? m, Mesh? m2, float Tolerance){
-		Tolerance = Tolerance > 1? .9f: Tolerance;
- 		Tolerance = Tolerance < 0? .1f: Tolerance;
-        int sQ = 0;
-        if(object.Equals(m, null) | object.Equals(m2, null)){return false;}
-        if(m.Count != m2.Count){
-            return false;
-        }else{
-			int increment = 1/m.Count;
-            for(int cc = 0; cc < m.Count; cc++){
-				if(m[cc] == m2[cc]){
-					sQ += increment;
-				}
-			}
-            }
-        return sQ > Tolerance? true: false;
-	}
-	/// <summary>
+    /// <summary>
 	/// Checks how similar two meshes are and returns the inverse of that value.
 	/// </summary>
 	/// <param name="m">The 1st mesh to be compared.</param>

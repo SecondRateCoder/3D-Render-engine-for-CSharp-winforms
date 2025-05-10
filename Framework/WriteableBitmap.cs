@@ -12,24 +12,23 @@ class WriteableBitmap{
     public int pixelHeight{get; private set;}
     public int pixelWidth{get; private set;}
     public int Count{get{return (pixelHeight == null | pixelWidth == null? 0: pixelWidth*pixelHeight);}}
-    Color this[int x, int y]{
+    (Point p, Color c) this[int x, int y]{
         get{
-            lock(this){
-                if(x > pixelWidth | y > pixelHeight){return bmp.GetPixel(pixelWidth, pixelHeight);}else{
-                    return bmp.GetPixel(x, y);
-                }
+            lock (this){
+                
             }
         }
         set{
-            lock(this){
-                if(x > pixelWidth | y > pixelHeight){throw new ArgumentOutOfRangeException();}else{
-                    this.bmp.SetPixel(x, y, value);
-                }
-            }
+            this.Set(value.c.A, value.c.R, value.c.G, value.c.B, x, y);
         }
     }
     public WriteableBitmap(Bitmap bmp){
         this.bmp = bmp;
+    }
+    private void ValidateBounds(int x, int y){
+        if (x < 0 || x >= pixelWidth || y < 0 || y >= pixelHeight){
+            throw new ArgumentOutOfRangeException($"Coordinates ({x}, {y}) are out of bounds.");
+        }
     }
     public WriteableBitmap(int Width = 200, int Height = 200){
         this.pixelHeight = Height;
@@ -76,6 +75,24 @@ class WriteableBitmap{
         int cc =0;
         for((Point p, Color c) bit = TextureData[cc]; cc < TextureData.Count;cc++, bit = TextureData[cc]){
             Set(bit.c.A, bit.c.R, bit.c.G, bit.c.B, bit.p.X, bit.p.Y);
+        }
+    }
+
+    public (Point p, Color c) Get(int x, int y){
+        ValidateBounds(x, y);
+
+        var rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+        var bitmapData = bmp.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+
+        try{
+            IntPtr ptr = bitmapData.Scan0;
+            int stride = bitmapData.Stride;
+            unsafe{
+                byte* pixel = (byte*)ptr + (y * stride) + (x * bytesPerPixel);
+                return (new Point(x, y), Color.FromArgb(pixel[3], pixel[2], pixel[1], pixel[0]));
+            }
+        }finally{
+            bmp.UnlockBits(bitmapData);
         }
     }
     /// <summary>

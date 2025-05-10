@@ -392,11 +392,11 @@ class gameObj{
     public TextureDatabase Texture(){
         if(HasComponent<Texturer>()){
             Texturer t = this.GetComponent<Texturer>();
-            if(t.IsEvenTextured){
-                return t.Texture(this.Children);
+            if(t.isEvenTextured){
+                return t.Texture(this.Children, TextureStyles.EdgeFillBlack);
             }
         }
-        return tD;
+        return TextureDatabase.Empty;
     }
     ///<summary>
     /// This method returns the Polygon closest to the Position parameter.

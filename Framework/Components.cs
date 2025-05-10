@@ -95,12 +95,20 @@ class Texturer : Rndrcomponent{
         }
         return result;
     }
+    public TextureDatabase Texture(Mesh m, TextureStyles tS, bool Append = true){
+        List<Point[]> uvPoint = new List<Point[]>(m.Count);
+        for(int cc =0; cc < m.Count;cc++){
+            uvPoint[cc] = m[cc].UVPoints;
+        }
+        return this.Texture(uvPoint, tS, Append);
+    }
     /// <summary>
     /// This generates a TextureData dataset which contains the texture data of each set of 3 Points in each element in UVPoints. 
     /// </summary>
     /// <param name="UVpoints">The List of 3 Point elements that represent the space taken for the texture.</param>
     /// <param name="Append">Should this function append result to the static Texturer.texturerData buffer, <see cref="Texturer.textureData.Count"/></param>
     /// <returns>A TextureData dataset which contains the texture data of each set of 3 Points in each element in UVPoints.</returns>
+    /// <remarks>This function is CPU intensive and should be used sparingly.</remarks>
     public TextureDatabase Texture(List<Point[]> UVpoints, TextureStyles tS, bool Append = true){
         ObjectDisposedException.ThrowIf(!this.Initialised, this);
         TextureDatabase result = [];
@@ -108,12 +116,7 @@ class Texturer : Rndrcomponent{
         if(!this.isEvenTextured){return result;}
         //!If this component has already appended it's data to the static textureData list then that is lovely, all this intensive math can chill.
         if((this.DataStart != 0) && (this.DataEnd != 0)){
-            TextureDatabase tD = new TextureDatabase(DataEnd - DataStart);
-            int cc_ = 0;
-            for(int cc= DataStart; cc < DataEnd;cc++, cc_++){
-                tD[cc_] = Texturer.textureData[cc];
-            }
-            return tD;
+            return this.Texture();
         }else{
         //!If this component has not already appended it's data to the static textureData list then that is peak, ur stuff gon lag like crazy.
             for(int cc =0; cc < UVpoints.Count;cc ++){
@@ -171,7 +174,6 @@ class Texturer : Rndrcomponent{
         }
         return scope;
     }
-
     //! RndrComponent overrides
     public override unsafe int Size{get{return (0);}}
     public override byte[] ToByte(){
