@@ -41,8 +41,24 @@ class TextureDatabase : IEnumerable{
     /// <param name="UVArea">The UVArea of the Section, can be retrieved with X.UVArea.</param>
     /// <returns>Was this Section's BoundingData successfully Defined</returns>
     public bool DefineSectionBounds(int Start, float UVArea){
-        LockJob.LockJobHandler.AddJob(new LockJob());
+        CancellationToken cts = new CancellationToken();
+        LockJob<(int Start, float UVArea), bool>.LockJobDelegate<(int, float), bool> function = (x) => {
+            lock(PerSectionRanges){
+                if(Start > 0 && (Start + UVArea) < this.Count){
+                    PerSectionRanges.Add((Start, Start + (int)UVArea));
+                    return true;
+                    }else{return false;}
+            }
+        };
+        LockJob<(int Start, float UVArea), bool>.
+            LockJobHandler<(int Start, float UVArea), bool>.
+                AddJob(function, 100);
+        return LockJob<(int Start, float UVArea), bool>.
+            LockJobHandler<(int Start, float UVArea), bool>.PassJob(function, cts, (Start, UVArea),nameof(TextureDatabase), 1000).Result;
     }
+
+
+
     /// <summary>
     /// Re-define the bounds of a singular Section's TextureData within this TextureDatabase.
     /// </summary>

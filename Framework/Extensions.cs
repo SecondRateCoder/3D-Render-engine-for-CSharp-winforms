@@ -2,6 +2,7 @@ using Timer = System.Timers.Timer;
 using System.Timers;
 using NUnit.Framework;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 public class TextureStyles{
     public static TextureStyles StretchToFit = (TextureStyles)0;
@@ -365,50 +366,59 @@ class InconsistentDimensionException : Exception{
 
 
 /// <summary>Represents a scheduled job that runs within a lock to prevent deadlocks.</summary>
-class LockJob{
-	static LockJob Empty{get{return new LockJob(-1, -1, () => {});}}
+class LockJob<T, R>{
+    public delegate R LockJobDelegate<T, R>(T obj);
 	bool disposed;
 	bool running;
 	DateTime LockStart;
-    int _ID;
+	object? sender;
+	int _ID;
     int _Timeout;
-	Action Job;
+	LockJobDelegate<T, R> Job;
 	IAsyncResult AsyncResult;
-    LockJob(int ID, int Timeout, Action? job = null){
+    LockJob(int ID, int Timeout, LockJobDelegate<T, R> job = null, object? sender = null){
         this.LockStart = DateTime.Now;
         this._ID = ID;
-		if(job != null){this.Job = job;}
+		if(job != null){
+			this.Job = job;
+			this.Job += OnTimeout;
+		}
         this._Timeout = Timeout;
+		this.sender = sender;
     }
-	async void Start(CancellationToken token){
+	R OnTimeout(T input){
+		if(DateTime.Now.Ticks - this.LockStart.Ticks > _Timeout){
+			this.Sleep();
+			this.Break(this);
+		}
+		return default;
+	}
+	async Task<R?> Start(CancellationToken token, T obj){
 		this.LockStart = DateTime.Now;
 		this.running = true;
-		await Task.Run(() => {
+		return await Task.Run(() => {
 			if(!token.IsCancellationRequested){
-				this.Job.BeginInvoke(OnFinish, null);
+				return this.Job(obj);
 			}
+			return default;
 		}, token);
 	}
-	void Break(object sender, ElapsedEventArgs e){
+	void Break(object sender){
 		try{
 			Job.EndInvoke(AsyncResult);
 		}catch(Exception ex){
-			System.Windows.Forms.MessageBox.Show($"Error in LockJob: {ex.Message}");
+			System.Windows.Forms.MessageBox.Show($"Error in LockJob: {ex.Message}\nFrom sender: {sender}");
 		}
 		this.running = false;
 	}
 	void Sleep(){this.LockStart = DateTime.MinValue;}
-
-
-	public override bool Equals(object obj){
-		if (obj is LockJob other){
-			return _ID == other._ID &&
-				LockStart == other.LockStart &&
-				_Timeout == other._Timeout;
-    }
-    return false;
+	void OnFinish(IAsyncResult result){
+		try{
+			this.Dispose();
+		}catch(Exception ex){
+			System.Windows.Forms.MessageBox.Show($"Error in LockJob: {ex.Message}");
+		}
 	}
-	void OnFinish(IAsyncResult result){this.Dispose();}
 	public void Dispose(bool disposing = true){
 		if(!(disposed && running)){
 			if(disposing){
@@ -420,24 +430,33 @@ class LockJob{
 	}
 
 
-	public static bool operator ==(LockJob l1, LockJob l2){return l1.Equals(l2);}
-	public static bool operator !=(LockJob l1, LockJob l2){return !(l1 == l2);}
+	public override bool Equals(object obj){
+		if (obj is LockJob<T, R> other){
+			return _ID == other._ID &&
+				LockStart == other.LockStart &&
+				_Timeout == other._Timeout;
+    }
+    return false;
+	}
+
+
+	public static bool operator ==(LockJob<T, R> l1, LockJob<T, R> l2){return l1.Equals(l2);}
+	public static bool operator !=(LockJob<T, R> l1, LockJob<T, R> l2){return !(l1 == l2);}
 	public override int GetHashCode(){return HashCode.Combine(_ID, LockStart, _Timeout);}
 
-    public static class LockJobHandler{
+    public static class LockJobHandler<T, R>{
 		static readonly object _lock = new();
-		static readonly ConcurrentQueue<CancellationToken> tokens = new();
-		static readonly ConcurrentQueue<LockJob> jobs = new ConcurrentQueue<LockJob>();
-		public static void AddJob(Action Job){
-			jobs.Enqueue(new LockJob(jobs.Count, 1000, Job));
-			tokens.Enqueue(new CancellationToken());
+		static readonly ConcurrentQueue<LockJob<T, R>> jobs = new ConcurrentQueue<LockJob<T, R>>();
+		public static Task<R?> PassJob(LockJobDelegate<T, R> job, CancellationToken token,  T input, object? sender = null, int Timeout = 1000){
+			AddJob(job, Timeout);
+			return ProcessJob(token, input);
 		}
-		public static async Task ProcessJobs(){
-			while (jobs.TryDequeue(out LockJob job)){
-				CancellationToken token;
-				token = tokens.TryDequeue(out CancellationToken token_) ? token_ : CancellationToken.None;
-				await Task.Run(() => job.Start(token));
-			}
+		public static void AddJob(LockJobDelegate<T, R> job, object? sender = null, int timeout = 1000){
+            jobs.Enqueue(new LockJob<T, R>(jobs.Count, timeout, new LockJob<T, R>.LockJobDelegate<T, R>(job), sender));
+		}
+		public static async Task<R?> ProcessJob(CancellationToken token, T input){
+			jobs.TryDequeue(out LockJob<T, R> job);
+			return await Task.Run(() => job.Start(token, input));
     	}
     }
 }
