@@ -386,22 +386,22 @@ class LockJob<T, R>{
         this._Timeout = Timeout;
 		this.sender = sender;
     }
+	async Task<R?> Start(CancellationToken token, T obj){
+		this.LockStart = DateTime.Now;
+		this.running = true;
+		return await Task.Run(() => {
+			if(!token.IsCancellationRequested){
+				this.Job.BeginInvoke(obj, OnFinish, this.sender);
+			}
+			return this.Job.EndInvoke(this.AsyncResult);
+		}, token);
+	}
 	R OnTimeout(T input){
 		if(DateTime.Now.Ticks - this.LockStart.Ticks > _Timeout){
 			this.Sleep();
 			this.Break(this);
 		}
 		return default;
-	}
-	async Task<R?> Start(CancellationToken token, T obj){
-		this.LockStart = DateTime.Now;
-		this.running = true;
-		return await Task.Run(() => {
-			if(!token.IsCancellationRequested){
-				return this.Job(obj);
-			}
-			return default;
-		}, token);
 	}
 	void Break(object sender){
 		try{
@@ -447,9 +447,9 @@ class LockJob<T, R>{
     public static class LockJobHandler<T, R>{
 		static readonly object _lock = new();
 		static readonly ConcurrentQueue<LockJob<T, R>> jobs = new ConcurrentQueue<LockJob<T, R>>();
-		public static Task<R?> PassJob(LockJobDelegate<T, R> job, CancellationToken token,  T input, object? sender = null, int Timeout = 1000){
+		public static async Task<R?> PassJob(LockJobDelegate<T, R> job, CancellationToken token,  T input, object? sender = null, int Timeout = 1000){
 			AddJob(job, Timeout);
-			return ProcessJob(token, input);
+			return await ProcessJob(token, input);
 		}
 		public static void AddJob(LockJobDelegate<T, R> job, object? sender = null, int timeout = 1000){
             jobs.Enqueue(new LockJob<T, R>(jobs.Count, timeout, new LockJob<T, R>.LockJobDelegate<T, R>(job), sender));
