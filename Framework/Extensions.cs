@@ -389,12 +389,7 @@ class LockJob<T, R>{
 	async Task<R?> Start(CancellationToken token, T obj){
 		this.LockStart = DateTime.Now;
 		this.running = true;
-		return await Task.Run(() => {
-			if(!token.IsCancellationRequested){
-				this.Job.BeginInvoke(obj, OnFinish, this.sender);
-			}
-			return this.Job.EndInvoke(this.AsyncResult);
-		}, token);
+		return await Task.Run(() => this.Job(obj), token);
 	}
 	R OnTimeout(T input){
 		if(DateTime.Now.Ticks - this.LockStart.Ticks > _Timeout){
