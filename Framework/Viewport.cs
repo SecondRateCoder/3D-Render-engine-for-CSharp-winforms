@@ -130,7 +130,7 @@ static class ViewPort{
                 gameObj gO = gO_.Copy();
                 gO.Children.ViewPortClip();
                 gO.Children.Foreach(Multiply);
-                gO.Texture();
+                TextureData = gO.Texture();
             }
             ViewPort.bmp.Initialise(TextureData, Entry.f.Width, Entry.f.Height);
         }
