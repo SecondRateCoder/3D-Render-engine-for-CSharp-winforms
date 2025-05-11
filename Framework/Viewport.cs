@@ -117,7 +117,7 @@ static class ViewPort{
             gameObj gO = new gameObj(Vector3.Zero, Vector3.Zero, true, Polygon.Mesh(1, 0, 1, 4));
             gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
             buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
-            for(int i = 0;i < buffer.Count;i++){gO.GetComponent<Texturer>().Texture([buffer[i].UVPoints], TextureStyles.StretchToFit);}
+            gO.Texture();
             buffer =[];
             positionData = [0];
         }else{
@@ -128,7 +128,7 @@ static class ViewPort{
                 gameObj gO = gO_.Copy();
                 gO.Children.ViewPortClip();
                 gO.Children.Foreach(Multiply);
-                gO.Texture();
+                TextureData = gO.Texture();
             }
             ViewPort.bmp.Initialise(TextureData, Entry.f.Width, Entry.f.Height);
         }
