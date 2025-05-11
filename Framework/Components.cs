@@ -207,7 +207,9 @@ class RigidBdy : Rndrcomponent{
     ///<summary>
     /// This is the size of the class 
     ///</summary>
-    public override unsafe int Size {get{return sizeof(RigidBdy);}}
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+    public override unsafe int Size => sizeof(RigidBdy);
+#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
     public static int size {get{return new RigidBdy().Size;}}
     public RigidBdyMetadata MetaData{get; private set;}
     public int Mass;

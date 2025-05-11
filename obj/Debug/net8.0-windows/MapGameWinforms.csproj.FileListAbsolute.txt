@@ -10,3 +10,17 @@ c:/Users/olusa/OneDrive/Documents/GitHub/3D-Render-engine-for-CSharp-winforms/ob
 /workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.AssemblyInfo.cs
 /workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.csproj.CoreCompileInputs.cache
 /workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.sourcelink.json
+/workspaces/3D-Render-engine-for-CSharp-winforms/bin/Debug/net8.0-windows/MapGameWinforms
+/workspaces/3D-Render-engine-for-CSharp-winforms/bin/Debug/net8.0-windows/MapGameWinforms.deps.json
+/workspaces/3D-Render-engine-for-CSharp-winforms/bin/Debug/net8.0-windows/MapGameWinforms.runtimeconfig.json
+/workspaces/3D-Render-engine-for-CSharp-winforms/bin/Debug/net8.0-windows/MapGameWinforms.dll
+/workspaces/3D-Render-engine-for-CSharp-winforms/bin/Debug/net8.0-windows/MapGameWinforms.pdb
+/workspaces/3D-Render-engine-for-CSharp-winforms/bin/Debug/net8.0-windows/nunit.framework.dll
+/workspaces/3D-Render-engine-for-CSharp-winforms/bin/Debug/net8.0-windows/nunit.framework.legacy.dll
+/workspaces/3D-Render-engine-for-CSharp-winforms/bin/Debug/net8.0-windows/SharpDX.dll
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameW.E8B17635.Up2Date
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.dll
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/refint/MapGameWinforms.dll
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.pdb
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.genruntimeconfig.cache
+/workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/ref/MapGameWinforms.dll

@@ -1,15 +1,15 @@
 struct Equation{
-    public float XCoff;
+    public float Gradient;
     public float Y_intercept;
     public Equation(float X_coefficient, float Y_intercept){
-        this.XCoff = X_coefficient;
+        this.Gradient = X_coefficient;
         this.Y_intercept = Y_intercept;
     }
     public float SolveY(float X){
-        return (X * XCoff) + Y_intercept;
+        return (X * Gradient) + Y_intercept;
     }
     public float SolveX(float Y){
-        return (Y - Y_intercept)/XCoff;
+        return (Y - Y_intercept)/Gradient;
     }
     public static Equation FromPoints(Point a, Point b){
         //Simultaenous equation.
@@ -17,9 +17,9 @@ struct Equation{
         float y_intercept = a.Y - (a.X * gradient);
         return new Equation(gradient, y_intercept);
     }
-    public static GetPerpendicular(Equation e, Point p){
-        int y = e.SolveY(p.X);
-        float gradient = -(1/e.gradient);
+    public static Equation GetPerpendicular(Equation e, Point p){
+        float y = e.SolveY(p.X);
+        float gradient = -(1/e.Gradient);
         float y_intercept = y - (p.X * gradient);
         return new Equation(gradient, y_intercept);
     }
@@ -40,7 +40,7 @@ struct Equation{
         //b = (y(1 - n/m) = d - nc/m)
         //b = (y = (d - nc/m)/(1 - n/m))
         Point p = new Point();
-        p.Y = (int)((b.Y_intercept - (b.XCoff * a.Y_intercept/a.XCoff))/(1 - (b.XCoff/a.XCoff)));
+        p.Y = (int)((b.Y_intercept - (b.Gradient * a.Y_intercept/a.Gradient))/(1 - (b.Gradient/a.Gradient)));
         p.X = (int)a.SolveX(p.Y);
         return p;
     }

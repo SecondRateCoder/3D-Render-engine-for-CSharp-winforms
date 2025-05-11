@@ -10,7 +10,6 @@ class TextureDatabase : IEnumerable{
     /// <summary>True if the TextureData is sorted.</summary>
     public bool isSorted{get; private set;}
     public int Count{get{return td.Count;}}
-    int _c;
     public (Point p, Color c) this[int index]{
         get{return td[index];}
         set{td[index] = value;}
@@ -41,7 +40,6 @@ class TextureDatabase : IEnumerable{
     /// <param name="UVArea">The UVArea of the Section, can be retrieved with X.UVArea.</param>
     /// <returns>Was this Section's BoundingData successfully Defined</returns>
     public bool DefineSectionBounds(int Start, float UVArea){
-        CancellationToken cts = new();
         bool function((int, float) x){
             lock(PerSectionRanges){
                 if (Start > 0 && Start + UVArea < Count){
@@ -52,7 +50,8 @@ class TextureDatabase : IEnumerable{
             }
         }
         return LockJob<(int Start, float UVArea), bool>.
-            LockJobHandler<(int Start, float UVArea), bool>.PassJob((LockJob<(int Start, float UVArea), bool>.LockJobDelegate<(int, float), bool>)function, cts, (Start, UVArea),nameof(TextureDatabase), 1000).Result;
+            LockJobHandler.
+                PassJob((LockJob<(int Start, float UVArea), bool>.LockJobDelegate<(int, float), bool>)function, (Start, UVArea), null, 1000, null, nameof(TextureDatabase)).Result;
     }
 
 
@@ -65,12 +64,19 @@ class TextureDatabase : IEnumerable{
     /// <param name="UVArea">The UVArea of the Section, can be retrieved with X.UVArea.</param>
     /// <returns>Was this Section's BoundingData successfully Re-defined</returns>
     public bool ReDefineSectionBounds(int index, int Start, float UVArea){
-        lock(PerSectionRanges){
-            if(Start > 0 && (Start + UVArea) < this.Count){
-                PerSectionRanges.Add((Start, Start + (int)UVArea));
-                return true;
-            }else{return false;}
+
+        bool function((int, float) x){
+            lock(PerSectionRanges){
+                if(Start > 0 && (Start + UVArea) < this.Count){
+                    PerSectionRanges.Add((Start, Start + (int)UVArea));
+                    return true;
+                }else{return false;}
+            }
         }
+        return LockJob<(int Start, float UVArea), bool>.
+            LockJobHandler.
+                PassJob((LockJob<(int Start, float UVArea), bool>.LockJobDelegate<(int, float), bool>)function, (Start, UVArea), null , 1000, null, nameof(TextureDatabase)).Result;
+
     }
     public TextureDatabase(){this.td = [];}
     public TextureDatabase(int count = 0){this.td = new List<(Point point, Color color)>();}

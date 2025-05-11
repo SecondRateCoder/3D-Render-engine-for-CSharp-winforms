@@ -179,9 +179,9 @@ class PhysicsMaterial{
 class ForceMode{
 #pragma warning disable CS8601 // Possible null reference assignment.
     static ForceMode(){
-        Impulse = (ForceMode?)0;
-        Acceleration = (ForceMode?)1;
-        VelocityChange = (ForceMode?)2;
+        Impulse = ForceMode.FromType(0);
+        Acceleration = ForceMode.FromType(1);
+        VelocityChange = ForceMode.FromType(2);
 #pragma warning restore CS8601 // Possible null reference assignment.
     }
     ///<summary>Apply a force that is affected by the gameObjects mass and is multiplied by <see cref"ExternalControl.deltaTime"></summary>
@@ -192,6 +192,7 @@ class ForceMode{
     ///<summary>Apply a force that ignores the object's mass.</summary>
     public static readonly ForceMode VelocityChange;
     public static explicit operator ForceMode?(int type){if(IsForceMode(type)){return new ForceMode(type);}else{return null;}}
+    static ForceMode FromType(int type){return new ForceMode(type);}
     public static bool IsForceMode(int type){
         switch(type){
             case 0: return true;
@@ -204,6 +205,7 @@ class ForceMode{
     public int type;
     internal ForceMode(int type){this.type = type;}
     public void Apply(RigidBdy rB, Vector3 v){
+        if(rB.MetaData.fM == null){return;}
         if(!ForceMode.IsForceMode(rB.MetaData.fM.type)){return;}else{
             switch(this.type){
                 case 0:
@@ -365,57 +367,112 @@ class InconsistentDimensionException : Exception{
 
 
 
-/// <summary>Represents a scheduled job that runs within a lock to prevent deadlocks.</summary>
+/// <summary>
+/// Represents a job that runs within a lock to prevent deadlocks.
+/// This works by running the job and then calling the OnFinish delegate to complete the job.
+/// However if the job takes too long, the OnTimeout delegate is called.
+/// </summary>
+/// 
 class LockJob<T, R>{
-    public delegate R LockJobDelegate<T, R>(T obj);
+    /// <summary>
+    /// The delegate that represents a job.
+    /// </summary>
+    /// <typeparam name="_T">The parameters for the delegate, for multiple parameters make this a tuple.</typeparam>
+    /// <typeparam name="_R">The return type for the delegate.</typeparam>
+    public delegate _R LockJobDelegate<_T, _R>(_T obj);
+    /// <summary>
+    /// The delegate that represents when the job exceeds it's allocated runtime.
+    /// </summary>
+    /// <param name="sender">The name of the object that requested this job.</param>
+    public delegate void OnTimeout(object sender);
+    /// <summary>
+    /// Has this job been disposed of.
+    /// </summary>
 	bool disposed;
+    /// <summary>
+    /// Has this job been started. Alternatively, is this job running right now.
+    /// </summary>
 	bool running;
-	DateTime LockStart;
+
+    /// <summary>
+    /// The name of the object that requested this job.
+    /// </summary>
 	object? sender;
+    /// <summary>
+    /// The ID of the job.
+    /// </summary>
 	int _ID;
-    int _Timeout;
+    /// <summary>
+    /// The time in seconds that the job is allowed to run.
+    /// </summary>
+    int Timeout;
+    /// <summary>
+    /// The job that is being run.
+    /// </summary>
 	LockJobDelegate<T, R> Job;
-	IAsyncResult AsyncResult;
-    LockJob(int ID, int Timeout, LockJobDelegate<T, R> job = null, object? sender = null){
-        this.LockStart = DateTime.Now;
+    /// <summary>
+    /// The delegate run when the job is completed.
+    /// </summary>
+    Action OnFinish;
+    /// <summary>
+    /// The delegate run when the job times out.
+    /// </summary>
+    OnTimeout OnTimeExceed;
+    /// <summary>
+    /// Cancellation token source to cancel the job.
+    /// </summary>
+    CancellationTokenSource cts;
+
+
+    LockJob(int ID, int Timeout, LockJobDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null){
+        if(OnFinish == null){
+            this.OnFinish = TrueFinish;
+        }else{
+            this.OnFinish = OnFinish;
+            this.OnFinish += TrueFinish;
+        }
+        if(OnTimeout == null){
+            this.OnTimeExceed = TrueTimeout;
+        }else{
+            this.OnTimeExceed = OnTimeout;
+            this.OnTimeExceed += TrueTimeout;
+        }
         this._ID = ID;
-		if(job != null){
-			this.Job = job;
-			this.Job += OnTimeout;
-		}
-        this._Timeout = Timeout;
-		this.sender = sender;
+        this.Job = job;
+        this.Timeout = Timeout;
+        this.cts = new CancellationTokenSource();
+        result = null;
+        this.cts.Token.Register(() => {this.OnTimeExceed(this.sender ?? new object());});
     }
-	async Task<R?> Start(CancellationToken token, T obj){
-		this.LockStart = DateTime.Now;
-		this.running = true;
-		return await Task.Run(() => this.Job(obj), token);
-	}
-	R OnTimeout(T input){
-		if(DateTime.Now.Ticks - this.LockStart.Ticks > _Timeout){
-			this.Break(this);
-		}
-		return default;
-	}
-	void Break(object sender){
-		try{
-			Job.EndInvoke(AsyncResult);
-		}catch(Exception ex){
-			System.Windows.Forms.MessageBox.Show($"Error in LockJob: {ex.Message}\nFrom sender: {sender}");
-		}
-		this.running = false;
-	}
-	void OnFinish(IAsyncResult result){
-		try{
-			this.Dispose();
-		}catch(Exception ex){
-			System.Windows.Forms.MessageBox.Show($"Error in LockJob: {ex.Message}");
-		}
-	}
+    R? Start(T param){
+        R? result = Task.Run(() => this._Start(param)).Result;
+        this.OnFinish();
+        return result;
+    }
+    private R? _Start(T param){
+        this.running = true;
+        cts.CancelAfter(Timeout * 1000);
+        R? result = this.Job(param);
+        return result;
+    }
+    void TrueFinish(){
+        try{
+            this.Dispose();
+        }catch(Exception ex){
+            System.Windows.Forms.MessageBox.Show($"Error in LockJob: ObjectDisposalException.{ex.Message}\nFrom sender: {sender}");
+        }
+        this.running = false;
+    }
+    void TrueTimeout(object sender){
+        System.Windows.Forms.MessageBox.Show($"Error in LockJob: TimeoutException.\nFrom sender: {sender}");
+    }
+
+    IAsyncResult? result;
 	public void Dispose(bool disposing = true){
 		if(!(disposed && running)){
 			if(disposing){
-				this.Job = null;
+                this.running = false;
+				this.Job.EndInvoke(result);
 			}
 			disposed = true;
 		}
@@ -423,11 +480,9 @@ class LockJob<T, R>{
 	}
 
 
-	public override bool Equals(object obj){
+	public override bool Equals([NotNullWhen(true)]object? obj){
 		if (obj is LockJob<T, R> other){
-			return _ID == other._ID &&
-				LockStart == other.LockStart &&
-				_Timeout == other._Timeout;
+			return _ID == other._ID;
     }
     return false;
 	}
@@ -435,24 +490,42 @@ class LockJob<T, R>{
 
 	public static bool operator ==(LockJob<T, R> l1, LockJob<T, R> l2){return l1.Equals(l2);}
 	public static bool operator !=(LockJob<T, R> l1, LockJob<T, R> l2){return !(l1 == l2);}
-	public override int GetHashCode(){return HashCode.Combine(_ID, LockStart, _Timeout);}
+	public override int GetHashCode(){return HashCode.Combine(_ID);}
 
-    public static class LockJobHandler<T, R>{
-		static readonly ConcurrentQueue<LockJob<T, R>> jobs = new ConcurrentQueue<LockJob<T, R>>();
-		public static async Task<R?> PassJob(LockJobDelegate<T, R> job, CancellationToken token,  T input, object? sender = null, int Timeout = 1000){
-			AddJob(job, sender, Timeout);
-			return await ProcessJob(token, input);
+    public static class LockJobHandler{
+        /// <summary>
+        /// The queue of jobs to be processed.
+        /// </summary>
+        /// <remarks>Thread safe.</remarks>
+		static readonly ConcurrentQueue<LockJob<T, R>> jobs = new();
+        /// <summary>
+        /// Process a job, Both running it and returning the result.
+        /// </summary>
+        /// <param name="job"></param>
+        /// <param name="input"></param>
+        /// <param name="token"></param>
+        /// <param name="sender"></param>
+        /// <param name="Timeout"></param>
+        /// <returns></returns>
+		public static async Task<R?> PassJob(LockJobDelegate<T, R> job,  T input, Action? OnFinish = null, int Timeout = 1000, OnTimeout? @OnTimeout = null, object? sender = null){
+            return await ProcessJob(new LockJob<T, R>(0, Timeout, job, OnFinish, OnTimeout, sender), input);
 		}
 		public static void AddJob(LockJobDelegate<T, R> job, object? sender = null, int timeout = 1000){
-            jobs.Enqueue(new LockJob<T, R>(jobs.Count, timeout, new LockJob<T, R>.LockJobDelegate<T, R>(job), sender));
+            jobs.Enqueue(new LockJob<T, R>(jobs.Count, timeout, new LockJob<T, R>.LockJobDelegate<T, R>(job), null, null, sender));
 		}
 		public static async Task<R?> ProcessJob(CancellationToken token, T input){
-			if(jobs.TryDequeue(out LockJob<T, R> job)){
-				return await job.Start(token, input);
-			}else{
-				return default;
-			}
-			
+			return await Task.Run(() => {
+                if(jobs.TryDequeue(out LockJob<T, R>? job)){
+                    return job.Start(input);
+                }else{
+                    return default;
+                }
+            });
     	}
+        static async Task<R?> ProcessJob(LockJob<T, R> job, T input){
+            return await Task.Run(() => {
+                return job.Start(input);
+            });
+        }
     }
 }

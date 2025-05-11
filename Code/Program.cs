@@ -3,12 +3,15 @@ using System.Timers;
 using System.ComponentModel;
 using System.Diagnostics;
 class Entry{
-    public static CancellationTokenSource cts{get; private set;}
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    public static CancellationTokenSource Cts{get; private set;}
+    public static unsafe WriteableBitmap Buffer;
     public static ElapsedEventHandler TUpdate;
+    static SynchronizationContext? uiContext;
     public static Action Update;
     public static Action Start;
-    public static unsafe WriteableBitmap Buffer;
     public static Form1 f;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static void Main(){
         ApplicationConfiguration.Initialize();
         Initialise();
@@ -18,9 +21,8 @@ class Entry{
         Loop();
         Application.Run(f);
     }
-    static SynchronizationContext uiContext;
     static unsafe void Initialise(){
-        cts = new CancellationTokenSource();
+        Cts = new CancellationTokenSource();
         TUpdate = CollisionManager.Collider;
         Update = Paint3D;
         Start = ExternalControl.StartTimer;
@@ -33,8 +35,8 @@ class Entry{
     }
     public static async void Loop(){
         await Task.Run(() => {
-            if(Entry.cts == null){cts = new CancellationTokenSource(360000);}
-            while(!Entry.cts.IsCancellationRequested){
+            if(Entry.Cts == null){Cts = new CancellationTokenSource(360000);}
+            while(!Entry.Cts.IsCancellationRequested){
                     UpdateUI(() => f.Refresh());
                     if(Entry.Buffer != null){f.Invalidate();}
                 }
@@ -45,7 +47,7 @@ class Entry{
     }
     //Paint the enviroment.
     static void Paint3D(){
-        try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.cts.IsCancellationRequested}";}
+        try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.Cts.IsCancellationRequested}";}
         catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
         int formHeight;
         int formWidth;
@@ -69,9 +71,9 @@ class Entry{
 static class ExternalControl{
     public static int deltaTime{get{return 1/fps;}}
     public static int fps{get; private set;}
-    static ElapsedEventHandler ElapsedHandler = (sender, e) => {
+    static readonly ElapsedEventHandler ElapsedHandler = (sender, e) => {
         fps = 0;
-        if(Entry.TUpdate != null){_1.Elapsed += Entry.TUpdate;}
+        if(Entry.TUpdate != null && _1 != null){_1.Elapsed += Entry.TUpdate;}
     };
     static void IncrementFrames(){fps++;}
     public static Timer _1 = new Timer();
@@ -116,7 +118,7 @@ public partial class Form1 : Form{
     }
     protected override void OnClosing(CancelEventArgs e){
         base.OnClosing(e);
-        Entry.cts?.Cancel();
+        Entry.Cts?.Cancel();
         ExternalControl.StopTimer();
         Entry.Buffer?.Dispose();
     }

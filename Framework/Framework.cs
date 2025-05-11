@@ -334,7 +334,9 @@ class gameObj{
     /// </summary>
     List<(Type ogType, Rndrcomponent rC)> components;
     public int compLength{get{return this.components.Count;}}
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
     public unsafe int Size{get{return sizeof(gameObj) + this.Children.Size;}}
+#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
     public Vector3 Rotation{
         get{return this.rotation;}
         set{this.rotation = this.Children.Count > 0? value: Vector3.Zero;}
@@ -389,11 +391,11 @@ class gameObj{
             this.Children.Translate(this.Position - position, rotation);
         }
     }
-    public TextureDatabase Texture(){
+    public TextureDatabase Texture(TextureStyles? style = null){
         if(HasComponent<Texturer>()){
             Texturer t = this.GetComponent<Texturer>();
             if(t.isEvenTextured){
-                return t.Texture(this.Children, TextureStyles.EdgeFillBlack);
+                return t.Texture(this.Children, style?? TextureStyles.StretchToFit);
             }
         }
         return TextureDatabase.Empty;
