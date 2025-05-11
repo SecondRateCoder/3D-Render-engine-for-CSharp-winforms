@@ -39,23 +39,12 @@ class WriteableBitmap{
         this.pixelWidth = Width;
         this.bmp = new Bitmap(Width, Height);
     }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public WriteableBitmap(IEnumerable<byte> bytes, int Width = 200, int Height = 200){
         this.Initialise(bytes, Width, Height);
-		/*
-        this.pixelHeight = Height;
-		this.pixelWidth = Width;
-        int cc =0;
-        for(int y =0;y < Height;y++){
-            for(int x =0;x < Width;x++, cc+=4){
-                if(cc >= bytes.Count()){
-                    bmp.SetPixel(x, y, Color.Black);
-                }else{
-                    bmp.SetPixel(x, y, Color.FromArgb((byte)bytes.ElementAt(cc), (byte)bytes.ElementAt(cc), (byte)bytes.ElementAt(cc), (byte)bytes.ElementAt(cc)));
-                }
-            }
-        }
-        */
+		
     }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public void Set(byte a, byte r, byte g, byte b, int x, int y){
         bool function((byte a, byte r, byte g, byte b, int x, int y) args){
             lock(this){Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
@@ -76,8 +65,8 @@ class WriteableBitmap{
         }
 
         _ = LockJob<(byte a, byte r, byte g, byte b, int x, int y), bool>.
-            LockJobHandler<(byte a, byte r, byte g, byte b, int x, int y), bool>.
-                PassJob(function, new CancellationToken(), (a, r, g, b, x, y));
+            LockJobHandler.
+                PassJob(function, (a, r, g, b, x, y), null, 1000, null, nameof(WriteableBitmap));
         /*
         Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
             BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
@@ -128,7 +117,8 @@ class WriteableBitmap{
     public void Dispose(bool disposing = true){
         if(this.bmp != null && !this.disposed){
             if(disposing){
-                Dispoze();
+                this.bmp.Dispose();
+                this.disposed = true;
                 GC.SuppressFinalize(this);
             }else{
                 string filePath = AppDomain.CurrentDomain.BaseDirectory + 
@@ -141,13 +131,6 @@ class WriteableBitmap{
                 this.bmp.Dispose();
                 this.bmp = new Bitmap(0, 0);
             }
-        }
-    }
-    protected virtual void Dispoze(){
-        if(!this.disposed){
-            this.bmp.Dispose();
-            this.bmp = null;
-            this.disposed = true;
         }
     }
     ~WriteableBitmap(){
@@ -218,6 +201,7 @@ class WriteableBitmap{
     public static explicit operator Bitmap(WriteableBitmap bmp){
 		return bmp.bmp;
 	}
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
     public static unsafe explicit operator byte[](WriteableBitmap bmp){
         byte[] result = new byte[bmp.pixelWidth * bmp.pixelHeight * sizeof(Color)];
         int index =0;
@@ -231,4 +215,5 @@ class WriteableBitmap{
         }
         return result;
     }
+#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
 }
