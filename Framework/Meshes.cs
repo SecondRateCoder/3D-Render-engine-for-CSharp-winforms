@@ -44,14 +44,15 @@ struct Polygon{
     /// <remarks>Multiplying this number by the Texture Image's resolution would provide an accurate representation of this Polygon's UV size.</remarks>
     public float UVArea{
         get{
-            lock(this.uPoints){
-                this.uPoints = CustomSort.SortPointArray_BySize(this.uPoints).Result;
-                float area = Math.Abs(
-                    (uPoints[0].X * (uPoints[1].Y - uPoints[2].Y) +
-                    uPoints[1].X * (uPoints[2].Y - uPoints[0].Y) +
-                    uPoints[2].X * (uPoints[0].Y - uPoints[1].Y)) / 2f
-                );
+            Polygon m = this;
+            float function(bool x){
+                float aLength = Vector3.GetDistance(m.A, m.B);
+                float bLength = Vector3.GetDistance(m.B, m.C);
+                float cLength = Vector3.GetDistance(m.C, m.A);
+                return (float)(Math.Sqrt(aLength * bLength * cLength));
             }
+
+            LockJob<bool, float>.LockJobHandler<bool, float>.PassJob(function, new CancellationToken(), true); 
             return 0f;
         }
     }

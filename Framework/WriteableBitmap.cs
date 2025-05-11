@@ -7,7 +7,13 @@ class WriteableBitmap{
     bool disposed = false;
     public static WriteableBitmap Empty = new WriteableBitmap(0, 0);
     Bitmap bmp;
-    public int bytesPerPixel{get{lock(this.bmp){return Image.GetPixelFormatSize(this.bmp.PixelFormat) / 8;}}}
+    public int bytesPerPixel{
+        get{
+            lock(this.bmp){
+                return Image.GetPixelFormatSize(this.bmp.PixelFormat) / 8;
+            }
+        }
+    }
     public Bitmap Get(){return this.bmp;}
     public int pixelHeight{get; private set;}
     public int pixelWidth{get; private set;}
@@ -51,8 +57,8 @@ class WriteableBitmap{
         */
     }
     public void Set(byte a, byte r, byte g, byte b, int x, int y){
-        lock(this){
-            Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
+        bool function((byte a, byte r, byte g, byte b, int x, int y) args){
+            lock(this){Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
             BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             IntPtr ptr = bitmapData.Scan0;
             int stride = bitmapData.Stride;
@@ -66,7 +72,28 @@ class WriteableBitmap{
                 }
             }
             bmp.UnlockBits(bitmapData);
+            return true;}
         }
+
+        _ = LockJob<(byte a, byte r, byte g, byte b, int x, int y), bool>.
+            LockJobHandler<(byte a, byte r, byte g, byte b, int x, int y), bool>.
+                PassJob(function, new CancellationToken(), (a, r, g, b, x, y));
+        /*
+        Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
+            BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            IntPtr ptr = bitmapData.Scan0;
+            int stride = bitmapData.Stride;
+            unsafe{
+                byte* pixel = (byte*)ptr + (y * stride) + (x * bytesPerPixel);
+                pixel[0] = b;
+                pixel[1] = g;
+                pixel[2] = r;
+                if(this.bytesPerPixel == 4){
+                    pixel[3] = a;
+                }
+            }
+            bmp.UnlockBits(bitmapData);
+        */
         //bmp.SetPixel(x, y, Color.FromArgb((int)a, (int)r, (int)g, (int)b));
     }
     public void Set(TextureDatabase TextureData){
@@ -177,15 +204,7 @@ class WriteableBitmap{
             throw new ArgumentOutOfRangeException(nameof(bytes), "Parameter cannot exceed the bounds of this bitmap.");
         }
 		if(bytes.Length > this.pixelHeight * this.pixelWidth * 4){throw new ArgumentOutOfRangeException(nameof(bytes), "Parameter cannot have a length that exceeds the bounds of this bitmap");}
-        lock(this){
-            var rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
-            var bitmapData = bmp.LockBits(rect, ImageLockMode.WriteOnly, bmp.PixelFormat);
-
-            IntPtr ptr = bitmapData.Scan0;
-            Marshal.Copy(bytes.ToArray(), 0, ptr, bytes.Length);
-
-            bmp.UnlockBits(bitmapData);
-        }
+        
     }
     [Test]
     public void TestWriteableBitmapInitialization() {
