@@ -393,7 +393,6 @@ class LockJob<T, R>{
 	}
 	R OnTimeout(T input){
 		if(DateTime.Now.Ticks - this.LockStart.Ticks > _Timeout){
-			this.Sleep();
 			this.Break(this);
 		}
 		return default;
@@ -406,7 +405,6 @@ class LockJob<T, R>{
 		}
 		this.running = false;
 	}
-	void Sleep(){this.LockStart = DateTime.MinValue;}
 	void OnFinish(IAsyncResult result){
 		try{
 			this.Dispose();
@@ -418,8 +416,8 @@ class LockJob<T, R>{
 		if(!(disposed && running)){
 			if(disposing){
 				this.Job = null;
-				disposed = true;
 			}
+			disposed = true;
 		}
 		GC.SuppressFinalize(this);
 	}
@@ -440,18 +438,21 @@ class LockJob<T, R>{
 	public override int GetHashCode(){return HashCode.Combine(_ID, LockStart, _Timeout);}
 
     public static class LockJobHandler<T, R>{
-		static readonly object _lock = new();
 		static readonly ConcurrentQueue<LockJob<T, R>> jobs = new ConcurrentQueue<LockJob<T, R>>();
 		public static async Task<R?> PassJob(LockJobDelegate<T, R> job, CancellationToken token,  T input, object? sender = null, int Timeout = 1000){
-			AddJob(job, Timeout);
+			AddJob(job, sender, Timeout);
 			return await ProcessJob(token, input);
 		}
 		public static void AddJob(LockJobDelegate<T, R> job, object? sender = null, int timeout = 1000){
             jobs.Enqueue(new LockJob<T, R>(jobs.Count, timeout, new LockJob<T, R>.LockJobDelegate<T, R>(job), sender));
 		}
 		public static async Task<R?> ProcessJob(CancellationToken token, T input){
-			jobs.TryDequeue(out LockJob<T, R> job);
-			return await Task.Run(() => job.Start(token, input));
+			if(jobs.TryDequeue(out LockJob<T, R> job)){
+				return await job.Start(token, input);
+			}else{
+				return default;
+			}
+			
     	}
     }
 }
