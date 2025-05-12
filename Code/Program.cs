@@ -35,12 +35,13 @@ class Entry{
     }
     public static async void Loop(){
         await Task.Run(() => {
-            if(Entry.Cts == null){Cts = new CancellationTokenSource(360000);}
+            if(Entry.Cts == null){Cts = new CancellationTokenSource();}
             while(!Entry.Cts.IsCancellationRequested){
-                    UpdateUI(() => f.Refresh());
-                    if(Entry.Buffer != null){f.Invalidate();}
-                }
-                if(Update != null){Entry.Update();}
+                UpdateUI(() => f.Refresh());
+                if(Entry.Buffer != null){f.Invalidate();}
+            }
+            if(Update != null){Entry.Update();}
+            GC.Collect();
         }).ContinueWith(t => {
             f.Refresh();
         }, TaskScheduler.FromCurrentSynchronizationContext());
