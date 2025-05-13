@@ -27,8 +27,8 @@ class TextureDatabase : IEnumerable{
     /// <param name="index">The index of PerSectionRanges that contains the selected Section's bounding TextureData.</param>
     /// <returns>The TextureData of a singular Section.</returns>
     public TextureDatabase RetrieveTexture_PerSectionBasis(int index){
-        Span<(Point point, Color color)> Data = new(this.td.ToArray(), this.PerSectionRanges[index].Start, this.PerSectionRanges[index].End);
-        return new TextureDatabase(Data.ToArray().ToList());
+        Span<(Point point, Color color)> Data = new([.. this.td], this.PerSectionRanges[index].Start, this.PerSectionRanges[index].End);
+        return new TextureDatabase(Data.ToArray());
     }
     /// <summary>
     /// Define the bounds of a singular Section's TextureData within this TextureDatabase.
@@ -77,7 +77,7 @@ class TextureDatabase : IEnumerable{
     }
     public TextureDatabase(){this.td = [];}
     public TextureDatabase(int count = 0){this.td = new List<(Point point, Color color)>();}
-    public TextureDatabase(List<(Point p, Color c)> data){this.td = data; this.isSorted = false;}
+    public TextureDatabase(IEnumerable<(Point p, Color c)> data){this.td = [.. data]; this.isSorted = false;}
     public TextureDatabase(IEnumerable<Point> points, Color color){
         this.td = [];
         foreach(Point p in points){td.Add((p, color));}
