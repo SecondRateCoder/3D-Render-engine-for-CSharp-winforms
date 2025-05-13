@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
+
 
 public class TextureStyles{
     public static TextureStyles StretchToFit = (TextureStyles)0;
@@ -27,7 +27,7 @@ public class TextureStyles{
     static TextureDatabase StretchToFit_(TextureDatabase tD, Polygon p, int index = 0){
         //This will use p's UVPoint data to manipulate tD
         for(int cc =0; cc < p.UVPoints.Length;cc++){
-            
+            //Fnd the length at different points, blend or 
             Equation perpendicular = Equation.FromPoints(p.UVPoints[0], 
             //Midpoint between p.UVPoints[1] and p.UVPoints[2]
             new Point((p.UVPoints[1].Y + p.UVPoints[2].Y)/2, (p.UVPoints[1].X + p.UVPoints[2].X)/2));
@@ -44,15 +44,20 @@ public class TextureStyles{
         
     return tD;
     }
-    public static Color BlendColors(Color color1, Color color2, float t){
-        t = Math.Clamp(t, 0f, 1f); // Ensure t is between 0 and 1
-        int r = (int)(color1.R + t * (color2.R - color1.R));
-        int g = (int)(color1.G + t * (color2.G - color1.G));
-        int b = (int)(color1.B + t * (color2.B - color1.B));
-        int a = (int)(color1.A + t * (color2.A - color1.A));
+    /// <summary>Produces a Color that is inbetween <see cref="color1"/> and <see cref="color2"/>.</summary>
+    /// <param name="color1">The 1st Color to be blended against.</param>
+    /// <param name="color2">The 2nd Color to be blended against.</param>
+    /// <param name="Transparency">How closely</param>
+    /// <returns></returns>
+    public static Color SpreadColors(Color color1, Color color2, Color BackGround, float Transparency){
+        Transparency = Math.Clamp(Transparency, 0f, 1f); // Ensure Alpha is between 0 and 1
+        int r = (int)(color1.R + Transparency * (color2.R - color1.R));
+        int g = (int)(color1.G + Transparency * (color2.G - color1.G));
+        int b = (int)(color1.B + Transparency * (color2.B - color1.B));
+        int a = (int)(color1.A + Transparency * (color2.A - color1.A));
         return Color.FromArgb(a, r, g, b);
     }
-    public static Color CompressColors(params Color[] colors){
+    public static Color BlendColors(params Color[] colors){
         if (colors.Length == 0) return Color.Transparent;
         int totalR = 0, totalG = 0, totalB = 0, totalA = 0;
         foreach (var color in colors){
@@ -344,8 +349,18 @@ class InconsistentDimensionException : Exception{
     public InconsistentDimensionException(string message, Exception inner) : base(message, inner){}
     public InconsistentDimensionException(){}
     public override string Message => base.Message;
-    public void ThrowIf(bool condition, string message){
-        if(condition){throw new InconsistentDimensionException(message);}
+    public static void ThrowIf(bool condition, string message, Exception? InnerException = null){
+        if(condition){throw new InconsistentDimensionException(message, inner: InnerException ?? new Exception());}
+    }
+}
+[Serializable]
+class AssemblyLoadException : Exception{
+    public AssemblyLoadException(string message) : base(message){}
+    public AssemblyLoadException(string message, Exception inner) : base(message, inner){}
+    public AssemblyLoadException(){}
+    public override string Message => base.Message;
+    public static void ThrowIf(bool condition, string message, Exception? InnerException = null){
+        if(condition){throw new AssemblyLoadException(message, inner: InnerException ?? new Exception());}
     }
 }
 
@@ -515,141 +530,3 @@ class LockJob<T, R>{
 }
 
 
-class ReflectionUpdating{
-    /*
-    public delegate void UpdateForceModeDelegate(RigidBdy rB, Vector3 v);
-    public delegate TextureDatabase TextureUpdateDelegate(TextureDatabase tD, Polygon p, int index);
-    public static void UpdateTextureStyles(string name, int ID, TextureUpdateDelegate tD){
-        Type T = typeof(TextureStyles);
-        FieldInfo? field = T.GetField(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-        if(field == null){
-            FieldInfo? newField = T
-                .GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-                .FirstOrDefault(f => f.Name == name);
-            if(newField == null){throw new InvalidOperationException("Field '{name}' could not be created.");}
-        }
-        field.SetValue(null, (TextureStyles)ID);
-
-        MethodInfo? isStyle = T.GetMethod("IsStyle", BindingFlags.Static | BindingFlags.Public);
-        if(isStyle != null){
-            isStyle.Invoke(null, new object[]{ID});
-        }
-        //Update textureStyles class with tD as it's apply method.
-        //Update the TextureDatabase.IsStyle with ID as the ID.
-        //Update the TextureDatabase.TextureStyles... with name as the name.
-    }
-    public static void UpdateTruecollider(string name, int ID, (int height, int width) Dimensions){
-        //Update TrueCollider class with tD as it's apply method.
-        //Update the TrueCollider.IsCollider with ID as the ID.
-        //Update the TrueCollider.GetCollider with name as the name.
-    }
-    public static void UpdatePhysicsMaterial_Official(string name, int ID, (int Friction, int Bounciness) attributes){
-        //Update PhysicsMaterial class with tD as it's attributes.
-        //Update the TrueCollider.IsCollider with attributes as it's attributes.
-    }
-    public static void UpdateForceMode(string name, int ID, UpdateForceModeDelegate uD){
-        //Update ForceMode class with uD as it's apply method.
-        //Update the ForceMode.IsForceMode with ID as the ID.
-    }
-
-    */
-
-    public class Key{
-        static Key(){
-            _masterKey = new Key(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
-        }
-        /// <summary>The master key for this application.</summary>
-        public static Key masterKey{get{
-            if(_masterKey == null){
-                _masterKey = new Key(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
-            }
-            return _masterKey;
-        }}
-        static Key? _masterKey;
-        public int key_{get; private set;}
-        /// <summary>
-        /// Constructs a key from a Key.key and Key.mtf file.
-        /// </summary>
-        /// <param name="keysPath">The Directory where the Keys are stored.</param>
-        /// <exception cref="TypeInitializationException">If the Key.key or Key.mtf were not found.</exception>
-        public Key(string keysPath){
-            if(Directory.Exists(keysPath)){
-                DirectoryInfo di = new DirectoryInfo(keysPath);
-                FileInfo[] finfo = [new(System.IO.Path.Combine(keysPath, "Key.key")), new(System.IO.Path.Combine(keysPath, "Key.mtf"))];
-                if(!finfo[0].Exists){throw new TypeInitializationException(nameof(Key), new FileNotFoundException($"The file Key.key was not found at {keysPath}"));}
-                if(!finfo[0].Exists){throw new TypeInitializationException(nameof(Key), new FileNotFoundException($"The file Key.mtf was not found at {keysPath}"));}
-                int[] keyBytes = new int[finfo[0].Length];
-                byte[] keyScrambler = new byte[finfo[1].Length];
-                int ScramblePerIncrement;
-                if(finfo[1].Length % finfo[0].Length == 0){
-                    ScramblePerIncrement = (int)(finfo[1].Length / finfo[0].Length);
-                }else{throw new TypeInitializationException(nameof(Key), new ArgumentOutOfRangeException(System.Reflection.ConstructorInfo.ConstructorName));}
-                using(BinaryReader keyStream = new BinaryReader(File.OpenRead(System.IO.Path.Combine(keysPath, "Key.key")))){
-                    for(int i =0; i < finfo[0].Length; i++){keyBytes[i] = keyStream.ReadByte();}
-                    for(int i =0; i < finfo[1].Length; i++){keyScrambler[i] = keyStream.ReadByte();}
-                    keyStream.Dispose();
-                }
-                int i_ = 1;
-                int buffer =0;
-                for(int i = 0; i < finfo[0].Length; i++, i_+= ScramblePerIncrement){
-                    if(keyScrambler[i_] > keyScrambler[0]){
-                        //Bit Shift Right.
-                        for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(keyBytes[i] + buffer)) >> keyScrambler[cc];}
-                    }else{
-                        //Bit Shift Left.
-                        for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(keyBytes[i] - buffer)) << keyScrambler[cc];}
-                    }
-                }
-                this.key_ = buffer;
-            }
-        }
-        public Key(int[] key, byte[] scrambleCode){
-            if(scrambleCode.Length % key.Length != 0){throw new ArgumentOutOfRangeException(nameof(scrambleCode), "The scramble array must be divisible by the key length.");}
-            int ScramblePerIncrement = scrambleCode.Length % key.Length;
-            int i_ = 1;
-            int buffer =0;
-            for(int i = 0; i < key.Length; i++, i_+= ScramblePerIncrement){
-                if(scrambleCode[i_] > scrambleCode[0]){
-                    //Bit Shift Right.
-                    for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] + buffer)) >> scrambleCode[cc];}
-                }else{
-                    //Bit Shift Left.
-                    for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] - buffer)) << scrambleCode[cc];}
-                }
-            }
-            this.key_ = buffer;
-        }
-        /// <summary>
-        /// Creates a key from a key and a scramble array.
-        /// </summary>
-        /// <param name="key">The key to be encoded.</param>
-        /// <param name="scrambleArray">The encoding array that the key is encoded by.</param>
-        /// <param name="ScrambleCode">The integer that helps the algorithm decide whether to Bit shift forward or Backward.</param>
-        /// <param name="ScramblePerDigit">the amount of scrambling that will occur per digit.</param>
-        /// <returns>An integer array that encodes the key.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">If the ScramblePerDigit and the ScrambleArray are not compatible.</exception>
-        /// <remarks>The ScrambleArray and the <see cref="int[]"/> must be retained for the original key to be restored.</remarks> 
-        public static int[] CreateEncodedKey(int key, byte[] scrambleArray, int ScrambleCode = 0, int ScramblePerDigit = 4){
-            if(scrambleArray.Length % ScramblePerDigit != 0){throw new ArgumentOutOfRangeException(nameof(scrambleArray), "The scramble array must be divisible by the ScramblePerDigit.");}
-            int[] TrueKey = new int[scrambleArray.Length/ScramblePerDigit];
-            if(ScrambleCode <= 0 | ScrambleCode > byte.MaxValue)ScrambleCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, byte.MaxValue);
-            int i_ = scrambleArray.Length;
-            //Work forward through the TrueKey array, 
-            //i_ wotks backward through the ScrambleArray.
-            //ScramblePerDigit is the number of bits to be scrambled per element in TrueKey.
-            for(int i = TrueKey.Length; i >= 0; i--, i_-= ScramblePerDigit){
-                    if (ScrambleCode > 0){
-                        // Force Bit Shift Right
-                        for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key << scrambleArray[cc]) + key;}
-                    }else{
-                        // Force Bit Shift Left
-                        for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key >> scrambleArray[cc]) - key;}
-                    }
-            }
-            return TrueKey;
-        }
-        new int GetHashCode(){return HashCode.Combine(this.GetType(), this.GetType().Name, this.key_);}
-        public static bool operator ==(Key k1, Key k2){if(k1.key_ == k2.key_){return true;}else{return false;}}
-        public static bool operator !=(Key k1, Key k2){return !(k1.key_ == k2.key_);}
-    }
-}

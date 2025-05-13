@@ -2,15 +2,15 @@ using System.Collections;
 
 class TextureDatabase : IEnumerable{
     public static TextureDatabase Empty{get{return [];}}
-    public delegate (Point point, Color color) ForEachDelegate((Point point, Color color) item);
+    public delegate TexturePoint ForEachDelegate(TexturePoint item);
     public delegate bool ForEachDelegateConditional((Point point, Color color) item);
-    List<(Point point, Color color)> td;
+    List<TexturePoint> td;
     /// <summary>This serves to define sections of TextureData within the td List.</summary>
     List<(int Start, int End)> PerSectionRanges{get; set;} = [];
     /// <summary>True if the TextureData is sorted.</summary>
     public bool isSorted{get; private set;}
     public int Count{get{return td.Count;}}
-    public (Point p, Color c) this[int index]{
+    public TexturePoint this[int index]{
         get{return td[index];}
         set{td[index] = value;}
     }
@@ -27,7 +27,7 @@ class TextureDatabase : IEnumerable{
     /// <param name="index">The index of PerSectionRanges that contains the selected Section's bounding TextureData.</param>
     /// <returns>The TextureData of a singular Section.</returns>
     public TextureDatabase RetrieveTexture_PerSectionBasis(int index){
-        Span<(Point point, Color color)> Data = new([.. this.td], this.PerSectionRanges[index].Start, this.PerSectionRanges[index].End);
+        Span<TexturePoint> Data = new([.. this.td], this.PerSectionRanges[index].Start, this.PerSectionRanges[index].End);
         return new TextureDatabase(Data.ToArray());
     }
     /// <summary>
@@ -76,18 +76,22 @@ class TextureDatabase : IEnumerable{
 
     }
     public TextureDatabase(){this.td = [];}
-    public TextureDatabase(int count = 0){this.td = new List<(Point point, Color color)>();}
-    public TextureDatabase(IEnumerable<(Point p, Color c)> data){this.td = [.. data]; this.isSorted = false;}
+    public TextureDatabase(int count = 0){this.td = new List<TexturePoint>();}
+    public TextureDatabase(IEnumerable<TexturePoint> data){
+        this.td = new List<TexturePoint>();
+        foreach(TexturePoint item in data){this.td.Add(item);} 
+        this.isSorted = false;
+    }
     public TextureDatabase(IEnumerable<Point> points, Color color){
         this.td = [];
-        foreach(Point p in points){td.Add((p, color));}
+        foreach(Point p in points){td.Add((TexturePoint)(p, color));}
     }
     public TextureDatabase(WriteableBitmap bmp){
-        this.td = new List<(Point point, Color color)>(bmp.pixelWidth * bmp.pixelHeight);
+        this.td = new List<TexturePoint>(bmp.pixelWidth * bmp.pixelHeight);
         int cc =0;
         for(int y = 0;y < bmp.pixelHeight;y++){
             for(int x = 0;x < bmp.pixelWidth;x++){
-                td[cc] = bmp[x, y];
+                td[cc] = (TexturePoint)bmp[x, y];
                 cc++;
             }
         }
@@ -105,34 +109,34 @@ class TextureDatabase : IEnumerable{
             this[cc] = fE(this[cc]);
         }
     }
-    public void AddAt(int index, (Point p, Color c) item){
+    public void AddAt(int index, TexturePoint item){
         if(index > this.Count){this.Append(item);}else{
             td.Insert(index, item);
             this.isSorted = this[index].p.X<item.p.X && this[index].p.Y<item.p.Y?true:false;
         }
     }
-    public void AddRangeAt(int index, IEnumerable<(Point p, Color c)> data){
+    public void AddRangeAt(int index, IEnumerable<TexturePoint> data){
         if(index > this.Count){this.Append(data.ToList());}else{
-            foreach((Point p, Color c) item in data){
+            foreach(TexturePoint item in data){
                 td.Insert(index, item);
                 this.isSorted = this[index].p.X<item.p.X && this[index].p.Y<item.p.Y?true:false;
             }
         }
     }
-    public void AssignRangeAt(int index, IEnumerable<(Point p, Color c)> data){
+    public void AssignRangeAt(int index, IEnumerable<TexturePoint> data){
         if(index + data.Count() > this.Count){throw new ArgumentOutOfRangeException("The range of data to be assigned is out of bounds.");}
         for(int cc =0; cc < data.Count();cc++){
             td[index + cc] = data.ElementAt(cc);
             this.isSorted = this[index + cc].p.X<data.ElementAt(cc).p.X && this[index + cc].p.Y<data.ElementAt(cc).p.Y?true:false;
         }
     }
-    public void Append((Point p, Color c) item){
+    public void Append(TexturePoint item){
         td.Add(item);
         this.isSorted = this[Count-1].p.X<item.p.X && this[Count-1].p.Y<item.p.Y?true:false;
     }
-    public void Append(List<(Point p, Color c)> data){foreach((Point p, Color c) item in data){this.Append(item);}}
+    public void Append(List<TexturePoint> data){foreach(TexturePoint item in data){this.Append(item);}}
     public static WriteableBitmap ToWriteableBitmap(TextureDatabase tD, int width, int height){
-        new InconsistentDimensionException().ThrowIf(tD.Count != width * height, "The TextureData's dimensions do not match the Bitmap's dimensions.");
+        InconsistentDimensionException.ThrowIf(tD.Count != width * height, "The TextureData's dimensions do not match the Bitmap's dimensions.");
         WriteableBitmap wB = new(width, height);
         int cc= 0;
         for(int y= 0;y < height;y++){
@@ -143,9 +147,24 @@ class TextureDatabase : IEnumerable{
         }
         return wB;
     }
-    public static implicit operator List<(Point point, Color color)>(TextureDatabase tD){return tD.td;}
-    public static explicit operator TextureDatabase(List<(Point point, Color color)> data){return new TextureDatabase(data);}
+    public static implicit operator List<TexturePoint>(TextureDatabase tD){return tD.td;}
+    public static explicit operator TextureDatabase(List<TexturePoint> data){return new TextureDatabase(data);}
     public IEnumerator GetEnumerator() => td.GetEnumerator();
+
+
+
+
+
+    public struct TexturePoint{
+        public Point p;
+        public Color c;
+        public TexturePoint(Point p, Color c){
+            this.p = p;
+            this.c = c;
+        }
+        public static implicit operator (Point p, Color c)(TexturePoint tP){return (tP.p, tP.c);}
+        public static explicit operator TexturePoint((Point p, Color c) item){return new TexturePoint(item.p, item.c);}
+    }
 }
 
 

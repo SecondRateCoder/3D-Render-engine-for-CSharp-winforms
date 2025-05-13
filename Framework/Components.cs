@@ -138,7 +138,7 @@ class Texturer : Rndrcomponent{
                         float xUpper = p1_p12mid.SolveX(y);
                         int x =(int)p0_p1.SolveX(y);
                         while(x <= xUpper){
-                            result.Append((new Point(x, y), buffer.GetPixel(x, y)));
+                            result.Append((TextureDatabase.TexturePoint)(new Point(x, y), buffer.GetPixel(x, y)));
                             x++;
                         }
                     }else{
@@ -146,7 +146,7 @@ class Texturer : Rndrcomponent{
                         float xUpper = p1_p2.SolveX(y);
                         int x =(int)p1_p12mid.SolveX(y);
                         while(x <= xUpper){
-                            result.Append((new Point(x, y), buffer.GetPixel(x, y)));
+                            result.Append((TextureDatabase.TexturePoint)(new Point(x, y), buffer.GetPixel(x, y)));
                             x++;
                         }
                     }

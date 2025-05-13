@@ -7,7 +7,7 @@ class Entry{
     public static CancellationTokenSource Cts{get; private set;}
     public static unsafe WriteableBitmap Buffer;
     public static ElapsedEventHandler TUpdate;
-    static SynchronizationContext? uiContext;
+    internal static SynchronizationContext? uiContext;
     public static Action Update;
     public static Action Start;
     public static Form1 f;
@@ -24,15 +24,12 @@ class Entry{
     static unsafe void Initialise(){
         Cts = new CancellationTokenSource();
         TUpdate = CollisionManager.Collider;
-        Update = Paint3D;
+        Update = PaintSquare;
         Start = ExternalControl.StartTimer;
         f = new();
         Buffer = new(f.Width, f.Height);
-        uiContext = SynchronizationContext.Current;
     }
-    public static void UpdateUI(Action action){
-        uiContext?.Post(_ => action(), null);
-    }
+    public static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
     public static async void Loop(){
         await Task.Run(() => {
             if(Entry.Cts == null){Cts = new CancellationTokenSource();}
@@ -42,12 +39,10 @@ class Entry{
             }
             if(Update != null){Entry.Update();}
             GC.Collect();
-        }).ContinueWith(t => {
-            f.Refresh();
-        }, TaskScheduler.FromCurrentSynchronizationContext());
+        });
     }
     //Paint the enviroment.
-    static void Paint3D(){
+    static void PaintSquare(){
         try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.Cts.IsCancellationRequested}";}
         catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
         int formHeight;
@@ -96,6 +91,7 @@ public partial class Form1 : Form{
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     override protected void OnLoad(EventArgs e){
+        Entry.uiContext = SynchronizationContext.Current;
         base.OnLoad(e);
         this.buffer = this.Size;
         Entry.Start();
