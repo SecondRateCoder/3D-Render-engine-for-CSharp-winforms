@@ -27,7 +27,7 @@ public class TextureStyles{
     static TextureDatabase StretchToFit_(TextureDatabase tD, Polygon p, int index = 0){
         //This will use p's UVPoint data to manipulate tD
         for(int cc =0; cc < p.UVPoints.Length;cc++){
-            //Fnd the length at different points, blend or 
+            //Fnd the length at different points, blend or Compress
             Equation perpendicular = Equation.FromPoints(p.UVPoints[0], 
             //Midpoint between p.UVPoints[1] and p.UVPoints[2]
             new Point((p.UVPoints[1].Y + p.UVPoints[2].Y)/2, (p.UVPoints[1].X + p.UVPoints[2].X)/2));
@@ -47,15 +47,19 @@ public class TextureStyles{
     /// <summary>Produces a Color that is inbetween <see cref="color1"/> and <see cref="color2"/>.</summary>
     /// <param name="color1">The 1st Color to be blended against.</param>
     /// <param name="color2">The 2nd Color to be blended against.</param>
-    /// <param name="Transparency">How closely</param>
-    /// <returns></returns>
-    public static Color SpreadColors(Color color1, Color color2, Color BackGround, float Transparency){
-        Transparency = Math.Clamp(Transparency, 0f, 1f); // Ensure Alpha is between 0 and 1
+    /// <param name="p">The Location that this <see cref="TextureDatabase.TexturePoint"/> located in reference the line: color1 => color2</param>
+    /// <returns>A TexturePoint.</returns>
+    public static TextureDatabase.TexturePoint BlendColors(float p, TextureDatabase.TexturePoint color1, TextureDatabase.TexturePoint color2){
+        if(p >= 1 | p <= 0){throw new ArgumentOutOfRangeException("TextureStyles.BlendColors");}
+        Point point = new((int)((color1.p.X + color2.p.X) * p), (int)((color1.p.Y + color2.p.Y) * p));
+        float Weight1 = ;
+        /*
         int r = (int)(color1.R + Transparency * (color2.R - color1.R));
         int g = (int)(color1.G + Transparency * (color2.G - color1.G));
         int b = (int)(color1.B + Transparency * (color2.B - color1.B));
         int a = (int)(color1.A + Transparency * (color2.A - color1.A));
         return Color.FromArgb(a, r, g, b);
+        */
     }
     public static Color BlendColors(params Color[] colors){
         if (colors.Length == 0) return Color.Transparent;
