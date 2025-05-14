@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.Versioning;
 using System.Security.Cryptography;
 /// <summary>
 ///  A 3-dimensional point and rotation.
@@ -101,16 +99,18 @@ struct Vector3{
     /// <summary>
     ///  Rotate this vector around Origin, by Rotation.
     /// </summary>
-    /// <param name="Rotation">The value that this vector will be rotated by.</param>
+    /// <param name="Rotation">A Vector3 value that this vector will be rotated by.</param>
     /// <param name="Origin">The point this vector will rotate around.</param>
     /// <returns>This method returns a copy of the value.</returns>
     /// <remarks>This both sets this vector to the rotated version and returns a copy.</remarks>
     public Vector3 RotateAround(Vector3 Rotation, Vector3 Origin){
-        Vector3 Offset = (this-Origin).Abs();
-        Vector3 Rot = Vector3.GetRotation(this, Origin);
-        this = new Vector3((float)(Offset.X/(Math.Sin(180-Rot.X)/2)),
-        (float)(Offset.Y/(Math.Sin(180-Rot.Y)/2)),
-        (float)(Offset.Z/(Math.Sin(180-Rot.Z)/2)));
+        if(Rotation == Vector3.Zero){return this;}
+        this += (Origin - (this*2));
+        Vector3 thisCopy = this;
+        this.X += Regulate((float)(thisCopy.Y/(Math.Tan(Rotation.X)/2)), 0);
+        this.Y += Regulate((float)(thisCopy.Z/(Math.Tan(Rotation.Y)/2)), 0);
+        this.Z += Regulate((float)(thisCopy.X/(Math.Tan(Rotation.Z)/2)), 0);
+        this -= (Origin + (this*2));
         return this;
     }
     public Vector3 Abs(){
@@ -127,6 +127,10 @@ struct Vector3{
         this.Normalise();
         this = v;
         return v;
+    }
+    public static float Regulate(float value, int iFUnacceptable = 0){
+        if(value == float.PositiveInfinity | value == float.NegativeInfinity){return iFUnacceptable;}
+        else{return value;}
     }
     public byte[] ToBytes(){
         List<byte> result = [..BitConverter.GetBytes(this.X)];
@@ -171,21 +175,9 @@ struct Vector3{
         return (float)(xy+xz+yz)/3;
     }
     ///<summary>Get the rotation from point a to b, with the apex being between them.</summary>
-    public static Vector3 GetRotation(Vector3 a, Vector3 b){
-        Vector3 origin = Vector3.CProduct(a, b);
-        float A = Vector3.GetDistance(a, origin);
-        float B = Vector3.GetDistance(b, origin);
-        if(A > B){a = (a-b)/b;}else if(A < B){b = (b-a)/a;}
-        float xDif = Math.Abs(a.X - b.X);
-        float yDif = Math.Abs(a.Y - b.Y);
-        float zDif = Math.Abs(a.Z - b.Z);
-        double xy = Math.Atan(yDif/xDif);
-        double xz = Math.Atan(zDif/xDif);
-        double yz = Math.Atan(yDif/zDif);
-        return new Vector3((float)xy, (float)xz, (float)yz);
-    }
+    public static Vector3 GetRotation(Vector3 a, Vector3 b){return GetRotation(a, Vector3.Zero, b);}
     public static Vector3 GetRotation(Polygon p){
-        return GetRotation(p.A, p.B, p.C);
+        return GetRotation(p.A, p.origin, p.C);
     }
     public static Vector3 GetRotation(Vector3 a, Vector3 b, Vector3 c){
         float A = Vector3.GetDistance(a, c);

@@ -7,6 +7,24 @@ static class StorageManager{
         PathProp = value + @"";
     } get{return PathProp;}}
     static string fileSpecific = @"\Cache\Saves\1.bin";
+	public static Path ApplicationPath{
+		get{
+			if(aP_ == null){
+				Span<char> span = new Span<char>(Directory.GetCurrentDirectory().ToCharArray());
+				string s = "";
+				for(int cc =span.Length-1; cc >= -1;cc--){
+					if(cc < 0){throw new FileNotFoundException($"The working Directory of this Application was not found.");}
+					if((span[cc-4] == 'f') && (span[cc-3] == 'o') && (span[cc-2] == 'r') && (span[cc-1] == 'm') && (span[cc] == 's')){
+						s = span.Slice(0, cc+2).ToString();
+						break;
+					}
+				}
+				aP_ = s;
+			}
+			return (Path)aP_;
+		}
+	}
+	static string aP_;
 	/// <summary>
 	///  This saves the World.worldData to the Binary file in StorageAttempt<seealso cref="fileSpecific"/>
 	/// </summary>
@@ -184,5 +202,8 @@ class Path{
 		if(File.Exists(p+s) && (new FileInfo(p+s).Extension == p.fileExtension | p.fileExtensions.Contains(new FileInfo(p+s).Extension)) | System.IO.Directory.Exists(p+s) && p.Directory == true){
 			p.filePath += s;}return p;}
 	public static implicit operator string(Path p){return p.Get();}
-	public static explicit operator Path(string s){return new Path(s, File.Exists(s)? new FileInfo(s).Extension: throw new FileNotFoundException($"The file at: {s} was not found"), false);}
+	public static explicit operator Path(string s){return new Path(
+		s, 
+		File.Exists(s) | System.IO.Directory.Exists(s)? new FileInfo(s).Extension: throw new FileNotFoundException($"The file at: {s} was not found"), 
+		System.IO.Directory.Exists(s));}
 }

@@ -1,10 +1,9 @@
 {
   "version": 2,
-  "dgSpecHash": "F/qO7CMyGLA=",
+  "dgSpecHash": "pApN0BEMxEU=",
   "success": true,
-  "projectFilePath": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
+  "projectFilePath": "c:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\olusa\\.nuget\\packages\\lua\\5.4.7.2\\lua.5.4.7.2.nupkg.sha512",
     "C:\\Users\\olusa\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
     "C:\\Users\\olusa\\.nuget\\packages\\microsoft.netcore.targets\\1.1.0\\microsoft.netcore.targets.1.1.0.nupkg.sha512",
     "C:\\Users\\olusa\\.nuget\\packages\\microsoft.win32.primitives\\4.3.0\\microsoft.win32.primitives.4.3.0.nupkg.sha512",

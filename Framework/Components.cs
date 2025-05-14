@@ -58,7 +58,7 @@ class Texturer : Rndrcomponent{
     public static TextureDatabase textureData;
     TextureStyles tS;
     public void UpdateTextureStyle(TextureStyles tS){this.tS = tS;}
-    /// <summary>Store the image file in this before Initialising.</summary>
+    /// <summary>Store the image file in this when Initialising.</summary>
     Bitmap buffer;
     Path filePath;
     bool Initialised;
@@ -68,14 +68,14 @@ class Texturer : Rndrcomponent{
     int DataEnd;
 #pragma warning disable CS8618
     public Texturer(){
-        this.filePath = new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\GrassBlock.png", [".bmp", ".jpeg", ".png"], false);
+        this.filePath = new Path(StorageManager.ApplicationPath + @"Cache\Images\GrassBlock.png", [".bmp", ".jpeg", ".png"], false);
         this.DataEnd =0;
         this.tS = TextureStyles.Empty;
         this.DataStart =0;
     }
 #pragma warning restore CS8618
     public Texturer(string? filePath = null, TextureStyles? tS = null){
-        this.filePath = filePath == null? new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\GrassBlock.png", [".bmp", ".jpeg", ".png"], false):
+        this.filePath = filePath == null? new Path(StorageManager.ApplicationPath + @"Cache\Images\GrassBlock.png", [".bmp", ".jpeg", ".png"], false):
         new Path(filePath, [".bmp", ".jpeg", ".png"], false);
         this.tS = tS?? TextureStyles.Empty;
         buffer = new Bitmap(1, 1);
@@ -83,7 +83,7 @@ class Texturer : Rndrcomponent{
 
     public void Reset(string Path){
         this.Dispose(true);
-        _Initialise();
+        Initialise();
     }
     /// <summary>
     /// Gets the TextureData from the static textureData property.
@@ -200,10 +200,9 @@ class Texturer : Rndrcomponent{
         this.DataStart = StorageManager.ReadInt32(bytes, bytes.Length - Encoding.Default.GetByteCount(filePath));
         this.DataEnd = StorageManager.ReadInt32(bytes, (bytes.Length - Encoding.Default.GetByteCount(filePath)) + sizeof(int));
     }
-    public override void Initialise(){_Initialise();}
-    void _Initialise(){
+    public override void Initialise(){
         this.Initialised = true;
-        FileInfo finfo = new FileInfo(filePath);
+        FileInfo finfo = new(filePath);
         buffer = (Bitmap)Image.FromFile(filePath);
     }
     public new void Dispose(bool disposing = true){
