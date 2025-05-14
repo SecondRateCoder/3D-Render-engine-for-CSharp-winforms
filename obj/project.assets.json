@@ -2,6 +2,9 @@
   "version": 3,
   "targets": {
     "net8.0-windows7.0": {
+      "lua/5.4.7.2": {
+        "type": "package"
+      },
       "Microsoft.NETCore.Platforms/1.1.0": {
         "type": "package",
         "compile": {
@@ -1223,6 +1226,141 @@
     }
   },
   "libraries": {
+    "lua/5.4.7.2": {
+      "sha512": "kbLjSm9p3/XqL6Si+Eyta0iuvQ/IxAvkGjZAwd+AW5SWRNuf9If29HxSQg+qJE4ar4m9/yBoJ1hlkrWae3q1xg==",
+      "type": "package",
+      "path": "lua/5.4.7.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "README.md",
+        "build/native/Lua-propertiesui.xml",
+        "build/native/Lua.targets",
+        "build/native/bin/Win32/ClangCL/Debug/lua.dll",
+        "build/native/bin/Win32/ClangCL/Release/lua.dll",
+        "build/native/bin/Win32/v120/Debug/lua.dll",
+        "build/native/bin/Win32/v120/Release/lua.dll",
+        "build/native/bin/Win32/v140/Debug/lua.dll",
+        "build/native/bin/Win32/v140/Release/lua.dll",
+        "build/native/bin/Win32/v141/Debug/lua.dll",
+        "build/native/bin/Win32/v141/Release/lua.dll",
+        "build/native/bin/Win32/v142/Debug/lua.dll",
+        "build/native/bin/Win32/v142/Release/lua.dll",
+        "build/native/bin/Win32/v143/Debug/lua.dll",
+        "build/native/bin/Win32/v143/Release/lua.dll",
+        "build/native/bin/Win32/v143/Release/lua.exe",
+        "build/native/bin/Win32/v143/Release/luac.exe",
+        "build/native/bin/x64/ClangCL/Debug/lua.dll",
+        "build/native/bin/x64/ClangCL/Release/lua.dll",
+        "build/native/bin/x64/v120/Debug/lua.dll",
+        "build/native/bin/x64/v120/Release/lua.dll",
+        "build/native/bin/x64/v140/Debug/lua.dll",
+        "build/native/bin/x64/v140/Release/lua.dll",
+        "build/native/bin/x64/v141/Debug/lua.dll",
+        "build/native/bin/x64/v141/Release/lua.dll",
+        "build/native/bin/x64/v142/Debug/lua.dll",
+        "build/native/bin/x64/v142/Release/lua.dll",
+        "build/native/bin/x64/v143/Debug/lua.dll",
+        "build/native/bin/x64/v143/Release/lua.dll",
+        "build/native/bin/x64/v143/Release/lua.exe",
+        "build/native/bin/x64/v143/Release/luac.exe",
+        "build/native/doc/OSIApproved_100X125.png",
+        "build/native/doc/contents.html",
+        "build/native/doc/index.css",
+        "build/native/doc/logo.gif",
+        "build/native/doc/lua.1",
+        "build/native/doc/lua.css",
+        "build/native/doc/luac.1",
+        "build/native/doc/manual.css",
+        "build/native/doc/manual.html",
+        "build/native/doc/readme.html",
+        "build/native/include/lauxlib.h",
+        "build/native/include/lua.h",
+        "build/native/include/lua.hpp",
+        "build/native/include/luaconf.h",
+        "build/native/include/lualib.h",
+        "build/native/lib/Win32/ClangCL/Debug/lua.lib",
+        "build/native/lib/Win32/ClangCL/Debug/lua_static.lib",
+        "build/native/lib/Win32/ClangCL/Release/lua.lib",
+        "build/native/lib/Win32/ClangCL/Release/lua_static.lib",
+        "build/native/lib/Win32/v120/Debug/lua.lib",
+        "build/native/lib/Win32/v120/Debug/lua_lib.pdb",
+        "build/native/lib/Win32/v120/Debug/lua_static.lib",
+        "build/native/lib/Win32/v120/Release/lua.lib",
+        "build/native/lib/Win32/v120/Release/lua_lib.pdb",
+        "build/native/lib/Win32/v120/Release/lua_static.lib",
+        "build/native/lib/Win32/v140/Debug/lua.lib",
+        "build/native/lib/Win32/v140/Debug/lua_lib.pdb",
+        "build/native/lib/Win32/v140/Debug/lua_static.lib",
+        "build/native/lib/Win32/v140/Release/lua.lib",
+        "build/native/lib/Win32/v140/Release/lua_lib.pdb",
+        "build/native/lib/Win32/v140/Release/lua_static.lib",
+        "build/native/lib/Win32/v141/Debug/lua.lib",
+        "build/native/lib/Win32/v141/Debug/lua_lib.pdb",
+        "build/native/lib/Win32/v141/Debug/lua_static.lib",
+        "build/native/lib/Win32/v141/Release/lua.lib",
+        "build/native/lib/Win32/v141/Release/lua_lib.pdb",
+        "build/native/lib/Win32/v141/Release/lua_static.lib",
+        "build/native/lib/Win32/v142/Debug/lua.lib",
+        "build/native/lib/Win32/v142/Debug/lua_lib.pdb",
+        "build/native/lib/Win32/v142/Debug/lua_static.lib",
+        "build/native/lib/Win32/v142/Debug/lua_static.pdb",
+        "build/native/lib/Win32/v142/Release/lua.lib",
+        "build/native/lib/Win32/v142/Release/lua_lib.pdb",
+        "build/native/lib/Win32/v142/Release/lua_static.lib",
+        "build/native/lib/Win32/v142/Release/lua_static.pdb",
+        "build/native/lib/Win32/v143/Debug/lua.lib",
+        "build/native/lib/Win32/v143/Debug/lua_lib.pdb",
+        "build/native/lib/Win32/v143/Debug/lua_static.lib",
+        "build/native/lib/Win32/v143/Debug/lua_static.pdb",
+        "build/native/lib/Win32/v143/Release/lua.lib",
+        "build/native/lib/Win32/v143/Release/lua_lib.pdb",
+        "build/native/lib/Win32/v143/Release/lua_static.lib",
+        "build/native/lib/Win32/v143/Release/lua_static.pdb",
+        "build/native/lib/x64/ClangCL/Debug/lua.lib",
+        "build/native/lib/x64/ClangCL/Debug/lua_static.lib",
+        "build/native/lib/x64/ClangCL/Release/lua.lib",
+        "build/native/lib/x64/ClangCL/Release/lua_static.lib",
+        "build/native/lib/x64/v120/Debug/lua.lib",
+        "build/native/lib/x64/v120/Debug/lua_lib.pdb",
+        "build/native/lib/x64/v120/Debug/lua_static.lib",
+        "build/native/lib/x64/v120/Release/lua.lib",
+        "build/native/lib/x64/v120/Release/lua_lib.pdb",
+        "build/native/lib/x64/v120/Release/lua_static.lib",
+        "build/native/lib/x64/v140/Debug/lua.lib",
+        "build/native/lib/x64/v140/Debug/lua_lib.pdb",
+        "build/native/lib/x64/v140/Debug/lua_static.lib",
+        "build/native/lib/x64/v140/Release/lua.lib",
+        "build/native/lib/x64/v140/Release/lua_lib.pdb",
+        "build/native/lib/x64/v140/Release/lua_static.lib",
+        "build/native/lib/x64/v141/Debug/lua.lib",
+        "build/native/lib/x64/v141/Debug/lua_lib.pdb",
+        "build/native/lib/x64/v141/Debug/lua_static.lib",
+        "build/native/lib/x64/v141/Release/lua.lib",
+        "build/native/lib/x64/v141/Release/lua_lib.pdb",
+        "build/native/lib/x64/v141/Release/lua_static.lib",
+        "build/native/lib/x64/v142/Debug/lua.lib",
+        "build/native/lib/x64/v142/Debug/lua_lib.pdb",
+        "build/native/lib/x64/v142/Debug/lua_static.lib",
+        "build/native/lib/x64/v142/Debug/lua_static.pdb",
+        "build/native/lib/x64/v142/Release/lua.lib",
+        "build/native/lib/x64/v142/Release/lua_lib.pdb",
+        "build/native/lib/x64/v142/Release/lua_static.lib",
+        "build/native/lib/x64/v142/Release/lua_static.pdb",
+        "build/native/lib/x64/v143/Debug/lua.lib",
+        "build/native/lib/x64/v143/Debug/lua_lib.pdb",
+        "build/native/lib/x64/v143/Debug/lua_static.lib",
+        "build/native/lib/x64/v143/Debug/lua_static.pdb",
+        "build/native/lib/x64/v143/Release/lua.lib",
+        "build/native/lib/x64/v143/Release/lua_lib.pdb",
+        "build/native/lib/x64/v143/Release/lua_static.lib",
+        "build/native/lib/x64/v143/Release/lua_static.pdb",
+        "images/logo.png",
+        "lua.5.4.7.2.nupkg.sha512",
+        "lua.nuspec"
+      ]
+    },
     "Microsoft.NETCore.Platforms/1.1.0": {
       "sha512": "kz0PEW2lhqygehI/d6XsPCQzD7ff7gUJaVGPVETX611eadGsA3A877GdSlU0LRVMCTH/+P3o2iDTak+S08V2+A==",
       "type": "package",
@@ -3409,28 +3547,37 @@
   "projectFileDependencyGroups": {
     "net8.0-windows7.0": [
       "NUnit >= 4.3.2",
-      "SharpDX >= 4.2.0"
+      "SharpDX >= 4.2.0",
+      "lua >= 5.4.7.2"
     ]
   },
   "packageFolders": {
-    "/home/codespace/.nuget/packages/": {}
+    "C:\\Users\\olusa\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/workspaces/3D-Render-engine-for-CSharp-winforms/MapGameWinforms.csproj",
+      "projectUniqueName": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
       "projectName": "MapGameWinforms",
-      "projectPath": "/workspaces/3D-Render-engine-for-CSharp-winforms/MapGameWinforms.csproj",
-      "packagesPath": "/home/codespace/.nuget/packages/",
-      "outputPath": "/workspaces/3D-Render-engine-for-CSharp-winforms/obj/",
+      "projectPath": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
+      "packagesPath": "C:\\Users\\olusa\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "/home/codespace/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\olusa\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net8.0-windows"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -3448,7 +3595,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "net8.0-windows7.0": {
@@ -3461,6 +3609,10 @@
           "SharpDX": {
             "target": "Package",
             "version": "[4.2.0, )"
+          },
+          "lua": {
+            "target": "Package",
+            "version": "[5.4.7.2, )"
           }
         },
         "imports": [
@@ -3474,12 +3626,6 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.14, 8.0.14]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
@@ -3488,7 +3634,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.407/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
