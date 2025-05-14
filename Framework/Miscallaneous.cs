@@ -11,7 +11,7 @@ struct Equation{
     public float SolveX(float Y){
         return (Y - Y_intercept)/Gradient;
     }
-    public static Equation FromPoints(Point a, Point b){
+    public static Equation FromPoints(PointF a, PointF b){
         //Simultaenous equation.
         float gradient = (a.Y - b.Y)/(a.X - b.X);
         float y_intercept = a.Y - (a.X * gradient);
@@ -26,8 +26,8 @@ struct Equation{
     /// <summary>
     /// Finds the x-coordinate where both Equation a and b equal the same y-coordinate.
     /// </summary>
-    /// <returns>A Point detailing the x and y coordinates where x and y equal each other.</returns>
-    public static Point WhereEquationEquals(Equation a, Equation b){
+    /// <returns>A PointF detailing the x and y coordinates where x and y equal each other.</returns>
+    public static PointF WhereEquationEquals(Equation a, Equation b){
         //a (y = mx + c)
         //b (y = nx + d)
         //a = (mx - y = c)
@@ -39,7 +39,7 @@ struct Equation{
         //b = (y - ny/m = d - nc/m)
         //b = (y(1 - n/m) = d - nc/m)
         //b = (y = (d - nc/m)/(1 - n/m))
-        Point p = new Point();
+        PointF p = new PointF();
         p.Y = (int)((b.Y_intercept - (b.Gradient * a.Y_intercept/a.Gradient))/(1 - (b.Gradient/a.Gradient)));
         p.X = (int)a.SolveX(p.Y);
         return p;
@@ -100,16 +100,16 @@ abstract class ITextureEffect{
 class Slide : ITextureEffect{
     //Acts as a memory store to allow for a reversing of the operation, to 
     public override int iterations{get; set;}
-    Point sD;
-    Point slideDirection{
+    PointF sD;
+    PointF slideDirection{
         get{return sD;} 
         set{
-            float Magnitude = (float)Math.Sqrt(value.X^2 + value.Y^2);
-            sD = new Point((int)(value.X/Magnitude), (int)(value.Y/Magnitude));
+            float Magnitude = (float)Math.Sqrt((value.X * value.X) + (value.Y * value.Y));
+            sD = new PointF(value.X/Magnitude, value.Y/Magnitude);
         }}
     public override TextureDatabase Apply(TextureDatabase data){
         for(int cc = 0;cc < data.Count;cc++){
-            data[cc] = (new Point(data[cc].p.X + (data[cc].p.X * slideDirection.X), data[cc].p.Y + (data[cc].p.Y * slideDirection.Y)), data[cc].c);
+            data[cc] = (TextureDatabase.TexturePoint)(new PointF(data[cc].p.X + (data[cc].p.X * slideDirection.X), data[cc].p.Y + (data[cc].p.Y * slideDirection.Y)), data[cc].c);
         }
         return data;
     }

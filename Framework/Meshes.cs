@@ -28,15 +28,15 @@ struct Polygon{
     }
     public Vector3 Rotation{get{return Vector3.GetRotation(this);}}
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public Polygon(Vector3 a, Vector3 b, Vector3 c, IEnumerable<Point> uVPoints){
+    public Polygon(Vector3 a, Vector3 b, Vector3 c, IEnumerable<PointF> uVPoints){
         this.A = a;
         this.B = b;
         this.C = c;
         this.UpdateTexture(uVPoints.ToArray());
     }
-    Point[] uPoints;
+    PointF[] uPoints;
     
-    public Point[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{if(value.Length > 3){UpdateTexture(value);}else{this.uPoints = value;}}}
+    public PointF[] UVPoints{get{if(uPoints == null){return [];}else{return uPoints;}} private set{if(value.Length > 3){UpdateTexture(value);}else{this.uPoints = value;}}}
     /// <summary>
     /// Returns the normalised area of this Polygon's UV map.
     /// </summary>
@@ -46,23 +46,24 @@ struct Polygon{
         get{
             Polygon m = this;
             float function(bool x){
-                float aLength = Vector3.GetDistance(m.A, m.B);
-                float bLength = Vector3.GetDistance(m.B, m.C);
-                float cLength = Vector3.GetDistance(m.C, m.A);
-                return (float)(Math.Sqrt(aLength * bLength * cLength));
+                lock(m.UVPoints){
+                    float aLength = Vector3.GetDistance(m.A, m.B);
+                    float bLength = Vector3.GetDistance(m.B, m.C);
+                    float cLength = Vector3.GetDistance(m.C, m.A);
+                    return (float)(Math.Sqrt(aLength * bLength * cLength));
+                }
             }
 
-            LockJob<bool, float>.LockJobHandler<bool, float>.PassJob(function, new CancellationToken(), true); 
-            return 0f;
+            return LockJob<bool, float>.LockJobHandler.PassJob(function, true, null, 1000, null, nameof(Polygon)).Result; 
         }
     }
-    public void UpdateTexture(Point[] uv){uPoints = [uv[0], uv[1], uv[2]];}
+    public void UpdateTexture(PointF[] uv){uPoints = [uv[0], uv[1], uv[2]];}
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Polygon(Vector3 a, Vector3 b, Vector3 c){
         this.A = a;
         this.B = b;
         this.C = c;
-        this.uPoints = new Point[0];
+        this.uPoints = [];
     }
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Polygon(byte[] bytes){
@@ -72,16 +73,16 @@ struct Polygon{
         this.B = new Vector3(buffer[1]);
         this.C = new Vector3(buffer[2]);
         int cc = Vector3.Size * 3;
-        this.UVPoints = [StorageManager.ReadPoint(bytes, cc), 
-        StorageManager.ReadPoint(bytes, cc + (sizeof(int) * 2)), 
-        StorageManager.ReadPoint(bytes, cc + (sizeof(int) * 4))];
+        this.UVPoints = [StorageManager.ReadPointF(bytes, cc), 
+        StorageManager.ReadPointF(bytes, cc + (sizeof(int) * 2)), 
+        StorageManager.ReadPointF(bytes, cc + (sizeof(int) * 4))];
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Polygon(){
         this.A = new Vector3();
         this.B = new Vector3();
         this.C = new Vector3();
-        this.uPoints = new Point[0];
+        this.uPoints = [];
     }
     public byte[] ToBytes(){
         List<byte> bytes = [..this.A.ToBytes()];

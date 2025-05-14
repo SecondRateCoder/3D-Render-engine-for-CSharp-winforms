@@ -1,12 +1,13 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
-
-public class TextureStyles{
+class TextureStyles{
+    /// <summary>Stretches a TextureDatabase to fit the inputted Polygon.</summary>
+    /// <remarks>To apply this function; it requires the parameters: "TextureDatabase tD, Mesh m, Equation p0_p1, Equation p1_p2, Equation p0_p2, int StartAt = "0""</remarks>
     public static TextureStyles StretchToFit = (TextureStyles)0;
     public static TextureStyles EdgeFillBlack = (TextureStyles)1;
     public static TextureStyles EdgeFillWhite = (TextureStyles)2;
-    public static TextureStyles Empty = EdgeFillBlack;
+    public static TextureStyles Empty = (TextureStyles)int.MaxValue;
     public static TextureStyles ClipToFit = (TextureStyles)3;
     public static explicit operator TextureStyles(int i){if(IsStyle(i)){return new TextureStyles(i);}else{return TextureStyles.Empty;}}
     public static implicit operator int(TextureStyles t){return t.type;}
@@ -14,6 +15,21 @@ public class TextureStyles{
     public static bool IsStyle(int type){return Styles.Contains(type);}
     int type;
     internal TextureStyles(int i){this.type = i;}
+    public static TextureDatabase Apply(TextureStyles tS, TextureDatabase tD, Mesh m, Equation p0_p1, Equation p1_p2, Equation p0_p2, int Start = 0){
+        return tS.type switch{
+            0 => StretchToFit_(tD, m, p0_p1, p1_p2, p0_p2, 0).Result,
+            _ => tD,
+        };
+    }
+    static async Task<TextureDatabase> StretchToFit_(TextureDatabase tD, Mesh m, Equation p0_p1, Equation p1_p2, Equation p0_p2, int Start = 0){
+        return await Task.Run(() => {
+            foreach(Polygon p in m){
+                tD = StretchToFit_(tD, p, Start, p0_p1, p1_p2, p0_p2).Result;
+                Start++;
+            }
+            return tD;
+        });
+    }
 
     /// <summary>Take the TextureData and it's corresponding Mesh, stretching and squashing the colors to ensure they fit</summary>
     /// <param name="_12mid">The midpoint between the first and second UVPoint</param>
@@ -22,56 +38,102 @@ public class TextureStyles{
     /// <param name="p1_p2">The equation describing the linethat is the 1st UVPoint to the 2nd Point.</param>
     /// <param name="tD">The TextureDatabase to be manipulated.</param>
     /// <param name="p">The Polygon that the TextureDatabase is being manipulated to.</param>
-    /// <param name="Start">The starting index of the Polygon's TextureData</param>
-    /// <param name="End">The ending index of the Polygon's TextureData</param>
-    static TextureDatabase StretchToFit_(TextureDatabase tD, Polygon p, int index = 0){
+    static async Task<TextureDatabase> StretchToFit_(TextureDatabase tD, Polygon p, int Sectionindex, 
+    Equation p0_p1, Equation p1_p2, Equation p0_p2){
         //This will use p's UVPoint data to manipulate tD
-        for(int cc =0; cc < p.UVPoints.Length;cc++){
-            //Fnd the length at different points, blend or Compress
-            Equation perpendicular = Equation.FromPoints(p.UVPoints[0], 
-            //Midpoint between p.UVPoints[1] and p.UVPoints[2]
-            new Point((p.UVPoints[1].Y + p.UVPoints[2].Y)/2, (p.UVPoints[1].X + p.UVPoints[2].X)/2));
-            int MinY = Texturer.Min([p.UVPoints[0].Y, p.UVPoints[1].Y, p.UVPoints[2].Y]);
-            int MaxY = Texturer.Max([p.UVPoints[0].Y, p.UVPoints[1].Y, p.UVPoints[2].Y]);
-            for(int y =MinY; y < MaxY - MinY;y++){
-                //For the length of the Texture.
+        return await Task.Run(() => {
+            for(int i =0; i < p.UVPoints.Length;i++){
+                //Fnd the length at different points, blend or Compress
+                Equation perpendicular = Equation.FromPoints(p.UVPoints[0], 
+                //Midpoint between p.UVPoints[1] and p.UVPoints[2]
+                new PointF((p.UVPoints[1].Y + p.UVPoints[2].Y)/2, (p.UVPoints[1].X + p.UVPoints[2].X)/2));
+                float MinY = Texturer.Min([p.UVPoints[0].Y, p.UVPoints[1].Y, p.UVPoints[2].Y]);
+                float MaxY = Texturer.Max([p.UVPoints[0].Y, p.UVPoints[1].Y, p.UVPoints[2].Y]);
+                TextureDatabase SlicedData= tD.Slice_PerSectionRanges(Sectionindex);
+                PointF[] PolygonAsPointF = [new PointF(((PointF)p.A).X * p.A.Magnitude, ((PointF)p.A).X * p.A.Magnitude), 
+                    new PointF(((PointF)p.B).X * p.B.Magnitude, ((PointF)p.B).X * p.B.Magnitude), 
+                        new PointF(((PointF)p.C).X * p.C.Magnitude, ((PointF)p.C).X * p.C.Magnitude)];
+                PolygonAsPointF = CustomSort.SortPointArray_ByY(PolygonAsPointF).Result.ToArray();
 
-				//buffer is a section of tD.
-				TextureDatabase buffer= tD.RetrieveTexture_PerSectionBasis(index);
-                
+
+                //To handle how TextureData is scaled, or whether it is scaled.
+                Equation Polyp0_p1 = Equation.FromPoints(PolygonAsPointF[0], PolygonAsPointF[1]);
+                Equation Polyp1_p2 = Equation.FromPoints(PolygonAsPointF[1], PolygonAsPointF[2]);
+                Equation Polyp0_p2 = Equation.FromPoints(PolygonAsPointF[0], PolygonAsPointF[2]);
+                int cc =0;
+                for(float y =MinY; y < MaxY - MinY;y++){
+                    float xUpper = p0_p2.SolveX(y);
+                    float shiftingX = y <= p.UVPoints[1].Y? p0_p1.SolveX(y): p1_p2.SolveX(y);
+                    float xRange = xUpper - shiftingX;
+                    float PolyxRange = Polyp0_p2.SolveX(y) - (y <= PolygonAsPointF[1].Y? Polyp0_p1.SolveX(y): Polyp1_p2.SolveX(y));
+                    float increment = 0;
+                    for(float x = 0; x < PolyxRange;increment = PolyxRange/xRange, x += increment, cc++){
+                        float index = x + (y * xRange);
+                        TextureDatabase.TexturePoint buffer;
+                        if(increment > 1){buffer = BlendColors(increment, tD[cc-1], tD[cc]);}else{buffer = CompressColors(.5f, tD[cc-1], tD[cc]);}
+                        tD.AddAt((int)index, buffer);
+                    }
+                }
             }
-        }
+            return tD;
+        });
         
-    return tD;
     }
-    /// <summary>Produces a Color that is inbetween <see cref="color1"/> and <see cref="color2"/>.</summary>
+    /// <summary>Produces a TexturePoint that is inbetween <see cref="color1"/> and <see cref="color2"/>.</summary>
     /// <param name="color1">The 1st Color to be blended against.</param>
     /// <param name="color2">The 2nd Color to be blended against.</param>
     /// <param name="p">The Location that this <see cref="TextureDatabase.TexturePoint"/> located in reference the line: color1 => color2</param>
     /// <returns>A TexturePoint.</returns>
     public static TextureDatabase.TexturePoint BlendColors(float p, TextureDatabase.TexturePoint color1, TextureDatabase.TexturePoint color2){
+        string ArgString = $"TextureStyles.BlendColors(p: {p}, "+
+            $"color1: \"p: {color1.p.X}, {color1.p.X}; c: {color1.c.A}, {color1.c.R}, {color1.c.G}, {color1.c.B}), "+
+            $"color1: \"p: {color2.p.X}, {color2.p.X}; c: {color2.c.A}, {color2.c.R}, {color2.c.G}, {color2.c.B})";
+        
+        TextureDatabase.TexturePoint result = new(new((int)((color1.p.X + color2.p.X) * p), (int)((color1.p.Y + color2.p.Y) * p)), Color.White);
+        if(((color1.p.X * color1.p.X) + (color1.p.Y * color1.p.Y)) < ((color2.p.X * color2.p.X) + (color2.p.Y * color2.p.Y))){throw new ArgumentException("color1 cannot be larger that color2", "At: "+ArgString);}
         if(p >= 1 | p <= 0){throw new ArgumentOutOfRangeException("TextureStyles.BlendColors");}
-        Point point = new((int)((color1.p.X + color2.p.X) * p), (int)((color1.p.Y + color2.p.Y) * p));
-        float Weight1 = ;
-        /*
-        int r = (int)(color1.R + Transparency * (color2.R - color1.R));
-        int g = (int)(color1.G + Transparency * (color2.G - color1.G));
-        int b = (int)(color1.B + Transparency * (color2.B - color1.B));
-        int a = (int)(color1.A + Transparency * (color2.A - color1.A));
-        return Color.FromArgb(a, r, g, b);
-        */
+        //The weight from Color1 to point
+        float Weight1 = (float)Math.Sqrt(((result.p.X - color1.p.X) * (result.p.X - color1.p.X)) + ((result.p.Y - color1.p.Y) * (result.p.Y - color1.p.Y)));
+        //The Weight from Color2 to point
+        float Weight2 = (float)Math.Sqrt(((color2.p.X - result.p.X) * (color2.p.X - result.p.X)) + ((color2.p.Y - result.p.Y) * (color2.p.Y - result.p.Y)));
+        result.c = BlendColors(color1.c, Color.FromArgb((byte)(color1.c.A/Weight1), (byte)(color1.c.R/Weight1), (byte)(color1.c.R/Weight1), (byte)(color1.c.R/Weight1)), Weight1);
+        result.c = BlendColors(color2.c, result.c, Weight2);
+        return result;
     }
-    public static Color BlendColors(params Color[] colors){
-        if (colors.Length == 0) return Color.Transparent;
-        int totalR = 0, totalG = 0, totalB = 0, totalA = 0;
-        foreach (var color in colors){
-            totalR += color.R;
-            totalG += color.G;
-            totalB += color.B;
-            totalA += color.A;
+    /// <summary>Produces a TexturePoint that is inbetween <see cref="color1"/> and <see cref="color2"/> and at <see cref="p"/>.</summary>
+    /// <param name="p">The Location of the TexturePoint</param>
+    /// <returns>A Color that is a blend of <see cref="color1"/> and <see cref="color2"/>, blended in reference to <see cref="p"/>.</returns>
+    /// <exception cref="ArgumentException">If <see cref="color2"/> is not greater than <see cref="color1"/>.</exception>
+    public static TextureDatabase.TexturePoint BlendColors(PointF p, TextureDatabase.TexturePoint color1, TextureDatabase.TexturePoint color2){
+        if(((color1.p.X * color1.p.X) + (color1.p.Y * color1.p.Y)) < ((color2.p.X * color2.p.X) + (color2.p.Y * color2.p.Y))){
+            string ArgString = $"TextureStyles.BlendColors()";
+            throw new ArgumentException("color1 cannot be larger that color2", "At: "+ArgString);}
+        float Magnitude = (float)Math.Sqrt(((color2.p.X - color1.p.X) * (color2.p.X - color1.p.X)) + ((color2.p.Y - color1.p.Y) * (color2.p.Y - color1.p.Y)));
+        return BlendColors(Magnitude, color1, color2);
+    }
+    /// <summary>
+    /// Blend <see cref="color1"/> and <see cref="color2"/> by <see cref="t"/>.
+    /// </summary>
+    /// <param name="t">The weight of the blending.</param>
+    /// <returns>A blended Color.</returns>
+    static Color BlendColors(Color color1, Color color2, float t){
+        Math.Clamp(t, 0, 1);
+        int r = (int)(color1.R + t * (color2.R - color1.R));
+        int g = (int)(color1.G + t * (color2.G - color1.G));
+        int b = (int)(color1.B + t * (color2.B - color1.B));
+        int a = (int)(color1.A + t * (color2.A - color1.A));
+        return Color.FromArgb(a, r, g, b);
+    }
+    static TextureDatabase.TexturePoint CompressColors(float strength, params TextureDatabase.TexturePoint[] colors){
+        Color result = colors[0].c;
+        int cc = 0;
+        PointF point = colors[0].p;
+        foreach(TextureDatabase.TexturePoint c in  colors){
+            if(cc == 0){continue;}
+            result = Color.FromArgb((int)((result.A + c.c.A)/strength), (int)((result.R + c.c.R)/strength), (int)((result.A + c.c.G)/strength), (int)((result.A + c.c.B)/strength));
+            point = new PointF((point.X + c.p.X)/2, (point.Y + c.p.Y)/2);
         }
-        int count = colors.Length;
-        return Color.FromArgb(totalA / count, totalR / count, totalG / count, totalB / count);
+        return new TextureDatabase.TexturePoint(point, result);
     }
 }
 /// <summary>
@@ -223,7 +285,7 @@ static class CustomSort{
     /// Sort the Point array on all Axis.</summary>
     /// <param name="points">The array to be sorted.</param>
     /// <returns>A sorted array in the format, smallest to largest.</returns>
-    public static async Task<Point[]> SortPointArray_BySize(Point[] points){
+    public static async Task<PointF[]> SortPointArray_BySize(PointF[] points){
         bool swapped = false;
         await Task.Run(() => {
             do{
@@ -254,12 +316,12 @@ static class CustomSort{
         });
         return points;
     }
-    public static async Task<Point[]> SortPointArray_By0(Point[] points){
+    public static async Task<PointF[]> SortPointArray_By0(PointF[] points){
         bool swapped = false;
         await Task.Run(() => {
             int cc =0;
             do{
-                if(CustomSort.GetDistance(Point.Empty, points[cc]) > CustomSort.GetDistance(Point.Empty, points[cc+1])){
+                if(CustomSort.GetDistance(PointF.Empty, points[cc]) > CustomSort.GetDistance(PointF.Empty, points[cc+1])){
                     swapped = true;
                     CustomSort.SwapItems(points, cc, cc+1);
                 }
@@ -268,7 +330,7 @@ static class CustomSort{
         });
         return points;
     }
-    public static Task<bool> Unsorted_By0(Point[] points){
+    public static Task<bool> Unsorted_By0(PointF[] points){
         bool swapped = false;
         Task<bool> t = Task.Run(() => {
             for(int cc =0; cc < points.Length;cc++){
@@ -281,7 +343,7 @@ static class CustomSort{
         });
         return t;
     }
-    public static async Task<Point[]> SortPointArray_ByX(Point[] points){
+    public static async Task<PointF[]> SortPointArray_ByX(PointF[] points){
         bool swapped = false;
         await Task.Run(() => {
             int cc =0;
@@ -295,11 +357,11 @@ static class CustomSort{
         });
         return points;
     }
-    public static Task<bool> Unsorted_ByX(Point[] points){
+    public static Task<bool> Unsorted_ByX(IEnumerable<PointF> points){
         bool swapped = false;
         Task<bool> t = Task.Run(() => {
-            for(int cc =0; cc < points.Length;cc++){
-                if(points[cc].X > points[cc+1].X){
+            for(int cc =0; cc < points.Count();cc++){
+                if(points.ElementAt(cc).X > points.ElementAt(cc+1).X){
                     swapped = true;
                     break;
                 }
@@ -308,12 +370,12 @@ static class CustomSort{
         });
         return t;
     }
-    public static async Task<Point[]> SortPointArray_ByY(Point[] points){
+    public static async Task<IEnumerable<PointF>> SortPointArray_ByY(IEnumerable<PointF> points){
         bool swapped = false;
         await Task.Run(() => {
             int cc =0;
             do{
-                if(points[cc].Y > points[cc+1].Y){
+                if(points.ElementAt(cc).Y > points.ElementAt(cc+1).Y){
                     swapped = true;
                     CustomSort.SwapItems(points, cc, cc+1);
                 }
@@ -335,16 +397,17 @@ static class CustomSort{
         });
         return t;
     }
-    public static T[] SwapItems<T>(T[] items, int FirstItem, int SecondItem){
-        T buffer = items[FirstItem];
-        items[FirstItem] = items[SecondItem];
-        items[SecondItem] = buffer;
-        return items;
+    public static IEnumerable<T> SwapItems<T>(IEnumerable<T> items, int FirstItem, int SecondItem){
+        T[] values = items.ToArray();
+        T buffer = values[FirstItem];
+        values[FirstItem]= values[SecondItem];
+        values[SecondItem] = buffer;
+        return values;
     }
-    static float GetDistance(Point a, Point b){
-        int x = Math.Abs(a.X - b.X);
-        int y = Math.Abs(a.Y - b.Y);
-        return (float)Math.Sqrt((x^2) + (y^2));
+    static float GetDistance(PointF a, PointF b){
+        float x = Math.Abs(a.X - b.X);
+        float y = Math.Abs(a.Y - b.Y);
+        return (float)Math.Sqrt((x * x) + (y * y));
     }
 }
 [Serializable]

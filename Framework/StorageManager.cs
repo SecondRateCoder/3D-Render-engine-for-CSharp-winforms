@@ -127,8 +127,8 @@ static class StorageManager{
 		}
 		return BitConverter.ToString(Encoding.Convert(Encoding.Default, encoding, buffer));
 	}
-	public static Point ReadPoint(byte[] bytes, int startFrom =0){
-		return new Point(ReadInt32(bytes), ReadInt32(bytes, sizeof(int)));
+	public static PointF ReadPointF(byte[] bytes, int startFrom =0){
+		return new PointF(ReadInt32(bytes), ReadInt32(bytes, sizeof(int)));
 	}
 }
 class Path{

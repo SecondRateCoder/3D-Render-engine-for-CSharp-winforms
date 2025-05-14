@@ -18,7 +18,7 @@ class WriteableBitmap{
     public int pixelHeight{get; private set;}
     public int pixelWidth{get; private set;}
     public int Count{get{return pixelWidth*pixelHeight;}}
-    public (Point p, Color c) this[int x, int y]{
+    public (PointF p, Color c) this[int x, int y]{
         get{
             return this.Get(x, y);
         }
@@ -45,14 +45,14 @@ class WriteableBitmap{
 		
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public void Set(byte a, byte r, byte g, byte b, int x, int y){
-        bool function((byte a, byte r, byte g, byte b, int x, int y) args){
+    public void Set(byte a, byte r, byte g, byte b, float x, float y){
+        bool function((byte a, byte r, byte g, byte b, float x, float y) args){
             lock(this){Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
             BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             IntPtr ptr = bitmapData.Scan0;
             int stride = bitmapData.Stride;
             unsafe{
-                byte* pixel = (byte*)ptr + (y * stride) + (x * bytesPerPixel);
+                byte* pixel = (byte*)ptr + ((int)y * stride) + ((int)x * bytesPerPixel);
                 pixel[0] = b;
                 pixel[1] = g;
                 pixel[2] = r;
@@ -64,9 +64,8 @@ class WriteableBitmap{
             return true;}
         }
 
-        _ = LockJob<(byte a, byte r, byte g, byte b, int x, int y), bool>.
-            LockJobHandler.
-                PassJob(function, (a, r, g, b, x, y), null, 1000, null, nameof(WriteableBitmap));
+        _ = LockJob<(byte a, byte r, byte g, byte b, float x, float y), bool>.
+            LockJobHandler.PassJob(function, (a, r, g, b, x, y), null, 1000, null, nameof(WriteableBitmap));
         /*
         Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
             BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
@@ -87,12 +86,12 @@ class WriteableBitmap{
     }
     public void Set(TextureDatabase TextureData){
         int cc =0;
-        for((Point p, Color c) bit = TextureData[cc]; cc < TextureData.Count;cc++, bit = TextureData[cc]){
+        for((PointF p, Color c) bit = TextureData[cc]; cc < TextureData.Count;cc++, bit = TextureData[cc]){
             Set(bit.c.A, bit.c.R, bit.c.G, bit.c.B, bit.p.X, bit.p.Y);
         }
     }
 
-    public (Point p, Color c) Get(int x, int y){
+    public (PointF p, Color c) Get(int x, int y){
         ValidateBounds(x, y);
 
         var rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
@@ -103,7 +102,7 @@ class WriteableBitmap{
             int stride = bitmapData.Stride;
             unsafe{
                 byte* pixel = (byte*)ptr + (y * stride) + (x * bytesPerPixel);
-                return (new Point(x, y), Color.FromArgb(pixel[3], pixel[2], pixel[1], pixel[0]));
+                return (new PointF(x, y), Color.FromArgb(pixel[3], pixel[2], pixel[1], pixel[0]));
             }
         }finally{
             bmp.UnlockBits(bitmapData);
@@ -156,7 +155,7 @@ class WriteableBitmap{
         this.bmp = new Bitmap(Width, Height);
         for(int cc =0; cc < tD.Count;cc++){
             if(tD[cc].p.X > pixelWidth | tD[cc].p.Y > pixelHeight && ExceedClear){continue;}else{
-                this.bmp.SetPixel(tD[cc].p.X > Width? Width :tD[cc].p.X, tD[cc].p.Y > Height? Height: tD[cc].p.Y, tD[cc].c);
+                this.bmp.SetPixel(tD[cc].p.X > Width? Width :(int)tD[cc].p.X, tD[cc].p.Y > Height? Height: (int)tD[cc].p.Y, tD[cc].c);
             }
         }
     }

@@ -92,50 +92,22 @@ static class ViewPort{
     public static void MarkPPMatrixDirty(){
         _ppMatrixDirty = true;
     }
-
-
-
-    /// <summary>
-    ///  This takes the gameObj data from the static World class.
-    /// </summary> 
-    /// <remarks>If <see cref="World.worldData.Count"/> == 0, then it creates a cube to be rendered.</remarks>
-    public static (Point p, Color c)[] TransformToScreenSpace_Normalised(){
-        (TextureDatabase textureData, Polygon[] polygonData, int[] positionData) buffer = GetTextures_PolygonData();
-        Polygon[] MultipliedPolygons = new Polygon[buffer.polygonData.Length];
-        int pointer = 0;
-        foreach(Polygon p in buffer.polygonData){
-            pointer++;
-            MultipliedPolygons[pointer] = Multiply(p);
-        }
-        return [];
-        
+    static WriteableBitmap Convert_(TextureDatabase tD, Vector3[] Origins){
+		WriteableBitmap bmp = new(Entry.f.Width, Entry.f.Height);
+		if(tD.Count % Origins.Length != 0 && tD.Count > Origins.Length){throw new ArgumentOutOfRangeException();}
+        for(int cc = 0; cc < tD.Count;cc++){
+			float increment = Origins.Length/tD.Count;
+			TextureDatabase buffer = tD.Slice_PerSectionRanges(cc);
+			for(int cc_ = 0; cc_ < buffer.Count; cc++){
+				buffer[cc_] = new TextureDatabase.TexturePoint(
+					new PointF(buffer[cc].p.X * ((PointF)Origins[cc]).X, buffer[cc].p.Y * ((PointF)Origins[cc]).Y), 
+					buffer[cc_].c);
+			}
+		}
+		bmp.Set(tD);
+        return bmp;
     }
-    static (TextureDatabase, Polygon[], int[]) GetTextures_PolygonData(){
-        TextureDatabase TextureData = [];
-        List<Polygon> buffer = [];
-        List<int> positionData = [0];
-        if(World.worldData.Count == 0){
-            //If there is nothing to be drawn.
-            gameObj gO = new gameObj(Vector3.Zero, Vector3.Zero, true, Polygon.Mesh(1, 0, 1, 4));
-            gO.AddComponent(typeof(Texturer), new Texturer(@"C:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\Cache\Images\GrassBlock.png"));
-            buffer = ((Polygon[])gO.Children.ViewPortClip()).ToList();
-            gO.Texture();
-            buffer =[];
-            positionData = [0];
-        }else{
-            foreach(gameObj gO_ in World.worldData){
-                //Copy out the gameObj, 
-                // using the multiply func to normalise it, 
-                // then texture with that.
-                gameObj gO = gO_.Copy();
-                gO.Children.ViewPortClip();
-                gO.Children.Foreach(Multiply);
-                TextureData = gO.Texture();
-            }
-            ViewPort.bmp.Initialise(TextureData, Entry.f.Width, Entry.f.Height);
-        }
-        return (TextureData, buffer.ToArray(), positionData.ToArray());
-    }
+
 
     /// <summary>
     /// Will return a polygon whose vector co-ordinaates can be directly converted to points.

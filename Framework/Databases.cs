@@ -3,10 +3,12 @@ using System.Collections;
 class TextureDatabase : IEnumerable{
     public static TextureDatabase Empty{get{return [];}}
     public delegate TexturePoint ForEachDelegate(TexturePoint item);
-    public delegate bool ForEachDelegateConditional((Point point, Color color) item);
+    public delegate bool ForEachDelegateConditional((PointF point, Color color) item);
     List<TexturePoint> td;
     /// <summary>This serves to define sections of TextureData within the td List.</summary>
-    List<(int Start, int End)> PerSectionRanges{get; set;} = [];
+    /// <remarks>This property's main purpose is for applying <see cref="TextureStyles"/>, especially for more complex ones such as <see cref="TextureStyles.StretchToFit"/> 
+    /// as well as for Rendering.</remarks>
+    List<(int Start, int End)> Sections{get; set;} = [];
     /// <summary>True if the TextureData is sorted.</summary>
     public bool isSorted{get; private set;}
     public int Count{get{return td.Count;}}
@@ -20,27 +22,31 @@ class TextureDatabase : IEnumerable{
     /// serves as a placeholder to distinguish between The TextureData and the Section Bounding Data</param>
     /// <returns>The bounding points of the section's TextureData.</returns>
     public (int Start, int End) this[int index, bool b]{
-        get{return PerSectionRanges[index];}
-        set{PerSectionRanges[index] = value;}
+        get{return Sections[index];}
+        set{Sections[index] = value;}
     }
     /// <summary>Retrive the TextureData of a singular Section within this TextureDatabase.</summary>
     /// <param name="index">The index of PerSectionRanges that contains the selected Section's bounding TextureData.</param>
     /// <returns>The TextureData of a singular Section.</returns>
-    public TextureDatabase RetrieveTexture_PerSectionBasis(int index){
-        Span<TexturePoint> Data = new([.. this.td], this.PerSectionRanges[index].Start, this.PerSectionRanges[index].End);
-        return new TextureDatabase(Data.ToArray());
-    }
+    public TextureDatabase Slice_PerSectionRanges(int index){return new TextureDatabase(new Span<TexturePoint>([.. this.td], this.Sections[index].Start, this.Sections[index].End).ToArray());}
+    /// <summary>
+    /// Slice a section of this TextureDatabase, from <see cref="Start"/> to <see cref="End"/>.
+    /// </summary>
+    /// <returns>A section of thisd Database.</returns>
+    public TextureDatabase Slice(int Start, int End){
+        ArgumentOutOfRangeException.ThrowIfLessThan(Start, End, $"TextureDatabase.RetrieveTexture_PerSectionBasis(Start: {Start}, End: {End})");
+        return new TextureDatabase(new Span<TexturePoint>([.. this.td], Start, End).ToArray());}
     /// <summary>
     /// Define the bounds of a singular Section's TextureData within this TextureDatabase.
     /// </summary>
     /// <param name="Start">The index of this TextureDatabase where this Section's TextureData starts.</param>
     /// <param name="UVArea">The UVArea of the Section, can be retrieved with X.UVArea.</param>
     /// <returns>Was this Section's BoundingData successfully Defined</returns>
-    public bool DefineSectionBounds(int Start, float UVArea){
+    public bool AttachSectionBounds(int Start, float UVArea){
         bool function((int, float) x){
-            lock(PerSectionRanges){
-                if (Start > 0 && Start + UVArea < Count){
-                    PerSectionRanges.Add((Start, Start + (int)UVArea));
+            lock(Sections){
+                if(Start > 0 && Start + UVArea < Count){
+                    Sections.Add((Start, Start + (int)UVArea));
                     return true;
                 }
                 else { return false; }
@@ -48,11 +54,20 @@ class TextureDatabase : IEnumerable{
         }
         return LockJob<(int Start, float UVArea), bool>.
             LockJobHandler.
-                PassJob((LockJob<(int Start, float UVArea), bool>.LockJobDelegate<(int, float), bool>)function, (Start, UVArea), null, 1000, null, nameof(TextureDatabase)).Result;
+                PassJob(function, (Start, UVArea), null, 1000, null, nameof(TextureDatabase)).Result;
     }
-
-
-
+    public bool AttachSectionBounds((int a, int b) item){
+        bool function((int a, int b) item_){
+            lock(this.Sections){
+                if(item.b > item.a && (item.a | item.b) > 0){
+                    this.Sections.Add(item_);
+                    return true;
+                }else{return false;}
+            }
+        }
+        return LockJob<(int a, int b), bool>.
+            LockJobHandler.PassJob(function, item).Result;
+    }
     /// <summary>
     /// Re-define the bounds of a singular Section's TextureData within this TextureDatabase.
     /// </summary>
@@ -63,9 +78,9 @@ class TextureDatabase : IEnumerable{
     public bool ReDefineSectionBounds(int index, int Start, float UVArea){
 
         bool function((int, float) x){
-            lock(PerSectionRanges){
+            lock(Sections){
                 if(Start > 0 && (Start + UVArea) < this.Count){
-                    PerSectionRanges.Add((Start, Start + (int)UVArea));
+                    Sections.Add((Start, Start + (int)UVArea));
                     return true;
                 }else{return false;}
             }
@@ -99,7 +114,7 @@ class TextureDatabase : IEnumerable{
     }
     public int AllThat(ForEachDelegateConditional fDC){
         int inc = 0;
-        foreach((Point point, Color color) item in this.td){
+        foreach((PointF point, Color color) item in this.td){
             inc = fDC(item)? inc+1: inc;
         }
         return inc;
@@ -115,19 +130,28 @@ class TextureDatabase : IEnumerable{
             this.isSorted = this[index].p.X<item.p.X && this[index].p.Y<item.p.Y?true:false;
         }
     }
-    public void AddRangeAt(int index, IEnumerable<TexturePoint> data){
+    public void AddRangeAt(int index, IEnumerable<TexturePoint> data, bool AddSection = true){
+        (int a, int b) Section = (0, 0);
         if(index > this.Count){this.Append(data.ToList());}else{
+            if(AddSection == true){Section.a = this.td.Count;}
+            int cc =index;
             foreach(TexturePoint item in data){
-                td.Insert(index, item);
-                this.isSorted = this[index].p.X<item.p.X && this[index].p.Y<item.p.Y?true:false;
+                td.Insert(cc, item);
+                this.isSorted = this[cc].p.X<item.p.X && this[cc].p.Y<item.p.Y?true:false;
+                cc++;
             }
+            if(AddSection == true){
+                Section.b = this.td.Count;
+                Sections.Add(Section);}
+
         }
     }
-    public void AssignRangeAt(int index, IEnumerable<TexturePoint> data){
+    public void AssignRangeAt(int index, IEnumerable<TexturePoint> data, bool DefineRanges = true){
+        this.Sections.Add((index, data.Count()));
         if(index + data.Count() > this.Count){throw new ArgumentOutOfRangeException("The range of data to be assigned is out of bounds.");}
         for(int cc =0; cc < data.Count();cc++){
             td[index + cc] = data.ElementAt(cc);
-            this.isSorted = this[index + cc].p.X<data.ElementAt(cc).p.X && this[index + cc].p.Y<data.ElementAt(cc).p.Y?true:false;
+            if(isSorted == true){this.isSorted = this[index + cc].p.X<data.ElementAt(cc).p.X && this[index + cc].p.Y<data.ElementAt(cc).p.Y?true:false;}
         }
     }
     public void Append(TexturePoint item){
@@ -156,14 +180,14 @@ class TextureDatabase : IEnumerable{
 
 
     public struct TexturePoint{
-        public Point p;
+        public PointF p;
         public Color c;
-        public TexturePoint(Point p, Color c){
+        public TexturePoint(PointF p, Color c){
             this.p = p;
             this.c = c;
         }
-        public static implicit operator (Point p, Color c)(TexturePoint tP){return (tP.p, tP.c);}
-        public static explicit operator TexturePoint((Point p, Color c) item){return new TexturePoint(item.p, item.c);}
+        public static implicit operator (PointF p, Color c)(TexturePoint tP){return (tP.p, tP.c);}
+        public static explicit operator TexturePoint((PointF p, Color c) item){return new TexturePoint(item.p, item.c);}
     }
 }
 

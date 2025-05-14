@@ -149,8 +149,8 @@ struct Vector3{
         }
     }
     public override int GetHashCode(){return BitConverter.ToInt32(ComputeHmacSha1Hash($"{this.X} {this.Y} {this.Z}", ""));}
-    public static explicit operator Point(Vector3 v){if(v.Z == 0){return new Point((int)v.X, (int)v.Y);}else{return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}}
-    public static explicit operator Vector3(Point p){return new Vector3(p.X, p.Y, 0);}
+    public static explicit operator PointF(Vector3 v){if(v.Z == 0){return new PointF((int)v.X, (int)v.Y);}else{return new PointF((int)(v.X/v.Z), (int)(v.Y/v.Z));}}
+    public static explicit operator Vector3(PointF p){return new Vector3(p.X, p.Y, 0);}
     public static explicit operator List<float>(Vector3 v){return new List<float>(){v.X, v.Y, v.Z};}
     public static explicit operator byte[](Vector3 v){
         List<byte> result = [.. BitConverter.GetBytes(v.X)];
@@ -255,10 +255,10 @@ struct Vector3{
         a.Z *= b;
         return a;
     }
-    public static Vector3 operator *(Vector3 a, Point b){
+    public static Vector3 operator *(Vector3 a, PointF b){
         float aMag = a.Magnitude;
         a.Normalise();
-        b = new Point((int)(b.X/aMag), (int)(b.Y/aMag));
+        b = new PointF((int)(b.X/aMag), (int)(b.Y/aMag));
         return new Vector3(a.X/a.Z*b.X, a.Y/a.Z*b.Y, 0);
     }
     public static Vector3 operator *(float b, Vector3 a){
@@ -391,11 +391,11 @@ class gameObj{
             this.Children.Translate(this.Position - position, rotation);
         }
     }
-    public TextureDatabase Texture(TextureStyles? style = null){
+    public TextureDatabase Texture(){
         if(HasComponent<Texturer>()){
             Texturer t = this.GetComponent<Texturer>();
             if(t.isEvenTextured){
-                return t.Texture(this.Children, style?? TextureStyles.StretchToFit);
+                return t.Texture(this.Children);
             }
         }
         return TextureDatabase.Empty;
