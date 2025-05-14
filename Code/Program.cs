@@ -2,6 +2,7 @@ using Timer = System.Timers.Timer;
 using System.Timers;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 class Entry{
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static CancellationTokenSource Cts{get; private set;}
@@ -13,6 +14,7 @@ class Entry{
     public static Form1 f;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static void Main(){
+        Entry.uiContext = SynchronizationContext.Current;
         ApplicationConfiguration.Initialize();
         Initialise();
 		StorageManager.filePath = AppDomain.CurrentDomain.BaseDirectory;
@@ -20,11 +22,12 @@ class Entry{
         Update += f._Invoke;
         Loop();
         Application.Run(f);
+        gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(AppDomain.CurrentDomain.BaseDirectory+@"Cache\Images\GrassBlock.png"))], "Cube");
     }
     static unsafe void Initialise(){
         Cts = new CancellationTokenSource();
         TUpdate = CollisionManager.Collider;
-        Update = PaintSquare;
+        Update = BuildSquare;
         Start = ExternalControl.StartTimer;
         f = new();
         Buffer = new(f.Width, f.Height);
@@ -42,7 +45,7 @@ class Entry{
         });
     }
     //Paint the enviroment.
-    static void PaintSquare(){
+    static void BuildSquare(){
         try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.Cts.IsCancellationRequested}";}
         catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
         int formHeight;
@@ -60,8 +63,13 @@ class Entry{
             if(!int.IsEvenInteger(Buffer.Count)){Buffer.RemoveAt(Buffer.Count-1);}
             Entry.Buffer.Initialise(new TextureDatabase(Buffer, Color.White), formWidth, formHeight);
         }
-        
-        
+    }
+    static void BuildCube(){
+        try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.Cts.IsCancellationRequested}";}
+        catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
+        int formHeight = f.Height;
+        int formWidth = f.Width;
+        Entry.Buffer = ViewPort.Convert(f.Width, f.Height);
     }
 }
 static class ExternalControl{
@@ -91,7 +99,6 @@ public partial class Form1 : Form{
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     override protected void OnLoad(EventArgs e){
-        Entry.uiContext = SynchronizationContext.Current;
         base.OnLoad(e);
         this.buffer = this.Size;
         Entry.Start();
@@ -104,13 +111,6 @@ public partial class Form1 : Form{
                         this.Refresh();
                     }
             });
-        }
-    }
-    public void SetFormTitle(string title){
-        if(this.InvokeRequired){
-            this.BeginInvoke(new Action(() => this.Text = title));
-        } else {
-            this.Text = title;
         }
     }
     protected override void OnClosing(CancelEventArgs e){

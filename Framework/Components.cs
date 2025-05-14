@@ -57,6 +57,7 @@ class Texturer : Rndrcomponent{
     static Texturer(){textureData = [];}
     public static TextureDatabase textureData;
     TextureStyles tS;
+    public void UpdateTextureStyle(TextureStyles tS){this.tS = tS;}
     /// <summary>Store the image file in this before Initialising.</summary>
     Bitmap buffer;
     Path filePath;
@@ -67,14 +68,14 @@ class Texturer : Rndrcomponent{
     int DataEnd;
 #pragma warning disable CS8618
     public Texturer(){
-        this.filePath = new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false);
+        this.filePath = new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\GrassBlock.png", [".bmp", ".jpeg", ".png"], false);
         this.DataEnd =0;
         this.tS = TextureStyles.Empty;
         this.DataStart =0;
     }
 #pragma warning restore CS8618
     public Texturer(string? filePath = null, TextureStyles? tS = null){
-        this.filePath = filePath == null? new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\Grass Block.png", [".bmp", ".jpeg", ".png"], false):
+        this.filePath = filePath == null? new Path(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Images\GrassBlock.png", [".bmp", ".jpeg", ".png"], false):
         new Path(filePath, [".bmp", ".jpeg", ".png"], false);
         this.tS = tS?? TextureStyles.Empty;
         buffer = new Bitmap(1, 1);

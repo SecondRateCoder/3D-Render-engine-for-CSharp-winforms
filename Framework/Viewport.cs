@@ -49,6 +49,22 @@ static class ViewPort{
     public static void Present(){
         bmp.Update(backBuffer);
     }
+    public static TextureDatabase DrawBLine(TextureDatabase.TexturePoint a, TextureDatabase.TexturePoint b){
+        Point[] points = DrawBLine(new Point((int)a.p.X, (int)a.p.Y), new Point((int)b.p.X, (int)b.p.Y));
+        TextureDatabase result = [];
+        float colorBlend = 0;
+        float Colorincrement = (float)(points.Length/Math.Sqrt((int)Math.Abs(b.p.X - a.p.X)^2 + (int)Math.Abs(b.p.Y - a.p.Y)^2));
+        for(int i = 0; i< points.Length;i++){
+            Color c = Color.FromArgb(
+                (int)Math.Clamp((a.c.A/colorBlend) + (b.c.A*colorBlend), 0, byte.MaxValue), 
+                (int)Math.Clamp((a.c.R/colorBlend) + (b.c.R*colorBlend), 0, byte.MaxValue), 
+                (int)Math.Clamp((a.c.G/colorBlend) + (b.c.G*colorBlend), 0, byte.MaxValue), 
+                (int)Math.Clamp((a.c.B/colorBlend) + (b.c.B*colorBlend), 0, byte.MaxValue));
+            result.Append(new TextureDatabase.TexturePoint(new PointF(points[i].X, points[i].Y), c));
+            colorBlend += Colorincrement;
+        }
+        return result;
+    }
     public static Point[] DrawBLine(Point a, Point b){
         int dx = Math.Abs(b.X - a.X);
         int dy = Math.Abs(b.Y - a.Y);
@@ -92,17 +108,28 @@ static class ViewPort{
     public static void MarkPPMatrixDirty(){
         _ppMatrixDirty = true;
     }
+    public static WriteableBitmap Convert(int width, int height){
+        WriteableBitmap bmp = new(width, height);
+        foreach(gameObj gO in World.worldData){
+            Vector3[] PolygonOrigins = new Vector3[gO.GetComponent<Mesh>().Count];
+            for(int cc =0; cc < PolygonOrigins.Length;cc++){PolygonOrigins[cc] = gO.GetComponent<Mesh>()[cc].origin;}
+            bmp.Set(Convert_(gO.Texture(TextureStyles.StretchToFit), PolygonOrigins), (int)(255/2));
+        }
+        return bmp;
+    }
     static WriteableBitmap Convert_(TextureDatabase tD, Vector3[] Origins){
 		WriteableBitmap bmp = new(Entry.f.Width, Entry.f.Height);
 		if(tD.Count % Origins.Length != 0 && tD.Count > Origins.Length){throw new ArgumentOutOfRangeException();}
         for(int cc = 0; cc < tD.Count;cc++){
 			float increment = Origins.Length/tD.Count;
 			TextureDatabase buffer = tD.Slice_PerSectionRanges(cc);
-			for(int cc_ = 0; cc_ < buffer.Count; cc++){
+			for(int cc_ = 0; cc_ < buffer.Count; cc_++){
+                buffer.AddRangeAt(cc_, (IEnumerable<TextureDatabase.TexturePoint>)DrawBLine(buffer[cc_], buffer[cc_+1]));
 				buffer[cc_] = new TextureDatabase.TexturePoint(
-					new PointF(buffer[cc].p.X * ((PointF)Origins[cc]).X, buffer[cc].p.Y * ((PointF)Origins[cc]).Y), 
-					buffer[cc_].c);
+                new PointF(buffer[cc].p.X * ((PointF)Origins[cc]).X, buffer[cc].p.Y * ((PointF)Origins[cc]).Y), 
+                buffer[cc_].c);
 			}
+            tD.AssignRangeAt(cc, buffer.GetIEnumerable(), false);
 		}
 		bmp.Set(tD);
         return bmp;

@@ -391,8 +391,9 @@ class gameObj{
             this.Children.Translate(this.Position - position, rotation);
         }
     }
-    public TextureDatabase Texture(){
+    public TextureDatabase Texture(TextureStyles? tS = null){
         if(HasComponent<Texturer>()){
+            if(tS != null){this.GetComponent<Texturer>().UpdateTextureStyle(tS);}
             Texturer t = this.GetComponent<Texturer>();
             if(t.isEvenTextured){
                 return t.Texture(this.Children);
@@ -400,6 +401,7 @@ class gameObj{
         }
         return TextureDatabase.Empty;
     }
+    public bool ChangeTextureStyle(TextureStyles tS){if(this.HasComponent<Texturer>()){this.GetComponent<Texturer>().UpdateTextureStyle(tS);return true;}else{return false;}}
     ///<summary>
     /// This method returns the Polygon closest to the Position parameter.
     ///</summary>
@@ -419,7 +421,9 @@ class gameObj{
         return (scope, Dis <= LowerBd && Dis > 0? true: false);
     }
 
-
+    public static void Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
+        World.worldData.Add(new gameObj(position, rotation, false, children, Mycomponents, name));
+    }
     public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         this.Position = position;
         if(children != null){

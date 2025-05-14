@@ -45,7 +45,7 @@ class WriteableBitmap{
 		
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public void Set(byte a, byte r, byte g, byte b, float x, float y){
+    public void Set(byte a, byte r, byte g, byte b, float x, float y, int Transparency = 0){
         bool function((byte a, byte r, byte g, byte b, float x, float y) args){
             lock(this){Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
             BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
@@ -57,7 +57,7 @@ class WriteableBitmap{
                 pixel[1] = g;
                 pixel[2] = r;
                 if(this.bytesPerPixel == 4){
-                    pixel[3] = a;
+                    pixel[3] = (byte)Transparency;
                 }
             }
             bmp.UnlockBits(bitmapData);
@@ -84,14 +84,28 @@ class WriteableBitmap{
         */
         //bmp.SetPixel(x, y, Color.FromArgb((int)a, (int)r, (int)g, (int)b));
     }
-    public void Set(TextureDatabase TextureData){
+    public void Set(TextureDatabase TextureData, int Transperancy = 255){
         int cc =0;
+        Math.Clamp(Transperancy, 0, 255);
         for((PointF p, Color c) bit = TextureData[cc]; cc < TextureData.Count;cc++, bit = TextureData[cc]){
-            Set(bit.c.A, bit.c.R, bit.c.G, bit.c.B, bit.p.X, bit.p.Y);
+            Set(bit.c.A, bit.c.R, bit.c.G, bit.c.B, bit.p.X, bit.p.Y, Transperancy);
+        }
+    }
+    public void Set(WriteableBitmap bmp, int TransparencyOverride = 0){
+        if(TransparencyOverride == 0 || (this.pixelWidth * this.pixelHeight) != (bmp.pixelWidth * bmp.pixelHeight)){return;}else{
+            for(int y =0; y < this.pixelHeight; y++){
+                for(int x =0; x < this.pixelHeight; x++){
+                    this.Set(
+                        (byte)Math.Clamp((this.Get(x, y).c.A + bmp.Get(x, y).c.A)/2, 0, byte.MaxValue), 
+                        (byte)Math.Clamp((this.Get(x, y).c.R + bmp.Get(x, y).c.R)/2, 0, byte.MaxValue), 
+                        (byte)Math.Clamp((this.Get(x, y).c.G + bmp.Get(x, y).c.G)/2, 0, byte.MaxValue), 
+                        (byte)Math.Clamp((this.Get(x, y).c.B + bmp.Get(x, y).c.B)/2, 0, byte.MaxValue), x, y);
+                }
+            }
         }
     }
 
-    public (PointF p, Color c) Get(int x, int y){
+    public TextureDatabase.TexturePoint Get(int x, int y){
         ValidateBounds(x, y);
 
         var rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
@@ -102,7 +116,7 @@ class WriteableBitmap{
             int stride = bitmapData.Stride;
             unsafe{
                 byte* pixel = (byte*)ptr + (y * stride) + (x * bytesPerPixel);
-                return (new PointF(x, y), Color.FromArgb(pixel[3], pixel[2], pixel[1], pixel[0]));
+                return (TextureDatabase.TexturePoint)(new PointF(x, y), Color.FromArgb(pixel[3], pixel[2], pixel[1], pixel[0]));
             }
         }finally{
             bmp.UnlockBits(bitmapData);

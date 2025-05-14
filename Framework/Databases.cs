@@ -5,6 +5,7 @@ class TextureDatabase : IEnumerable{
     public delegate TexturePoint ForEachDelegate(TexturePoint item);
     public delegate bool ForEachDelegateConditional((PointF point, Color color) item);
     List<TexturePoint> td;
+    public IEnumerable<TexturePoint> GetIEnumerable(){return this.td;}
     /// <summary>This serves to define sections of TextureData within the td List.</summary>
     /// <remarks>This property's main purpose is for applying <see cref="TextureStyles"/>, especially for more complex ones such as <see cref="TextureStyles.StretchToFit"/> 
     /// as well as for Rendering.</remarks>
