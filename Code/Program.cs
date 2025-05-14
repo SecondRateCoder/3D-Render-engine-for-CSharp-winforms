@@ -44,7 +44,7 @@ class Entry{
     static long ActualMemUsage;
     static int selfDelay;
     static Process cProc;
-    public static async void Loop(){
+    public static async Task Loop(){
         float iteration = 0;
         await Task.Run(async () => {
             cProc = Process.GetCurrentProcess();
@@ -52,7 +52,7 @@ class Entry{
             while(!Entry.Cts.IsCancellationRequested){
                 //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
                 MemControl();
-                if(Entry.Buffer != null && iteration >= 1){f.Invalidate();  UpdateUI(() => f.Refresh());}
+                if(Entry.Buffer != null && iteration >= selfDelay/10){f.Invalidate();  UpdateUI(() => f.Refresh());}
                 await Task.Delay(selfDelay, Entry.Cts.Token);
             }
             if(Update != null){Entry.Update();}
@@ -60,8 +60,8 @@ class Entry{
         });
     }
     static void MemControl(){
-        if(ActualMemUsage > TotalMemUsage* .5){selfDelay += 10;}
-        if(ActualMemUsage > PeakMemUsage * .6){selfDelay += 100;}
+        if(ActualMemUsage > TotalMemUsage* .5){selfDelay = Math.Min(selfDelay + 10, 500);}
+        if(ActualMemUsage > PeakMemUsage * .6){selfDelay = Math.Min(selfDelay + 100, 500);}
         if(ActualMemUsage < ((TotalMemUsage + PeakMemUsage)/2)* .5 && selfDelay > 10){selfDelay -= 10;}
     }
     //Paint the enviroment.
@@ -79,10 +79,10 @@ class Entry{
                 (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
             };
         Point[] Buffer = [.. ViewPort.DrawBLine(values[0].p, values[1].p)];
-        Span<Point> Buffer_ = new Span<Point>(Buffer);
+        Span<Point> Buffer_ = new(Buffer);
         for(int cc =2; cc < values.Length-1; cc++){
             if(!int.IsEvenInteger(Buffer_.Length)){Buffer_[Buffer_.Length-1] = Point.Empty;}
-            Entry.Buffer.Initialise(new TextureDatabase(Buffer, Color.White), formWidth, formHeight);
+            Entry.Buffer.Set(new TextureDatabase(Buffer, Color.White), 255);
         }
     }
     static void BuildWorld(){
@@ -138,7 +138,7 @@ public partial class Form1 : Form{
         base.OnClosing(e);
         Entry.Cts?.Cancel();
         ExternalControl.StopTimer();
-        Entry.Buffer?.Dispose();
+        GC.SuppressFinalize(Entry.Buffer);
     }
     Size buffer;
     protected override void OnPaint(PaintEventArgs e){
