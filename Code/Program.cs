@@ -23,7 +23,7 @@ class Entry{
         TUpdate += (sender, e) => {
             Entry.ActualMemUsage = cProc.WorkingSet64;
             Entry.PeakMemUsage = cProc.PeakWorkingSet64;
-            Entry.TotalMemUsage = GC.GetTotalAllocatedBytes(true);
+            Entry.TotalMemUsage = GC.GetTotalMemory(false);
         };
         Loop();
         Application.Run(f);
@@ -45,21 +45,24 @@ class Entry{
     static int selfDelay;
     static Process cProc;
     public static async void Loop(){
-        await Task.Run(() => {
+        float iteration = 0;
+        await Task.Run(async () => {
             cProc = Process.GetCurrentProcess();
             if(Entry.Cts == null){Cts = new CancellationTokenSource();}
             while(!Entry.Cts.IsCancellationRequested){
                 //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
-                if(ActualMemUsage > TotalMemUsage* .5){selfDelay += 10;}
-                if(ActualMemUsage > PeakMemUsage * .6){selfDelay += 100;}
-                GC.Collect();
-                UpdateUI(() => f.Refresh());
-                if(Entry.Buffer != null){f.Invalidate();}
-                Task.Delay(selfDelay);
+                MemControl();
+                if(Entry.Buffer != null && iteration >= 1){f.Invalidate();  UpdateUI(() => f.Refresh());}
+                await Task.Delay(selfDelay, Entry.Cts.Token);
             }
             if(Update != null){Entry.Update();}
-            GC.Collect();
+            iteration+=.1f;
         });
+    }
+    static void MemControl(){
+        if(ActualMemUsage > TotalMemUsage* .5){selfDelay += 10;}
+        if(ActualMemUsage > PeakMemUsage * .6){selfDelay += 100;}
+        if(ActualMemUsage < ((TotalMemUsage + PeakMemUsage)/2)* .5 && selfDelay > 10){selfDelay -= 10;}
     }
     //Paint the enviroment.
     static void BuildSquare(){
@@ -75,9 +78,10 @@ class Entry{
                 (new Point((int)(0.75 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
                 (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
             };
-        for(int cc =0; cc < values.Length-1; cc++){
-            List<Point> Buffer = [.. ViewPort.DrawBLine(values[cc].p, values[cc+1].p)];
-            if(!int.IsEvenInteger(Buffer.Count)){Buffer.RemoveAt(Buffer.Count-1);}
+        Point[] Buffer = [.. ViewPort.DrawBLine(values[0].p, values[1].p)];
+        Span<Point> Buffer_ = new Span<Point>(Buffer);
+        for(int cc =2; cc < values.Length-1; cc++){
+            if(!int.IsEvenInteger(Buffer_.Length)){Buffer_[Buffer_.Length-1] = Point.Empty;}
             Entry.Buffer.Initialise(new TextureDatabase(Buffer, Color.White), formWidth, formHeight);
         }
     }
