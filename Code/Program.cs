@@ -20,6 +20,11 @@ class Entry{
 		StorageManager.filePath = AppDomain.CurrentDomain.BaseDirectory;
 		ExternalControl.Initialise();
         Update += f._Invoke;
+        TUpdate += (sender, e) => {
+            Entry.ActualMemUsage = cProc.WorkingSet64;
+            Entry.PeakMemUsage = cProc.PeakWorkingSet64;
+            Entry.TotalMemUsage = GC.GetTotalAllocatedBytes(true);
+        };
         Loop();
         Application.Run(f);
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(AppDomain.CurrentDomain.BaseDirectory+@"Cache\Images\GrassBlock.png"))], "Cube");
@@ -29,16 +34,28 @@ class Entry{
         TUpdate = CollisionManager.Collider;
         Update = BuildSquare;
         Start = ExternalControl.StartTimer;
+        Start += ()=>{PeakMemUsage = GC.GetTotalAllocatedBytes();};
         f = new();
         Buffer = new(f.Width, f.Height);
     }
     public static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
+    static long TotalMemUsage;
+    static long PeakMemUsage;
+    static long ActualMemUsage;
+    static int selfDelay;
+    static Process cProc;
     public static async void Loop(){
         await Task.Run(() => {
+            cProc = Process.GetCurrentProcess();
             if(Entry.Cts == null){Cts = new CancellationTokenSource();}
             while(!Entry.Cts.IsCancellationRequested){
+                //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
+                if(ActualMemUsage > TotalMemUsage* .5){selfDelay += 10;}
+                if(ActualMemUsage > PeakMemUsage * .6){selfDelay += 100;}
+                GC.Collect();
                 UpdateUI(() => f.Refresh());
                 if(Entry.Buffer != null){f.Invalidate();}
+                Task.Delay(selfDelay);
             }
             if(Update != null){Entry.Update();}
             GC.Collect();
@@ -64,7 +81,7 @@ class Entry{
             Entry.Buffer.Initialise(new TextureDatabase(Buffer, Color.White), formWidth, formHeight);
         }
     }
-    static void BuildCube(){
+    static void BuildWorld(){
         try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.Cts.IsCancellationRequested}";}
         catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
         int formHeight = f.Height;
