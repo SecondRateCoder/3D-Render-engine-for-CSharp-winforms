@@ -134,9 +134,9 @@ class WriteableBitmap{
                 this.disposed = true;
                 GC.SuppressFinalize(this);
             }else{
-                string filePath = AppDomain.CurrentDomain.BaseDirectory + 
+                string filePath = Directory.GetCurrentDirectory() + 
                 @"Cache\Images\" + 
-                $"({Directory.EnumerateFiles(AppDomain.CurrentDomain.BaseDirectory + 
+                $"({Directory.EnumerateFiles(Directory.GetCurrentDirectory() + 
                 @"Cache\Images\").Count()}).png";
                 Directory.CreateDirectory(filePath);
                 File.Create(filePath);

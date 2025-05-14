@@ -200,15 +200,18 @@ struct Polygon{
 		Vector3 height = new Vector3(0, Height, 0);
 		Vector3 PieceRotation = new Vector3(0, 0, 360/sides);
 		Vector3 _buff = new Vector3(0, Height/2, width);
-		for(int i = -width;i < sides;i++){
+		for(int i = 1;i < sides;i++){
 			Vector3 CSection = _buff;
-			_buff.RotateAround(height/2, PieceRotation*i);
+			_buff.RotateAround(PieceRotation*i, height/2);
             //Add top face.
 			result.Add(new Polygon(height/2, new Vector3(_buff.X, _buff.Y+_buff.Z-bevel, 0), new Vector3(_buff.X, _buff.Y-bevel, 0)));
             //Add cross-section.
 			result.Add(new Polygon(new Vector3(_buff.X, _buff.Y-bevel, _buff.Z), new Vector3(CSection.X, CSection.Y-bevel, CSection.Z), CSection-height));
             //Add bottom face, adds the entry before the cross-section is added.
 			result.Add(result[result.Count-1]-height);
+            _buff.X = 0;
+            _buff.Y = Height/2;
+            _buff.Z = width;
 		}
 		return result.ToArray();
 	}
@@ -289,9 +292,9 @@ class Mesh : Rndrcomponent, IEnumerable{
         if(!disposing){
             byte[] me = this.ToByte();
             AsyncCallback? callback = (ar) => {if(!ar.IsCompleted){throw new ArgumentException();}};
-            File.Create(AppDomain.CurrentDomain.BaseDirectory + 
+            File.Create(StorageManager.ApplicationPath + 
             @"Cache\Temp" + 
-            Directory.EnumerateFiles(AppDomain.CurrentDomain.BaseDirectory + @"Cache\Temp").Count()+1 + (Collider? ".cll": ".msh")).
+            Directory.EnumerateFiles(StorageManager.ApplicationPath + @"Cache\Temp").Count()+1 + (Collider? ".cll": ".msh")).
             BeginWrite(me, 0, me.Length, callback, Thread.CurrentThread.Name);
         }
         this.mesh = [];

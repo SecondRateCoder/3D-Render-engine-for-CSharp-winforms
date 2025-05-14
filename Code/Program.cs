@@ -17,7 +17,7 @@ class Entry{
         Entry.uiContext = SynchronizationContext.Current;
         ApplicationConfiguration.Initialize();
         Initialise();
-		StorageManager.filePath = AppDomain.CurrentDomain.BaseDirectory;
+		StorageManager.filePath = StorageManager.ApplicationPath;
 		ExternalControl.Initialise();
         Update += f._Invoke;
         TUpdate += (sender, e) => {
@@ -26,8 +26,9 @@ class Entry{
             Entry.TotalMemUsage = GC.GetTotalMemory(false);
         };
         Loop();
+        //Source of Exception
+        gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
         Application.Run(f);
-        gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(AppDomain.CurrentDomain.BaseDirectory+@"Cache\Images\GrassBlock.png"))], "Cube");
     }
     static unsafe void Initialise(){
         Cts = new CancellationTokenSource();
