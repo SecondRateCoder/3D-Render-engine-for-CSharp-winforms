@@ -74,7 +74,7 @@ class Camera{
         this.far = Fov;
         this.Position = pos == null? Vector3.Zero: pos.Value;
         this.Rotation = pos == null? Vector3.Zero: pos.Value;
-        _ = KeyPressController.AttachKeyhandles(
+        _ = InputController.AttachKeyhandles(
             new ControlScheme(
                 [Keys.W, Keys.A, Keys.S, Keys.D, Keys.Q, Keys.E], 
 

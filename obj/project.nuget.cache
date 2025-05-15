@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "DUvXF+oLLjs=",
+  "dgSpecHash": "Z62BNxavaN4=",
   "success": true,
   "projectFilePath": "/workspaces/3D-Render-engine-for-CSharp-winforms/MapGameWinforms.csproj",
   "expectedPackageFiles": [
@@ -26,6 +26,7 @@
     "/home/codespace/.nuget/packages/runtime.ubuntu.16.04-x64.runtime.native.system.security.cryptography.openssl/4.3.0/runtime.ubuntu.16.04-x64.runtime.native.system.security.cryptography.openssl.4.3.0.nupkg.sha512",
     "/home/codespace/.nuget/packages/runtime.ubuntu.16.10-x64.runtime.native.system.security.cryptography.openssl/4.3.0/runtime.ubuntu.16.10-x64.runtime.native.system.security.cryptography.openssl.4.3.0.nupkg.sha512",
     "/home/codespace/.nuget/packages/sharpdx/4.2.0/sharpdx.4.2.0.nupkg.sha512",
+    "/home/codespace/.nuget/packages/sharpdx.directinput/4.2.0/sharpdx.directinput.4.2.0.nupkg.sha512",
     "/home/codespace/.nuget/packages/system.appcontext/4.3.0/system.appcontext.4.3.0.nupkg.sha512",
     "/home/codespace/.nuget/packages/system.buffers/4.3.0/system.buffers.4.3.0.nupkg.sha512",
     "/home/codespace/.nuget/packages/system.collections/4.3.0/system.collections.4.3.0.nupkg.sha512",

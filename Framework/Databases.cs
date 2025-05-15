@@ -237,15 +237,15 @@ class CollisionDatabase : IEnumerable{
 }
 class ControlScheme{
     public int Count{get{return cS.Count;}}
-    List<(Keys key, KeyPressController.KeyPressedDelegate kD)> cS = [];
-    public (Keys key, KeyPressController.KeyPressedDelegate kD) this[int index]{
+    List<(Keys key, InputController.KeyPressedDelegate kD)> cS = [];
+    public (Keys key, InputController.KeyPressedDelegate kD) this[int index]{
         get{return this.cS[index];}
         set{this.cS[index] = value;}
     }
-    public ControlScheme(IEnumerable<Keys> keys, IEnumerable<KeyPressController.KeyPressedDelegate> controls){
+    public ControlScheme(IEnumerable<Keys> keys, IEnumerable<InputController.KeyPressedDelegate> controls){
         if(keys.Count() != controls.Count()){throw new TypeInitializationException(nameof(ControlScheme), new ArgumentOutOfRangeException());}else{
             int Length = keys.Count();
-            this.cS = new List<(Keys key, KeyPressController.KeyPressedDelegate kD)>(Length);
+            this.cS = new List<(Keys key, InputController.KeyPressedDelegate kD)>(Length);
             for(int cc =0; cc < Length;cc++){
                 this.cS[cc] = (keys.ElementAt(cc), controls.ElementAt(cc));
             }

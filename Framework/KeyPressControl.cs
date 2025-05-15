@@ -1,9 +1,16 @@
+//dotnet add package SharpDX.DirectInput --version 4.2.0
+
+
+
+using SharpDX.DirectInput;
+
+
 /// <summary>
 /// Handles the control, calling and attaching of functions to Key calls.
 /// </summary>
 /// <remarks>For parameters named key; the TrueBind is needed and 
 /// for Parameters named keyBind; the surface key bind is needed</remarks>
-static class KeyPressController{
+static class InputController{
     public delegate void KeyPressedDelegate(int duration);
     static void OnA(int duration) { /* handle A key */ }
     static void OnB(int duration) { /* handle B key */ }
@@ -144,146 +151,6 @@ static class KeyPressController{
     static void OnSelectMedia(int duration) { /* handle SelectMedia key */ }
     static void OnLaunchApplication1(int duration) { /* handle LaunchApplication1 key */ }
     static void OnLaunchApplication2(int duration) { /* handle LaunchApplication2 key */ }
-    // static void OnA(int duration, params int[]? extraParams) { /* handle A key */ }
-    // static void OnB(int duration, params int[]? extraParams) { /* handle B key */ }
-    // static void OnC(int duration, params int[]? extraParams) { /* handle C key */ }
-    // static void OnD(int duration, params int[]? extraParams) { /* handle D key */ }
-    // static void OnE(int duration, params int[]? extraParams) { /* handle E key */ }
-    // static void OnF(int duration, params int[]? extraParams) { /* handle F key */ }
-    // static void OnG(int duration, params int[]? extraParams) { /* handle G key */ }
-    // static void OnH(int duration, params int[]? extraParams) { /* handle H key */ }
-    // static void OnI(int duration, params int[]? extraParams) { /* handle I key */ }
-    // static void OnJ(int duration, params int[]? extraParams) { /* handle J key */ }
-    // static void OnK(int duration, params int[]? extraParams) { /* handle K key */ }
-    // static void OnL(int duration, params int[]? extraParams) { /* handle L key */ }
-    // static void OnM(int duration, params int[]? extraParams) { /* handle M key */ }
-    // static void OnN(int duration, params int[]? extraParams) { /* handle N key */ }
-    // static void OnO(int duration, params int[]? extraParams) { /* handle O key */ }
-    // static void OnP(int duration, params int[]? extraParams) { /* handle P key */ }
-    // static void OnQ(int duration, params int[]? extraParams) { /* handle Q key */ }
-    // static void OnR(int duration, params int[]? extraParams) { /* handle R key */ }
-    // static void OnS(int duration, params int[]? extraParams) { /* handle S key */ }
-    // static void OnT(int duration, params int[]? extraParams) { /* handle T key */ }
-    // static void OnU(int duration, params int[]? extraParams) { /* handle U key */ }
-    // static void OnV(int duration, params int[]? extraParams) { /* handle V key */ }
-    // static void OnW(int duration, params int[]? extraParams) { /* handle W key */ }
-    // static void OnX(int duration, params int[]? extraParams) { /* handle X key */ }
-    // static void OnY(int duration, params int[]? extraParams) { /* handle Y key */ }
-    // static void OnZ(int duration, params int[]? extraParams) { /* handle Z key */ }
-
-    // // Numbers (top row)
-    // static void OnD0(int duration, params int[]? extraParams) { /* handle 0 key */ }
-    // static void OnD1(int duration, params int[]? extraParams) { /* handle 1 key */ }
-    // static void OnD2(int duration, params int[]? extraParams) { /* handle 2 key */ }
-    // static void OnD3(int duration, params int[]? extraParams) { /* handle 3 key */ }
-    // static void OnD4(int duration, params int[]? extraParams) { /* handle 4 key */ }
-    // static void OnD5(int duration, params int[]? extraParams) { /* handle 5 key */ }
-    // static void OnD6(int duration, params int[]? extraParams) { /* handle 6 key */ }
-    // static void OnD7(int duration, params int[]? extraParams) { /* handle 7 key */ }
-    // static void OnD8(int duration, params int[]? extraParams) { /* handle 8 key */ }
-    // static void OnD9(int duration, params int[]? extraParams) { /* handle 9 key */ }
-
-    // // Numpad
-    // static void OnNumPad0(int duration, params int[]? extraParams) { /* handle NumPad0 key */ }
-    // static void OnNumPad1(int duration, params int[]? extraParams) { /* handle NumPad1 key */ }
-    // static void OnNumPad2(int duration, params int[]? extraParams) { /* handle NumPad2 key */ }
-    // static void OnNumPad3(int duration, params int[]? extraParams) { /* handle NumPad3 key */ }
-    // static void OnNumPad4(int duration, params int[]? extraParams) { /* handle NumPad4 key */ }
-    // static void OnNumPad5(int duration, params int[]? extraParams) { /* handle NumPad5 key */ }
-    // static void OnNumPad6(int duration, params int[]? extraParams) { /* handle NumPad6 key */ }
-    // static void OnNumPad7(int duration, params int[]? extraParams) { /* handle NumPad7 key */ }
-    // static void OnNumPad8(int duration, params int[]? extraParams) { /* handle NumPad8 key */ }
-    // static void OnNumPad9(int duration, params int[]? extraParams) { /* handle NumPad9 key */ }
-    // static void OnDecimal(int duration, params int[]? extraParams) { /* handle Decimal key */ }
-    // static void OnAdd(int duration, params int[]? extraParams) { /* handle Add key */ }
-    // static void OnSubtract(int duration, params int[]? extraParams) { /* handle Subtract key */ }
-    // static void OnMultiply(int duration, params int[]? extraParams) { /* handle Multiply key */ }
-    // static void OnDivide(int duration, params int[]? extraParams) { /* handle Divide key */ }
-
-    // // Function keys
-    // static void OnF1(int duration, params int[]? extraParams) { /* handle F1 key */ }
-    // static void OnF2(int duration, params int[]? extraParams) { /* handle F2 key */ }
-    // static void OnF3(int duration, params int[]? extraParams) { /* handle F3 key */ }
-    // static void OnF4(int duration, params int[]? extraParams) { /* handle F4 key */ }
-    // static void OnF5(int duration, params int[]? extraParams) { /* handle F5 key */ }
-    // static void OnF6(int duration, params int[]? extraParams) { /* handle F6 key */ }
-    // static void OnF7(int duration, params int[]? extraParams) { /* handle F7 key */ }
-    // static void OnF8(int duration, params int[]? extraParams) { /* handle F8 key */ }
-    // static void OnF9(int duration, params int[]? extraParams) { /* handle F9 key */ }
-    // static void OnF10(int duration, params int[]? extraParams) { /* handle F10 key */ }
-    // static void OnF11(int duration, params int[]? extraParams) { /* handle F11 key */ }
-    // static void OnF12(int duration, params int[]? extraParams) { /* handle F12 key */ }
-    // static void OnF13(int duration, params int[]? extraParams) { /* handle F13 key */ }
-    // static void OnF14(int duration, params int[]? extraParams) { /* handle F14 key */ }
-    // static void OnF15(int duration, params int[]? extraParams) { /* handle F15 key */ }
-    // static void OnF16(int duration, params int[]? extraParams) { /* handle F16 key */ }
-    // static void OnF17(int duration, params int[]? extraParams) { /* handle F17 key */ }
-    // static void OnF18(int duration, params int[]? extraParams) { /* handle F18 key */ }
-    // static void OnF19(int duration, params int[]? extraParams) { /* handle F19 key */ }
-    // static void OnF20(int duration, params int[]? extraParams) { /* handle F20 key */ }
-    // static void OnF21(int duration, params int[]? extraParams) { /* handle F21 key */ }
-    // static void OnF22(int duration, params int[]? extraParams) { /* handle F22 key */ }
-    // static void OnF23(int duration, params int[]? extraParams) { /* handle F23 key */ }
-    // static void OnF24(int duration, params int[]? extraParams) { /* handle F24 key */ }
-
-    // // Navigation keys
-    // static void OnUp(int duration, params int[]? extraParams) { /* handle Up key */ }
-    // static void OnDown(int duration, params int[]? extraParams) { /* handle Down key */ }
-    // static void OnLeft(int duration, params int[]? extraParams) { /* handle Left key */ }
-    // static void OnRight(int duration, params int[]? extraParams) { /* handle Right key */ }
-    // static void OnHome(int duration, params int[]? extraParams) { /* handle Home key */ }
-    // static void OnEnd(int duration, params int[]? extraParams) { /* handle End key */ }
-    // static void OnPageUp(int duration, params int[]? extraParams) { /* handle PageUp key */ }
-    // static void OnPageDown(int duration, params int[]? extraParams) { /* handle PageDown key */ }
-    // static void OnInsert(int duration, params int[]? extraParams) { /* handle Insert key */ }
-    // static void OnDelete(int duration, params int[]? extraParams) { /* handle Delete key */ }
-
-    // // Other common keys
-    // static void OnEscape(int duration, params int[]? extraParams) { /* handle Escape key */ }
-    // static void OnTab(int duration, params int[]? extraParams) { /* handle Tab key */ }
-    // static void OnCapsLock(int duration, params int[]? extraParams) { /* handle CapsLock key */ }
-    // static void OnBack(int duration, params int[]? extraParams) { /* handle Back key */ }
-    // static void OnEnter(int duration, params int[]? extraParams) { /* handle Enter key */ }
-    // static void OnSpace(int duration, params int[]? extraParams) { /* handle Space key */ }
-    // static void OnPrintScreen(int duration, params int[]? extraParams) { /* handle PrintScreen key */ }
-    // static void OnScroll(int duration, params int[]? extraParams) { /* handle Scroll key */ }
-    // static void OnPause(int duration, params int[]? extraParams) { /* handle Pause key */ }
-
-    // // Punctuation and symbols
-    // static void OnOemtilde(int duration, params int[]? extraParams) { /* handle Oemtilde key */ }
-    // static void OnOemMinus(int duration, params int[]? extraParams) { /* handle OemMinus key */ }
-    // static void OnOemplus(int duration, params int[]? extraParams) { /* handle Oemplus key */ }
-    // static void OnOemOpenBrackets(int duration, params int[]? extraParams) { /* handle OemOpenBrackets key */ }
-    // static void OnOem6(int duration, params int[]? extraParams) { /* handle Oem6 key */ }
-    // static void OnOem5(int duration, params int[]? extraParams) { /* handle Oem5 key */ }
-    // static void OnOem1(int duration, params int[]? extraParams) { /* handle Oem1 key */ }
-    // static void OnOem7(int duration, params int[]? extraParams) { /* handle Oem7 key */ }
-    // static void OnOemcomma(int duration, params int[]? extraParams) { /* handle Oemcomma key */ }
-    // static void OnOemPeriod(int duration, params int[]? extraParams) { /* handle OemPeriod key */ }
-    // static void OnOemQuestion(int duration, params int[]? extraParams) { /* handle OemQuestion key */ }
-
-    // // Application and browser keys
-    // static void OnApps(int duration, params int[]? extraParams) { /* handle Apps key */ }
-    // static void OnSleep(int duration, params int[]? extraParams) { /* handle Sleep key */ }
-    // static void OnBrowserBack(int duration, params int[]? extraParams) { /* handle BrowserBack key */ }
-    // static void OnBrowserForward(int duration, params int[]? extraParams) { /* handle BrowserForward key */ }
-    // static void OnBrowserRefresh(int duration, params int[]? extraParams) { /* handle BrowserRefresh key */ }
-    // static void OnBrowserStop(int duration, params int[]? extraParams) { /* handle BrowserStop key */ }
-    // static void OnBrowserSearch(int duration, params int[]? extraParams) { /* handle BrowserSearch key */ }
-    // static void OnBrowserFavorites(int duration, params int[]? extraParams) { /* handle BrowserFavorites key */ }
-    // static void OnBrowserHome(int duration, params int[]? extraParams) { /* handle BrowserHome key */ }
-    // static void OnVolumeMute(int duration, params int[]? extraParams) { /* handle VolumeMute key */ }
-    // static void OnVolumeDown(int duration, params int[]? extraParams) { /* handle VolumeDown key */ }
-    // static void OnVolumeUp(int duration, params int[]? extraParams) { /* handle VolumeUp key */ }
-    // static void OnMediaNextTrack(int duration, params int[]? extraParams) { /* handle MediaNextTrack key */ }
-    // static void OnMediaPreviousTrack(int duration, params int[]? extraParams) { /* handle MediaPreviousTrack key */ }
-    // static void OnMediaStop(int duration, params int[]? extraParams) { /* handle MediaStop key */ }
-    // static void OnMediaPlayPause(int duration, params int[]? extraParams) { /* handle MediaPlayPause key */ }
-    // static void OnLaunchMail(int duration, params int[]? extraParams) { /* handle LaunchMail key */ }
-    // static void OnSelectMedia(int duration, params int[]? extraParams) { /* handle SelectMedia key */ }
-    // static void OnLaunchApplication1(int duration, params int[]? extraParams) { /* handle LaunchApplication1 key */ }
-    // static void OnLaunchApplication2(int duration, params int[]? extraParams) { /* handle LaunchApplication2 key */ }
-    // ...repeat for all other keys as needed...
     static readonly (Keys key, Keys TrueKey, KeyPressedDelegate AttachableElement)[] KeyBinds = [
           (Keys.D0, Keys.D0, OnD0), (Keys.D1, Keys.D1, OnD1), (Keys.D2, Keys.D2, OnD2), (Keys.D3, Keys.D3, OnD3), (Keys.D4, Keys.D4, OnD4)
         , (Keys.D5, Keys.D5, OnD5), (Keys.D6, Keys.D6, OnD6), (Keys.D7, Keys.D7, OnD7), (Keys.D8, Keys.D8, OnD8), (Keys.D9, Keys.D9, OnD9)
@@ -326,7 +193,9 @@ static class KeyPressController{
     ];
     static Dictionary<Keys, Keys> TrueKeyToKeyBind{get; set;}
     static Dictionary<Keys, int> TrueKeyToIndex{get; set;}
-    static KeyPressController(){
+
+
+    static InputController(){
         TrueKeyToIndex = [];
         TrueKeyToKeyBind = [];
         int cc =0;
@@ -336,6 +205,8 @@ static class KeyPressController{
             cc++;
         }
     }
+
+
 /// <summary>
 /// Sets the corresponding Key to a Bind.
 /// </summary>
@@ -393,6 +264,15 @@ static class KeyPressController{
             return seconds == 0? 1: seconds;
         });
     }
+    public static void InvokeKeyHandles(){
+        Keys[] keys = new Keys[Entry.f.keyBuffer.Length];
+        int cc =0;
+        foreach((DateTime Start, Keys key) item in Entry.f.keyBuffer){
+            keys[cc] = item.key;
+            cc++;
+        }
+        InvokeKeyHandles();
+    }
     public static void InvokeKeyHandles(Keys[] keys){
         foreach(Keys item in keys){
             InvokeKeyHandle(item);
@@ -403,5 +283,53 @@ static class KeyPressController{
             KeyBinds[cc].AttachableElement(GetDuration(keyBind).Result);
         }
         return;
+    }
+
+    static class GameControllerInterface{
+        static GameControllerInterface(){
+            joySticks = [];
+        }
+        static List<Joystick> joySticks;
+        public static void Create(){
+            DirectInput directInput = new();
+            // Find a Joystick Guid
+            Guid joystickGuid = Guid.Empty;
+            foreach (DeviceInstance deviceInstance in directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AllDevices))
+            {
+                joystickGuid = deviceInstance.InstanceGuid;
+            }
+            // If Gamepad not found, look for a Joystick
+            if (joystickGuid == Guid.Empty)
+            {
+                foreach (DeviceInstance deviceInstance in directInput.GetDevices(DeviceType.Joystick, DeviceEnumerationFlags.AllDevices))
+                {
+                    joystickGuid = deviceInstance.InstanceGuid;
+                }
+
+            }
+            // If Joystick not found, throws an error
+            if (joystickGuid == Guid.Empty)
+            {
+                MessageBox.Show("No Joystick or Gamepad found.");
+                return;
+            }
+            // Instantiate the joystick
+            Joystick joystick = new Joystick(directInput, joystickGuid);
+            MessageBox.Show($"Found Joystick/Gamepad with GUID: {joystickGuid.ToByteArray().Length}");
+            // Query all suported ForceFeedback effects
+            foreach (EffectInfo effectInfo in joystick.GetEffects())
+            {
+                MessageBox.Show($"Effect available: {effectInfo.Name}");
+            }
+            // Set BufferSize in order to use buffered data.
+            joystick.Properties.BufferSize = 128;
+            // Acquire the joystick
+            joystick.Acquire();
+            // Poll events from joystick
+            Entry.Update += (() =>{
+                joystick.Poll();
+                _ = joystick.GetBufferedData();
+            });
+        }
     }
 }

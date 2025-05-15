@@ -281,6 +281,23 @@
           }
         }
       },
+      "SharpDX.DirectInput/4.2.0": {
+        "type": "package",
+        "dependencies": {
+          "NETStandard.Library": "1.6.1",
+          "SharpDX": "4.2.0"
+        },
+        "compile": {
+          "lib/netstandard1.3/SharpDX.DirectInput.dll": {
+            "related": ".pdb"
+          }
+        },
+        "runtime": {
+          "lib/netstandard1.3/SharpDX.DirectInput.dll": {
+            "related": ".pdb"
+          }
+        }
+      },
       "System.AppContext/4.3.0": {
         "type": "package",
         "dependencies": {
@@ -1563,6 +1580,23 @@
         "lib/uap10.0/SharpDX.pri",
         "sharpdx.4.2.0.nupkg.sha512",
         "sharpdx.nuspec"
+      ]
+    },
+    "SharpDX.DirectInput/4.2.0": {
+      "sha512": "is6Lm9zULyeTbUaLXktF+MwzmUYE8jofhA+6qgR1HBIyRJ/c2rZbeG1VvvGf4w6ktfq/q3AvUWTNzwgdU/+XOg==",
+      "type": "package",
+      "path": "sharpdx.directinput/4.2.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net40/SharpDX.DirectInput.dll",
+        "lib/net40/SharpDX.DirectInput.pdb",
+        "lib/net45/SharpDX.DirectInput.dll",
+        "lib/net45/SharpDX.DirectInput.pdb",
+        "lib/netstandard1.3/SharpDX.DirectInput.dll",
+        "lib/netstandard1.3/SharpDX.DirectInput.pdb",
+        "sharpdx.directinput.4.2.0.nupkg.sha512",
+        "sharpdx.directinput.nuspec"
       ]
     },
     "System.AppContext/4.3.0": {
@@ -3409,7 +3443,8 @@
   "projectFileDependencyGroups": {
     "net8.0-windows7.0": [
       "NUnit >= 4.3.2",
-      "SharpDX >= 4.2.0"
+      "SharpDX >= 4.2.0",
+      "SharpDX.DirectInput >= 4.2.0"
     ]
   },
   "packageFolders": {
@@ -3459,6 +3494,10 @@
             "version": "[4.3.2, )"
           },
           "SharpDX": {
+            "target": "Package",
+            "version": "[4.2.0, )"
+          },
+          "SharpDX.DirectInput": {
             "target": "Package",
             "version": "[4.2.0, )"
           }

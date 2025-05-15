@@ -21,6 +21,7 @@ class Entry{
 		StorageManager.filePath = StorageManager.ApplicationPath;
 		ExternalControl.Initialise();
         Update += f._Invoke;
+        Update += InputController.InvokeKeyHandles;
         TUpdate += (sender, e) => {
             Entry.ActualMemUsage = cProc.WorkingSet64;
             Entry.PeakMemUsage = cProc.PeakWorkingSet64;
@@ -189,7 +190,7 @@ public partial class Form1 : Form{
     int Position = 0;
     void AddKeyValue(Keys key){
         Position++;
-        if(Position >= 20){Position = 0;}
+        if(Position >= 20){InputController.InvokeKeyHandles();   Position = 0;}
         keyBuffer[Position] = (DateTime.Now, key);
     }
     protected override void OnKeyDown(KeyEventArgs e){
