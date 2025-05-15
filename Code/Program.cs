@@ -2,7 +2,7 @@ using Timer = System.Timers.Timer;
 using System.Timers;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 class Entry{
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static CancellationTokenSource Cts{get; private set;}
@@ -12,6 +12,7 @@ class Entry{
     public static Action Update;
     public static Action Start;
     public static Form1 f;
+    static int stackDepthChecking;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static void Main(){
         Entry.uiContext = SynchronizationContext.Current;
@@ -24,10 +25,18 @@ class Entry{
             Entry.ActualMemUsage = cProc.WorkingSet64;
             Entry.PeakMemUsage = cProc.PeakWorkingSet64;
             Entry.TotalMemUsage = GC.GetTotalMemory(false);
+            stackDepthChecking++;
+            if(stackDepthChecking >= 10){
+                GetStackDepth();
+            }
         };
-        Loop();
-        //Source of Exception
+        Start += () => {
+            GC.Collect();
+            GetStackDepth();
+        };
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
+        _ = Loop();
+        //Source of Exception
         Application.Run(f);
     }
     static unsafe void Initialise(){
@@ -43,8 +52,14 @@ class Entry{
     static long TotalMemUsage;
     static long PeakMemUsage;
     static long ActualMemUsage;
+    /// <summary>
+    /// The size of the Stack available to use.
+    /// </summary>
+    static int stackDepth;
     static int selfDelay;
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     static Process cProc;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static async Task Loop(){
         float iteration = 0;
         await Task.Run(async () => {
@@ -53,7 +68,7 @@ class Entry{
             while(!Entry.Cts.IsCancellationRequested){
                 //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
                 MemControl();
-                if(Entry.Buffer != null && iteration >= selfDelay/10){f.Invalidate();  UpdateUI(() => f.Refresh());}
+                if(Entry.Buffer != null && iteration >= selfDelay/10){UpdateUI(() => f.Invalidate());}
                 await Task.Delay(selfDelay, Entry.Cts.Token);
             }
             if(Update != null){Entry.Update();}
@@ -63,7 +78,27 @@ class Entry{
     static void MemControl(){
         if(ActualMemUsage > TotalMemUsage* .5){selfDelay = Math.Min(selfDelay + 10, 500);}
         if(ActualMemUsage > PeakMemUsage * .6){selfDelay = Math.Min(selfDelay + 100, 500);}
-        if(ActualMemUsage < ((TotalMemUsage + PeakMemUsage)/2)* .5 && selfDelay > 10){selfDelay -= 10;}
+        if(ActualMemUsage < (TotalMemUsage + PeakMemUsage)/2* .5 && selfDelay > 10){selfDelay -= 10;}
+        if(stackDepth > 1000){
+            selfDelay += 200;
+        }else{
+            selfDelay -= 10;
+        }
+    }
+    static void GetStackDepth(){
+        try{
+            while(true){
+                stackDepth++;
+                AllocateStackSpace(stackDepth);
+            }
+        }catch(InsufficientExecutionStackException){
+            return;
+        }
+    }
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static void AllocateStackSpace(int depth){
+        Span<byte> stackSpace = stackalloc byte[255];
+        stackSpace[0] = (byte)depth;
     }
     //Paint the enviroment.
     static void BuildSquare(){
@@ -149,5 +184,27 @@ public partial class Form1 : Form{
         }
         base.OnPaint(e);
         if(Entry.Buffer != null){e.Graphics.DrawImage((Bitmap)Entry.Buffer, Point.Empty);}
+    }
+    public (DateTime Start, Keys key)[] keyBuffer{get; private set;} = new (DateTime Start, Keys key)[20];
+    int Position = 0;
+    void AddKeyValue(Keys key){
+        Position++;
+        if(Position >= 20){Position = 0;}
+        keyBuffer[Position] = (DateTime.Now, key);
+    }
+    protected override void OnKeyDown(KeyEventArgs e){
+        base.OnKeyDown(e);
+        lock(keyBuffer){
+            AddKeyValue(e.KeyCode);
+        }
+    }
+    protected override void OnKeyUp(KeyEventArgs e){
+        base.OnKeyUp(e);
+        lock(keyBuffer){
+            AddKeyValue(e.KeyCode);
+        }
+    }
+    protected override void OnKeyPress(KeyPressEventArgs e){
+        base.OnKeyPress(e);
     }
 }

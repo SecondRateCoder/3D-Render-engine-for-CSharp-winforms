@@ -91,13 +91,8 @@ class Texturer : Rndrcomponent{
     /// <returns>TextureData.</returns>
     /// <exception cref="ArgumentOutOfRangeException">If <see cref="DataStart"/> or <see cref="DataEnd"/> hold invalid values</exception>
     public TextureDatabase Texture(){
-        ObjectDisposedException.ThrowIf(!this.Initialised, this);
-        if(0 > (this.DataStart|this.DataEnd) | textureData.Count < this.DataEnd | this.DataStart == 0 | this.DataEnd == 0 | this.DataStart < this.DataEnd){throw new ArgumentOutOfRangeException();}
-        TextureDatabase result =[];
-        for(int cc =0; cc < this.DataEnd - this.DataStart;cc++){
-            result.Append(textureData[cc + DataStart]);
-        }
-        return result;
+        ObjectDisposedException.ThrowIf(!this.Initialised | (this.DataEnd < this.DataStart), this);
+        return textureData.Slice(this.DataStart, this.DataEnd);
     }
     public TextureDatabase Texture(Mesh m, bool Append = true){
         List<PointF[]> uvPoint = new List<PointF[]>(m.Count);
@@ -115,62 +110,65 @@ class Texturer : Rndrcomponent{
     /// <remarks>This function is CPU intensive and should be used sparingly.</remarks>
     public TextureDatabase Texture(List<PointF[]> UVpoints, Mesh m, bool Append = true){
         ObjectDisposedException.ThrowIf(!this.Initialised, this);
-        TextureDatabase result = [];
         //Does this component have a texture, if not then just return the empty database.
-        if(!this.isEvenTextured){return result;}
+        if(!this.isEvenTextured){return [];}
         //!If this component has already appended it's data to the static textureData list then that is lovely, all this intensive math can chill.
         if((this.DataStart != 0) && (this.DataEnd != 0)){
             return this.Texture();
         }else{
-            Equation? p0_p1 = null;
-            Equation? p1_p2 = null;
-            Equation? p0_p2 = null;
-            //!If this component has not already appended it's data to the static textureData list then that is peak, ur stuff gon hafta tank ts.
-            for(int cc =0; cc < UVpoints.Count;cc ++){
-                (int a, int b) Section = (result.Count, 0);
-                UVpoints[cc] = [.. CustomSort.SortPointArray_ByY(UVpoints[cc]).Result];
-                //Find the length of the 2d polygon then find the range
-                float YRange = (int)(UVpoints[cc][2].Y -UVpoints[cc][0].Y);
-                //Point 0 (UVPoints[cc][0]) to Point 1 (UVPoints[cc][1])
-                p0_p1 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][1]);
-                //Point 1 (UVPoints[cc][1]) to the midPoint
-                p1_p2 = Equation.FromPoints(UVpoints[cc][1], UVpoints[cc][2]);
-                //Point 1 (UVPoints[cc][1]) to Point 2 (UVPoints[cc][2])
-                p0_p2 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][2]);
-                for(float y =UVpoints[cc][0].Y; y < YRange;y++){
-                    //Iterate the y.
-                    if(y < UVpoints[cc][1].Y){
-                        //The furthest, closest to 0.
-                        float xLower = p0_p1.Value.SolveX(y);
-                        //The bounding limit of the line.
-                        int xUpper =(int)p0_p2.Value.SolveX(y);
-                        while(xLower <= xUpper){
-                            result.Append((TextureDatabase.TexturePoint)(new PointF((int)xLower, y), buffer.GetPixel((int)xLower, (int)y)));
-                            xLower++;
-                        }
-                    }else{
-                        //After change in Gradient
-                        float xUpper = p1_p2.Value.SolveX(y);
-                        int x =(int)p0_p2.Value.SolveX(y);
-                        while(x <= xUpper){
-                            result.Append((TextureDatabase.TexturePoint)(new PointF(x, y), buffer.GetPixel(x, (int)y)));
-                            x++;
+            TextureDatabase function((List<PointF[]> points, Mesh m, bool Append) item){
+                TextureDatabase result = [];
+                Equation? p0_p1 = null;
+                Equation? p1_p2 = null;
+                Equation? p0_p2 = null;
+                //!If this component has not already appended it's data to the static textureData list then that is peak, ur stuff gon hafta tank ts.
+                for(int cc =0; cc < UVpoints.Count;cc ++){
+                    (int a, int b) Section = (result.Count, 0);
+                    UVpoints[cc] = [.. CustomSort.SortPointArray_ByY(UVpoints[cc]).Result];
+                    //Find the length of the 2d polygon then find the range
+                    float YRange = (int)(UVpoints[cc][2].Y -UVpoints[cc][0].Y);
+                    //Point 0 (UVPoints[cc][0]) to Point 1 (UVPoints[cc][1])
+                    p0_p1 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][1]);
+                    //Point 1 (UVPoints[cc][1]) to the midPoint
+                    p1_p2 = Equation.FromPoints(UVpoints[cc][1], UVpoints[cc][2]);
+                    //Point 1 (UVPoints[cc][1]) to Point 2 (UVPoints[cc][2])
+                    p0_p2 = Equation.FromPoints(UVpoints[cc][0], UVpoints[cc][2]);
+                    for(float y =UVpoints[cc][0].Y; y < YRange;y++){
+                        //Iterate the y.
+                        if(y < UVpoints[cc][1].Y){
+                            //The furthest, closest to 0.
+                            float xLower = p0_p1.Value.SolveX(y);
+                            //The bounding limit of the line.
+                            int xUpper =(int)p0_p2.Value.SolveX(y);
+                            while(xLower <= xUpper){
+                                result.Append((TextureDatabase.TexturePoint)(new PointF((int)xLower, y), buffer.GetPixel((int)xLower, (int)y)));
+                                xLower++;
+                            }
+                        }else{
+                            //After change in Gradient
+                            float xUpper = p1_p2.Value.SolveX(y);
+                            int x =(int)p0_p2.Value.SolveX(y);
+                            while(x <= xUpper){
+                                result.Append((TextureDatabase.TexturePoint)(new PointF(x, y), buffer.GetPixel(x, (int)y)));
+                                x++;
+                            }
                         }
                     }
+                    Section.b = result.Count;
+                    result.AttachSectionBounds(Section);
+                    result = TextureStyles.Apply(tS, result, m, p0_p1.Value, p0_p2.Value, p1_p2.Value);
+                    if(Append){
+                        this.DataStart = Texturer.textureData.Count;
+                        Texturer.textureData.Append(result);
+                        this.DataEnd = Texturer.textureData.Count;
+                    }
                 }
-                Section.b = result.Count;
-                result.AttachSectionBounds(Section);
+                return result;
             }
-#pragma warning disable CS8629 // Nullable value type may be null.
-            result = TextureStyles.Apply(tS, result, m, p0_p1.Value, p0_p2.Value, p1_p2.Value);
-#pragma warning restore CS8629 // Nullable value type may be null.
+            CancellationTokenSource cts = new(100000);
+            return BackdoorJob<(List<PointF[]>, Mesh, bool), TextureDatabase>.
+                BackdoorJobHandler.PassJob(function, (UVpoints, m, Append), nameof(Texturer)).Result;
         }
-        if(Append){
-            this.DataStart = Texturer.textureData.Count;
-            Texturer.textureData.Append(result);
-            this.DataEnd = Texturer.textureData.Count;
-        }
-        return result;
     }
     public static float Max(float[] numbers){
         int scope = 0;

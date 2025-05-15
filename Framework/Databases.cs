@@ -53,9 +53,9 @@ class TextureDatabase : IEnumerable{
                 else { return false; }
             }
         }
-        return LockJob<(int Start, float UVArea), bool>.
-            LockJobHandler.
-                PassJob(function, (Start, UVArea), null, 1000, null, nameof(TextureDatabase)).Result;
+        return BackdoorJob<(int Start, float UVArea), bool>.
+            BackdoorJobHandler.
+                PassJob(function, (Start, UVArea), nameof(TextureDatabase), 1000).Result;
     }
     public bool AttachSectionBounds((int a, int b) item){
         bool function((int a, int b) item_){
@@ -66,8 +66,8 @@ class TextureDatabase : IEnumerable{
                 }else{return false;}
             }
         }
-        return LockJob<(int a, int b), bool>.
-            LockJobHandler.PassJob(function, item).Result;
+        return BackdoorJob<(int a, int b), bool>.
+            BackdoorJobHandler.PassJob(function, item).Result;
     }
     /// <summary>
     /// Re-define the bounds of a singular Section's TextureData within this TextureDatabase.
@@ -86,9 +86,9 @@ class TextureDatabase : IEnumerable{
                 }else{return false;}
             }
         }
-        return LockJob<(int Start, float UVArea), bool>.
-            LockJobHandler.
-                PassJob((LockJob<(int Start, float UVArea), bool>.LockJobDelegate<(int, float), bool>)function, (Start, UVArea), null , 1000, null, nameof(TextureDatabase)).Result;
+        return BackdoorJob<(int Start, float UVArea), bool>.
+            BackdoorJobHandler.
+                PassJob((BackdoorJob<(int Start, float UVArea), bool>.BackdoorDelegate<(int, float), bool>)function, (Start, UVArea), nameof(TextureDatabase), 1000).Result;
 
     }
     public TextureDatabase(){this.td = [];}
@@ -159,7 +159,11 @@ class TextureDatabase : IEnumerable{
         td.Add(item);
         this.isSorted = this[Count-1].p.X<item.p.X && this[Count-1].p.Y<item.p.Y?true:false;
     }
-    public void Append(List<TexturePoint> data){foreach(TexturePoint item in data){this.Append(item);}}
+    public void Append(List<TexturePoint> data, bool AppendAsSection = true){
+        int Length = this.Count;
+        foreach(TexturePoint item in data){this.Append(item);}
+        this.Sections.Add((Length, this.Count));
+    }
     public static WriteableBitmap ToWriteableBitmap(TextureDatabase tD, int width, int height){
         InconsistentDimensionException.ThrowIf(tD.Count != width * height, "The TextureData's dimensions do not match the Bitmap's dimensions.");
         WriteableBitmap wB = new(width, height);
@@ -230,4 +234,21 @@ class CollisionDatabase : IEnumerable{
         }
     }
 	public IEnumerator GetEnumerator() => collidingObjects.GetEnumerator();
+}
+class ControlScheme{
+    public int Count{get{return cS.Count;}}
+    List<(Keys key, KeyPressController.KeyPressedDelegate kD)> cS = [];
+    public (Keys key, KeyPressController.KeyPressedDelegate kD) this[int index]{
+        get{return this.cS[index];}
+        set{this.cS[index] = value;}
+    }
+    public ControlScheme(IEnumerable<Keys> keys, IEnumerable<KeyPressController.KeyPressedDelegate> controls){
+        if(keys.Count() != controls.Count()){throw new TypeInitializationException(nameof(ControlScheme), new ArgumentOutOfRangeException());}else{
+            int Length = keys.Count();
+            this.cS = new List<(Keys key, KeyPressController.KeyPressedDelegate kD)>(Length);
+            for(int cc =0; cc < Length;cc++){
+                this.cS[cc] = (keys.ElementAt(cc), controls.ElementAt(cc));
+            }
+        }
+    }
 }

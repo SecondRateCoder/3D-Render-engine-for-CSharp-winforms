@@ -439,13 +439,15 @@ class AssemblyLoadException : Exception{
 /// However if the job takes too long, the OnTimeout delegate is called.
 /// </summary>
 /// 
-class LockJob<T, R>{
+class BackdoorJob<T, R>{
+    Type paramType{get; set;}
+    Type returnType{get; set;}
     /// <summary>
     /// The delegate that represents a job.
     /// </summary>
     /// <typeparam name="_T">The parameters for the delegate, for multiple parameters make this a tuple.</typeparam>
     /// <typeparam name="_R">The return type for the delegate.</typeparam>
-    public delegate _R LockJobDelegate<_T, _R>(_T obj);
+    public delegate _R BackdoorDelegate<_T, _R>(_T obj);
     /// <summary>
     /// The delegate that represents when the job exceeds it's allocated runtime.
     /// </summary>
@@ -475,7 +477,7 @@ class LockJob<T, R>{
     /// <summary>
     /// The job that is being run.
     /// </summary>
-	LockJobDelegate<T, R> Job;
+	BackdoorDelegate<T, R> Job;
     /// <summary>
     /// The delegate run when the job is completed.
     /// </summary>
@@ -490,7 +492,9 @@ class LockJob<T, R>{
     CancellationTokenSource cts;
 
 
-    LockJob(int ID, int Timeout, LockJobDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null){
+    BackdoorJob(int ID, int Timeout, BackdoorDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null){
+        this.paramType = typeof(T);
+        this.returnType = typeof(R);
         if(OnFinish == null){
             this.OnFinish = TrueFinish;
         }else{
@@ -525,12 +529,12 @@ class LockJob<T, R>{
         try{
             this.Dispose();
         }catch(Exception ex){
-            MessageBox.Show($"Error in LockJob: ObjectDisposalException.\nMessage: {ex.Message}\nFrom sender: {this.sender}");
+            _ = MessageBox.Show($"Error in LockJob: ObjectDisposalException.\nMessage: {ex.Message}\nFrom sender: {(string)sender}");
         }
         this.running = false;
     }
     void TrueTimeout(object sender){
-        MessageBox.Show($"Error in LockJob: TimeoutException.\nFrom sender: {sender}");
+        _ = MessageBox.Show($"Error in LockJob: TimeoutException.\nFrom sender: {(string)sender}");
     }
 
     IAsyncResult? result;
@@ -547,53 +551,216 @@ class LockJob<T, R>{
 
 
 	public override bool Equals([NotNullWhen(true)]object? obj){
-		if (obj is LockJob<T, R> other){
+		if (obj is BackdoorJob<T, R> other){
 			return _ID == other._ID;
     }
     return false;
 	}
 
 
-	public static bool operator ==(LockJob<T, R> l1, LockJob<T, R> l2){return l1.Equals(l2);}
-	public static bool operator !=(LockJob<T, R> l1, LockJob<T, R> l2){return !(l1 == l2);}
+	public static bool operator ==(BackdoorJob<T, R> l1, BackdoorJob<T, R> l2){return l1.Equals(l2);}
+	public static bool operator !=(BackdoorJob<T, R> l1, BackdoorJob<T, R> l2){return !(l1 == l2);}
 	public override int GetHashCode(){return HashCode.Combine(_ID);}
 
-    public static class LockJobHandler{
+/// <summary>
+/// A static class that controls how BackdoorJobs are handled, it does this through a <see cref="System.Collections.Concurrent"/> that stores the jobs and 
+/// a <see cref="System.Collections.IEnumerable"/> that stores job parametwers locally.
+/// </summary>
+    public static class BackdoorJobHandler{
         /// <summary>
-        /// The queue of jobs to be processed.
+        /// An offset that is decrimented and incremented with the Queuing and Dequeuing of the handler list.
         /// </summary>
-        /// <remarks>Thread safe.</remarks>
-		static readonly ConcurrentQueue<LockJob<T, R>> jobs = new();
-        /// <summary>
-        /// Process a job, Both running it and returning the result.
-        /// </summary>
-        /// <param name="job"></param>
-        /// <param name="input"></param>
-        /// <param name="token"></param>
-        /// <param name="sender"></param>
-        /// <param name="Timeout"></param>
-        /// <returns></returns>
-		public static async Task<R?> PassJob(LockJobDelegate<T, R> job,  T input, Action? OnFinish = null, int Timeout = 1000, OnTimeout? @OnTimeout = null, object? sender = null){
-            return await ProcessJob(new LockJob<T, R>(0, Timeout, job, OnFinish, OnTimeout, sender), input);
-		}
-		public static void AddJob(LockJobDelegate<T, R> job, object? sender = null, int timeout = 1000){
-            jobs.Enqueue(new LockJob<T, R>(jobs.Count, timeout, new LockJob<T, R>.LockJobDelegate<T, R>(job), null, null, sender));
-		}
-		public static async Task<R?> ProcessJob(CancellationToken token, T input){
-			return await Task.Run(() => {
-                if(jobs.TryDequeue(out LockJob<T, R>? job)){
-                    return job.Start(input);
+        /// <remarks>If applying this number to any retained ProcessID results in a negative number, it means the process has probably already been completed.</remarks>
+        public static int Shifts;
+/// <summary>
+/// The queue of jobs to be processed.
+/// </summary>
+/// <remarks>Thread safe.</remarks>
+		static readonly ConcurrentQueue<BackdoorJob<T, R>> jobs = new();
+        static List<((Type paramType, Type returnType) Types, object data)> parameterData = [];
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+/// <summary>
+/// Adds a job to the running queue, as well as it's parameters.
+/// </summary>
+/// <param name="job">The job.to be run.</param>
+/// <param name="parameters">The input parameters of the LockJob.</param>
+/// <param name="sender">The function where the job originated from.</param>
+/// <param name="timeout">How long the job should last</param>
+/// <returns>An integer holding the ProcessID of this job</returns>
+		static int AddJob(BackdoorDelegate<T, R> job, T parameters, object? sender = null, int timeout = 1000){
+            Shifts++;
+            jobs.Enqueue(new BackdoorJob<T, R>(jobs.Count, timeout, new BackdoorJob<T, R>.BackdoorDelegate<T, R>(job), null, null, sender));
+            parameterData.Add(((typeof(T), typeof(R)), parameters));
+            return jobs.Count-1;
+        }
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+    public static async Task<R> PassJob(BackdoorDelegate<T, R> job, T parameter, object? sender = null, int timeout = 1000){
+        return await Task.Run(() => {
+            AddJob(job, parameter, sender, timeout);
+            R? result = default;
+            do{
+                result = GetMyResult<R>();
+            }while(result == null);
+            return result;
+        });
+    }
+
+
+    static int ProcessCounter =0;
+/// <summary>
+/// Runs a job, retrieving it's parameters automaically.
+/// </summary>
+/// <returns>The return of the original Job.</returns>
+#pragma warning disable CS8603 // Possible null reference return.
+        static async void ProcessJob(){
+            R? result = await Task.Run(() => {
+                if(jobs.TryDequeue(out BackdoorJob<T, R>? job)){
+                    Shifts--;
+                    ProcessCounter ++;
+                    Type t = job.paramType;
+                    Type r = job.returnType;
+                    (T, R)? item = RecoverTrueParameters<T, R>();
+                    return job.Start(item.Value.Item1);
                 }else{
                     return default;
                 }
             });
-    	}
-        static async Task<R?> ProcessJob(LockJob<T, R> job, T input){
-            return await Task.Run(() => {
-                return job.Start(input);
-            });
+            if(result != null){
+                AddNextResult(typeof(R), result);
+            }
+        }
+        static (Type r, object data)[] ReturnResult =new (Type r, object data)[20];
+        static int Pointer;
+        static void AddNextResult(Type t, object data){
+            Pointer++;
+            if(Pointer >= 20){Pointer = 0;}
+            ReturnResult[Pointer] = (t, data);
+        }
+        static Result? GetMyResult<Result>(int timeout = 1000){
+            CancellationTokenSource cts = new();
+            cts.CancelAfter(timeout);
+            int cc =0;
+            while(!cts.IsCancellationRequested){
+                if(ReturnResult[cc].GetType() == typeof(Result)){
+                    return (Result)ReturnResult[cc].data;
+                }
+                cc++;
+            }
+            return default;
+        }
+#pragma warning restore CS8603 // Possible null reference return.
+        static (t, r)? RecoverTrueParameters<t, r>(){
+            int iD = RecoverParameterIndex(typeof(t), typeof(r));
+            if(iD == -1){return null;}
+            return ((t, r))parameterData[iD].data;
+        }
+        static int RecoverParameterIndex(Type T, Type R){
+            int cc =0;
+            foreach(((Type paramType, Type returnType) Types, object data) item in parameterData){
+                if(item.Types.paramType == T && item.Types.returnType == R){return cc;}
+                Task.Delay(100);
+                cc++;
+            }
+            return -1;
         }
     }
 }
 
-
+public class Key{
+    static Key(){
+        _masterKey = new Key(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
+    }
+/// <summary>The master key for this application.</summary>
+    public static Key masterKey{get{
+        if(_masterKey == null){
+            _masterKey = new Key(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
+        }
+        return _masterKey;
+    }}
+    static Key? _masterKey;
+    public int key_{get; private set;}
+/// <summary>
+/// Constructs a key from a Key.key and Key.mtf file.
+/// </summary>
+/// <param name="keysPath">The Directory where the Keys are stored.</param>
+/// <exception cref="TypeInitializationException">If the Key.key or Key.mtf were not found.</exception>
+    public Key(string keysPath){
+        if(Directory.Exists(keysPath)){
+            DirectoryInfo di = new DirectoryInfo(keysPath);
+            FileInfo[] finfo = [new(System.IO.Path.Combine(keysPath, "Key.key")), new(System.IO.Path.Combine(keysPath, "Key.mtf"))];
+            if(!finfo[0].Exists){throw new TypeInitializationException(nameof(Key), new FileNotFoundException($"The file Key.key was not found at {keysPath}"));}
+            if(!finfo[0].Exists){throw new TypeInitializationException(nameof(Key), new FileNotFoundException($"The file Key.mtf was not found at {keysPath}"));}
+            int[] keyBytes = new int[finfo[0].Length];
+            byte[] keyScrambler = new byte[finfo[1].Length];
+            int ScramblePerIncrement;
+            if(finfo[1].Length % finfo[0].Length == 0){
+                ScramblePerIncrement = (int)(finfo[1].Length / finfo[0].Length);
+            }else{throw new TypeInitializationException(nameof(Key), new ArgumentOutOfRangeException(System.Reflection.ConstructorInfo.ConstructorName));}
+            using(BinaryReader keyStream = new BinaryReader(File.OpenRead(System.IO.Path.Combine(keysPath, "Key.key")))){
+                for(int i =0; i < finfo[0].Length; i++){keyBytes[i] = keyStream.ReadByte();}
+                for(int i =0; i < finfo[1].Length; i++){keyScrambler[i] = keyStream.ReadByte();}
+                keyStream.Dispose();
+            }
+            int i_ = 1;
+            int buffer =0;
+            for(int i = 0; i < finfo[0].Length; i++, i_+= ScramblePerIncrement){
+                if(keyScrambler[i_] > keyScrambler[0]){
+                    //Bit Shift Right.
+                    for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(keyBytes[i] + buffer)) >> keyScrambler[cc];}
+                }else{
+                    //Bit Shift Left.
+                    for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(keyBytes[i] - buffer)) << keyScrambler[cc];}
+                }
+            }
+            this.key_ = buffer;
+        }
+    }
+    public Key(int[] key, byte[] scrambleCode){
+        if(scrambleCode.Length % key.Length != 0){throw new ArgumentOutOfRangeException(nameof(scrambleCode), "The scramble array must be divisible by the key length.");}
+        int ScramblePerIncrement = scrambleCode.Length % key.Length;
+        int i_ = 1;
+        int buffer =0;
+        for(int i = 0; i < key.Length; i++, i_+= ScramblePerIncrement){
+            if(scrambleCode[i_] > scrambleCode[0]){
+                //Bit Shift Right.
+                for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] + buffer)) >> scrambleCode[cc];}
+            }else{
+                //Bit Shift Left.
+                for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] - buffer)) << scrambleCode[cc];}
+            }
+        }
+        this.key_ = buffer;
+    }
+/// <summary>
+/// Creates a key from a key and a scramble array.
+/// </summary>
+/// <param name="key">The key to be encoded.</param>
+/// <param name="scrambleArray">The encoding array that the key is encoded by.</param>
+/// <param name="ScrambleCode">The integer that helps the algorithm decide whether to Bit shift forward or Backward.</param>
+/// <param name="ScramblePerDigit">the amount of scrambling that will occur per digit.</param>
+/// <returns>An integer array that encodes the key.</returns>
+/// <exception cref="ArgumentOutOfRangeException">If the ScramblePerDigit and the ScrambleArray are not compatible.</exception>
+/// <remarks>The ScrambleArray and the <see cref="int[]"/> must be retained for the original key to be restored.</remarks> 
+    public static int[] CreateEncodedKey(int key, byte[] scrambleArray, int ScrambleCode = 0, int ScramblePerDigit = 4){
+        if(scrambleArray.Length % ScramblePerDigit != 0){throw new ArgumentOutOfRangeException(nameof(scrambleArray), "The scramble array must be divisible by the ScramblePerDigit.");}
+        int[] TrueKey = new int[scrambleArray.Length/ScramblePerDigit];
+        if(ScrambleCode <= 0 | ScrambleCode > byte.MaxValue)ScrambleCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, byte.MaxValue);
+        int i_ = scrambleArray.Length;
+        //Work forward through the TrueKey array, 
+        //i_ wotks backward through the ScrambleArray.
+        //ScramblePerDigit is the number of bits to be scrambled per element in TrueKey.
+        for(int i = TrueKey.Length; i >= 0; i--, i_-= ScramblePerDigit){
+                if (ScrambleCode > 0){
+                    // Force Bit Shift Right
+                    for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key << scrambleArray[cc]) + key;}
+                }else{
+                    // Force Bit Shift Left
+                    for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key >> scrambleArray[cc]) - key;}
+                }
+        }
+        return TrueKey;
+    }
+    new int GetHashCode(){return HashCode.Combine(this.GetType(), this.GetType().Name, this.key_);}
+    public static bool operator ==(Key k1, Key k2){if(k1.key_ == k2.key_){return true;}else{return false;}}
+    public static bool operator !=(Key k1, Key k2){return !(k1.key_ == k2.key_);}
+}

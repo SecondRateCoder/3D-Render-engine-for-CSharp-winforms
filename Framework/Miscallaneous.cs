@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 struct Equation{
     public float Gradient;
     public float Y_intercept;
@@ -47,8 +49,8 @@ struct Equation{
 }
 
 class Camera{
-    public Vector3 Position{get; private set;}
-    public Vector3 Rotation{get; private set;}
+    public Vector3 Position{get; set;} = Vector3.Zero;
+    public Vector3 Rotation{get; set;} = Vector3.Zero;
 	/// <summary>
 	/// The resolution at which textures are applied to a mesh
 	/// </summary>
@@ -72,6 +74,17 @@ class Camera{
         this.far = Fov;
         this.Position = pos == null? Vector3.Zero: pos.Value;
         this.Rotation = pos == null? Vector3.Zero: pos.Value;
+        _ = KeyPressController.AttachKeyhandles(
+            new ControlScheme(
+                [Keys.W, Keys.A, Keys.S, Keys.D, Keys.Q, Keys.E], 
+
+                [duration => { Position = new Vector3(Position.X, Position.Y, Position.Z + 1); }, 
+                duration => { Position = new Vector3(Position.X - 1, Position.Y, Position.Z); }, 
+                duration => { Position = new Vector3(Position.X, Position.Y, Position.Z - 1); }, 
+                duration => { Position = new Vector3(Position.X + 1, Position.Y, Position.Z); }, 
+                duration => { Position = new Vector3(Position.X, Position.Y + 1, Position.Z); }, 
+                duration => { Position = new Vector3(Position.X + 1, Position.Y - .5f, Position.Z); }]
+            ));
     }
     public void Translate(Vector3 position, Vector3 rotation){
         this.Position += position;
