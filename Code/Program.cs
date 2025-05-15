@@ -36,6 +36,7 @@ class Entry{
             GC.Collect();
             GetStackDepth();
         };
+        TestKey();
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
         _ = Loop();
         //Source of Exception
@@ -46,8 +47,8 @@ class Entry{
         Key k = new([20, 3, 45, 6, 6], 
         [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
         MessageBox.Show(k.key_.ToString());
-        int[] array = Key.CreateEncodedKey(k.key_, [(byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 20, 2);
-        MessageBox.Show($"");
+        int[] array = Key.CreateEncodedKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
+        MessageBox.Show($"{k.key_}");
     }
     static unsafe void Initialise(){
         Cts = new CancellationTokenSource();

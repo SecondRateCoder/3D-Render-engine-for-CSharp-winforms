@@ -741,8 +741,9 @@ public class Key{
 /// <returns>An integer array that encodes the key.</returns>
 /// <exception cref="ArgumentOutOfRangeException">If the ScramblePerDigit and the ScrambleArray are not compatible.</exception>
 /// <remarks>The ScrambleArray and the <see cref="int[]"/> must be retained for the original key to be restored.</remarks> 
-    public static int[] CreateEncodedKey(int key, byte[] scrambleArray, int ScrambleCode = 0, int ScramblePerDigit = 4){
-        if(scrambleArray.Length % ScramblePerDigit != 0){throw new ArgumentOutOfRangeException(nameof(scrambleArray), "The scramble array must be divisible by the ScramblePerDigit.");}
+    public static int[] CreateEncodedKey(int key, byte[] scrambleArray, int ScramblePerDigit = 4){
+        int ScrambleCode = scrambleArray[0];
+        if (scrambleArray.Length % ScramblePerDigit != 0) { throw new ArgumentOutOfRangeException(nameof(scrambleArray), "The scramble array must be divisible by the ScramblePerDigit."); }
         int[] TrueKey = new int[scrambleArray.Length/ScramblePerDigit];
         if(ScrambleCode <= 0 | ScrambleCode > byte.MaxValue)ScrambleCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, byte.MaxValue);
         int i_ = scrambleArray.Length;
