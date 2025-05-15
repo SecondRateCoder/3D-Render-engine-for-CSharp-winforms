@@ -199,7 +199,7 @@ class Path{
 	public static Path operator +(Path p, string s){
 		if((File.Exists(p.filePath+s) && 
 		new FileInfo(p.filePath+s).Extension == p.fileExtension )| 
-		System.IO.Directory.Exists(p.filePath+s) && p.Directory == true){
+		(System.IO.Directory.Exists(p.filePath+s) && p.Directory == true)){
 			p.filePath += s;}return p;
 	}
 	public static implicit operator string(Path p){return p.Get();}

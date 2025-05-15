@@ -750,7 +750,7 @@ public class Key{
         if(!(ScrambleCode <= 0 | ScrambleCode > byte.MaxValue))ScrambleCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, byte.MaxValue);
 
         int i_ = scrambleArray.Length;
-        for(int i = TrueKey.Length; i >= 0; i--, i_ -= ScramblePerDigit){
+        for(int i = TrueKey.Length - 1; i >= 0; i--, i_ -= ScramblePerDigit){
             for(int cc = i + ScramblePerDigit; cc > i; cc--){
                 if (scrambleArray[cc] > ScrambleCode){
                     // Force Bit Shift Right#
