@@ -1,7 +1,3 @@
-//dotnet add package SharpDX.DirectInput --version 4.2.0
-
-
-
 using SharpDX.DirectInput;
 
 
@@ -151,7 +147,7 @@ static class InputController{
     static void OnSelectMedia(int duration) { /* handle SelectMedia key */ }
     static void OnLaunchApplication1(int duration) { /* handle LaunchApplication1 key */ }
     static void OnLaunchApplication2(int duration) { /* handle LaunchApplication2 key */ }
-    static readonly (Keys key, Keys TrueKey, KeyPressedDelegate AttachableElement)[] KeyBinds = [
+    public static readonly (Keys key, Keys TrueKey, KeyPressedDelegate AttachableElement)[] KeyBinds = [
           (Keys.D0, Keys.D0, OnD0), (Keys.D1, Keys.D1, OnD1), (Keys.D2, Keys.D2, OnD2), (Keys.D3, Keys.D3, OnD3), (Keys.D4, Keys.D4, OnD4)
         , (Keys.D5, Keys.D5, OnD5), (Keys.D6, Keys.D6, OnD6), (Keys.D7, Keys.D7, OnD7), (Keys.D8, Keys.D8, OnD8), (Keys.D9, Keys.D9, OnD9)
         , (Keys.NumPad0, Keys.NumPad0, OnNumPad0), (Keys.NumPad1, Keys.NumPad1, OnNumPad1), (Keys.NumPad2, Keys.NumPad2, OnNumPad2)
@@ -191,17 +187,17 @@ static class InputController{
         (Keys.U, Keys.U, OnU), (Keys.V, Keys.V, OnV), (Keys.W, Keys.W, OnW), (Keys.X, Keys.X, OnX), (Keys.Y, Keys.Y, OnY),
         (Keys.Z, Keys.Z, OnZ)
     ];
-    static Dictionary<Keys, Keys> TrueKeyToKeyBind{get; set;}
+    static Dictionary<Keys, Keys> SurfaceKeyToTrueBind{get; set;}
     static Dictionary<Keys, int> TrueKeyToIndex{get; set;}
 
 
     static InputController(){
         TrueKeyToIndex = [];
-        TrueKeyToKeyBind = [];
+        SurfaceKeyToTrueBind = [];
         int cc =0;
         foreach((Keys key, Keys TrueKey, KeyPressedDelegate AttachableElement) item in KeyBinds){
             TrueKeyToIndex[item.TrueKey] = cc;
-            TrueKeyToKeyBind[item.TrueKey] = item.key;
+            SurfaceKeyToTrueBind[item.key] = item.TrueKey;
             cc++;
         }
     }
@@ -216,6 +212,7 @@ static class InputController{
     public static bool ChangeBinding(Keys TrueBind, Keys NewBind){
         if(TrueKeyToIndex.TryGetValue(TrueBind, out int cc)){
             KeyBinds[cc].key = NewBind;
+            SurfaceKeyToTrueBind[KeyBinds[cc].TrueKey] = NewBind;
             return true;
         }
         return false;
@@ -284,52 +281,79 @@ static class InputController{
         }
         return;
     }
-
-    static class GameControllerInterface{
-        static GameControllerInterface(){
-            joySticks = [];
+    class ExternalController{
+        Joystick rudder;
+        JoystickState state;
+        bool isAcquired = false;
+        public ExternalController(){
+            Joystick? rudder = Create();
+            this.rudder = rudder ?? throw new TypeInitializationException(nameof(ExternalController), new ArgumentOutOfRangeException(null, "The next Device was not found"));
+            rudder.Unacquire();
+            Entry.Update += (() => {
+                this.rudder.GetCurrentState(ref this.state);
+            });
         }
-        static List<Joystick> joySticks;
-        public static void Create(){
+        public bool AcquireDevice(){
+            if(rudder != null && !isAcquired){
+                rudder.Acquire();
+                isAcquired = true;
+                MessageBox.Show("Device acquired.");
+                return true;
+            }
+            return false;
+        }
+        public void ReleaseDevice(){
+            if (rudder != null && isAcquired) { 
+                rudder.Unacquire();
+                isAcquired = false;
+                MessageBox.Show("Device Released.");
+            }
+        }
+/// <summary>
+/// Attach new KeyBinds to the keys corresponding to <see cref="TrueKey"/>, using <see cref="InputController.KeyBinds"/> to find the correspoding value for the index.
+/// </summary>
+/// <param name="TrueKeys">The original keys that the new Bind should be applied to.</param>
+/// <param name="myButtons">The indexes of <see cref="this.state.Buttons"/> that this should apply to</param>
+/// <returns>Did this function end properly?</returns>
+/// <exception cref="TypeInitializationException">If <see cref="TrueKey"/> and <see cref="myButtons"/> don't have the same Length, a <see cref="TypeInitialisationException"/> will be thrown</exception>
+        public bool AttachKeyBinds(Keys[] TrueKeys, int[] myButtons){
+            if(TrueKeys.Length != myButtons.Length){throw new TypeInitializationException(nameof(ExternalController), new ArgumentOutOfRangeException(null, "TrueKeys and myButtons must have the same length"));}
+            int Length = TrueKeys.Length;
+            for(int cc =0; cc < Length;cc++){
+                if(this.state.Buttons[cc] == true){InputController.ChangeBinding(TrueKeys[cc], InputController.KeyBinds[myButtons[cc]].TrueKey);}
+            }
+            return true;
+        }
+
+
+        static Joystick? Create(){
             DirectInput directInput = new();
-            // Find a Joystick Guid
+            // Find a Gamepad Guid
             Guid joystickGuid = Guid.Empty;
-            foreach (DeviceInstance deviceInstance in directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AllDevices))
-            {
+            DeviceInstance deviceInstance = directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AttachedOnly)!.First();
+            joystickGuid = deviceInstance.InstanceGuid;
+            // If Gamepad not found, look for a Joystick
+            if (joystickGuid == Guid.Empty){
+                deviceInstance = directInput.GetDevices(DeviceType.Joystick, DeviceEnumerationFlags.AttachedOnly).First();
                 joystickGuid = deviceInstance.InstanceGuid;
             }
-            // If Gamepad not found, look for a Joystick
-            if (joystickGuid == Guid.Empty)
-            {
-                foreach (DeviceInstance deviceInstance in directInput.GetDevices(DeviceType.Joystick, DeviceEnumerationFlags.AllDevices))
-                {
-                    joystickGuid = deviceInstance.InstanceGuid;
-                }
-
-            }
             // If Joystick not found, throws an error
-            if (joystickGuid == Guid.Empty)
-            {
+            if (joystickGuid == Guid.Empty){
                 MessageBox.Show("No Joystick or Gamepad found.");
-                return;
+                return null;
             }
             // Instantiate the joystick
             Joystick joystick = new Joystick(directInput, joystickGuid);
             MessageBox.Show($"Found Joystick/Gamepad with GUID: {joystickGuid.ToByteArray().Length}");
-            // Query all suported ForceFeedback effects
-            foreach (EffectInfo effectInfo in joystick.GetEffects())
-            {
-                MessageBox.Show($"Effect available: {effectInfo.Name}");
-            }
-            // Set BufferSize in order to use buffered data.
+            joystick.Properties.AxisMode = DeviceAxisMode.Absolute;
+            joystick.SetCooperativeLevel(0, CooperativeLevel.Exclusive | CooperativeLevel.Background);
             joystick.Properties.BufferSize = 128;
-            // Acquire the joystick
-            joystick.Acquire();
             // Poll events from joystick
             Entry.Update += (() =>{
                 joystick.Poll();
                 _ = joystick.GetBufferedData();
             });
+            return joystick;
         }
     }
 }

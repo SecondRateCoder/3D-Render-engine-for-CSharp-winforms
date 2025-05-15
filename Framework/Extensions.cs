@@ -723,10 +723,10 @@ public class Key{
         for(int i = 0; i < key.Length; i++, i_+= ScramblePerIncrement){
             if(scrambleCode[i_] > scrambleCode[0]){
                 //Bit Shift Right.
-                for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] + buffer)) >> scrambleCode[cc];}
+                for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] + buffer)) >> Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);}
             }else{
                 //Bit Shift Left.
-                for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] - buffer)) << scrambleCode[cc];}
+                for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] - buffer)) << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);}
             }
         }
         this.key_ = buffer;
@@ -752,10 +752,10 @@ public class Key{
         for(int i = TrueKey.Length; i >= 0; i--, i_-= ScramblePerDigit){
                 if (ScrambleCode > 0){
                     // Force Bit Shift Right
-                    for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key << scrambleArray[cc]) + key;}
+                    for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key << Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) + key;}
                 }else{
                     // Force Bit Shift Left
-                    for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key >> scrambleArray[cc]) - key;}
+                    for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key >> Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) - key;}
                 }
         }
         return TrueKey;
