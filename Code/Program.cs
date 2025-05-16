@@ -3,6 +3,7 @@ using System.Timers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using NUnit.Framework;
 class Entry{
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static CancellationTokenSource Cts{get; private set;}
@@ -35,10 +36,18 @@ class Entry{
             GC.Collect();
             GetStackDepth();
         };
+        TestKey();
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
         _ = Loop();
         //Source of Exception
         Application.Run(f);
+    }
+    [Test]
+    static void TestKey(){
+        Key k = new([20, 3, 45, 6, 6], 
+        [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
+        MessageBox.Show(k.key_.ToString());
+        MessageBox.Show($"{Key.CreateEncodedKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2)}");
     }
     static unsafe void Initialise(){
         Cts = new CancellationTokenSource();
@@ -68,6 +77,7 @@ class Entry{
             if(Entry.Cts == null){Cts = new CancellationTokenSource();}
             while(!Entry.Cts.IsCancellationRequested){
                 //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
+                InputController.InvokeKeyHandles();
                 MemControl();
                 if(Entry.Buffer != null && iteration >= selfDelay/10){UpdateUI(() => f.Invalidate());}
                 await Task.Delay(selfDelay, Entry.Cts.Token);
@@ -76,6 +86,7 @@ class Entry{
             iteration+=.1f;
         });
     }
+    [Test]
     static void MemControl(){
         if(ActualMemUsage > TotalMemUsage* .5){selfDelay = Math.Min(selfDelay + 10, 500);}
         if(ActualMemUsage > PeakMemUsage * .6){selfDelay = Math.Min(selfDelay + 100, 500);}

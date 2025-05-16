@@ -717,16 +717,18 @@ public class Key{
     }
     public Key(int[] key, byte[] scrambleCode){
         if(scrambleCode.Length % key.Length != 0){throw new ArgumentOutOfRangeException(nameof(scrambleCode), "The scramble array must be divisible by the key length.");}
-        int ScramblePerIncrement = scrambleCode.Length % key.Length;
+        int ScramblePerIncrement = scrambleCode.Length/key.Length;
         int i_ = 1;
         int buffer =0;
         for(int i = 0; i < key.Length; i++, i_+= ScramblePerIncrement){
-            if(scrambleCode[i_] > scrambleCode[0]){
-                //Bit Shift Right.
-                for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] + buffer)) >> scrambleCode[cc];}
-            }else{
-                //Bit Shift Left.
-                for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(key[i] - buffer)) << scrambleCode[cc];}
+            for (int cc = i_; cc < (ScramblePerIncrement + i_ > scrambleCode.Length? scrambleCode.Length: ScramblePerIncrement + i_); cc++){
+                if (scrambleCode[cc] > scrambleCode[0]){
+                    //Bit Shift Right.
+                    buffer -= (key[i] - buffer) >> Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
+                }else{
+                    //Bit Shift Left.
+                    buffer += (key[i] + buffer) << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
+                }
             }
         }
         this.key_ = buffer;
@@ -741,22 +743,27 @@ public class Key{
 /// <returns>An integer array that encodes the key.</returns>
 /// <exception cref="ArgumentOutOfRangeException">If the ScramblePerDigit and the ScrambleArray are not compatible.</exception>
 /// <remarks>The ScrambleArray and the <see cref="int[]"/> must be retained for the original key to be restored.</remarks> 
-    public static int[] CreateEncodedKey(int key, byte[] scrambleArray, int ScrambleCode = 0, int ScramblePerDigit = 4){
-        if(scrambleArray.Length % ScramblePerDigit != 0){throw new ArgumentOutOfRangeException(nameof(scrambleArray), "The scramble array must be divisible by the ScramblePerDigit.");}
+    public static int[] CreateEncodedKey(int key, byte[] scrambleArray, int ScramblePerDigit = 4){
+        int ScrambleCode = scrambleArray[0];
+        if (scrambleArray.Length % ScramblePerDigit != 0) { throw new ArgumentOutOfRangeException(nameof(scrambleArray), "The scramble array must be divisible by the ScramblePerDigit."); }
         int[] TrueKey = new int[scrambleArray.Length/ScramblePerDigit];
-        if(ScrambleCode <= 0 | ScrambleCode > byte.MaxValue)ScrambleCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, byte.MaxValue);
+        if(!(ScrambleCode <= 0 | ScrambleCode > byte.MaxValue))ScrambleCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, byte.MaxValue);
+
         int i_ = scrambleArray.Length;
-        //Work forward through the TrueKey array, 
-        //i_ wotks backward through the ScrambleArray.
-        //ScramblePerDigit is the number of bits to be scrambled per element in TrueKey.
-        for(int i = TrueKey.Length; i >= 0; i--, i_-= ScramblePerDigit){
-                if (ScrambleCode > 0){
-                    // Force Bit Shift Right
-                    for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key << scrambleArray[cc]) + key;}
+        for(int i = TrueKey.Length - 1; i >= 0; i--, i_ -= ScramblePerDigit){
+            for(int cc = i + ScramblePerDigit; cc > i; cc--){
+                if (scrambleArray[cc] > ScrambleCode){
+                    // Force Bit Shift Right#
+                    // key -= (key[i] - key) >> Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
+                    // key[i] = ??
+                    // (key << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue)) + key -= key[i]
+                    // key[i] += (key << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue)) + key
+                    TrueKey[i] += (key << Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) + key;
                 }else{
                     // Force Bit Shift Left
-                    for(int cc = i + ScramblePerDigit; cc > i; cc--){TrueKey[i] = (key >> scrambleArray[cc]) - key;}
+                    TrueKey[i] -= (key >> Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) - key;
                 }
+            }
         }
         return TrueKey;
     }
