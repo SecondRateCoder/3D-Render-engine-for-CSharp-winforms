@@ -682,36 +682,36 @@ class BackdoorJob<T, R>{
     }
 }
 
-public class Key{
-    static Key(){
-        _masterKey = new Key(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
+public class EncryptionKey{
+    static EncryptionKey(){
+        _masterKey = new EncryptionKey(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
     }
 /// <summary>The master key for this application.</summary>
-    public static Key masterKey{get{
+    public static EncryptionKey masterKey{get{
         if(_masterKey == null){
-            _masterKey = new Key(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
+            _masterKey = new EncryptionKey(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
         }
         return _masterKey;
     }}
-    static Key? _masterKey;
+    static EncryptionKey? _masterKey;
     public int key_{get; private set;}
 /// <summary>
 /// Constructs a key from a Key.key and Key.mtf file.
 /// </summary>
 /// <param name="keysPath">The Directory where the Keys are stored.</param>
 /// <exception cref="TypeInitializationException">If the Key.key or Key.mtf were not found.</exception>
-    public Key(string keysPath){
+    public EncryptionKey(string keysPath){
         if(Directory.Exists(keysPath)){
             DirectoryInfo di = new DirectoryInfo(keysPath);
             FileInfo[] finfo = [new(System.IO.Path.Combine(keysPath, "Key.key")), new(System.IO.Path.Combine(keysPath, "Key.mtf"))];
-            if(!finfo[0].Exists){throw new TypeInitializationException(nameof(Key), new FileNotFoundException($"The file Key.key was not found at {keysPath}"));}
-            if(!finfo[0].Exists){throw new TypeInitializationException(nameof(Key), new FileNotFoundException($"The file Key.mtf was not found at {keysPath}"));}
+            if(!finfo[0].Exists){throw new TypeInitializationException(nameof(EncryptionKey), new FileNotFoundException($"The file Key.key was not found at {keysPath}"));}
+            if(!finfo[0].Exists){throw new TypeInitializationException(nameof(EncryptionKey), new FileNotFoundException($"The file Key.mtf was not found at {keysPath}"));}
             int[] keyBytes = new int[finfo[0].Length];
             byte[] keyScrambler = new byte[finfo[1].Length];
             int ScramblePerIncrement;
             if(finfo[1].Length % finfo[0].Length == 0){
                 ScramblePerIncrement = (int)(finfo[1].Length / finfo[0].Length);
-            }else{throw new TypeInitializationException(nameof(Key), new ArgumentOutOfRangeException(System.Reflection.ConstructorInfo.ConstructorName));}
+            }else{throw new TypeInitializationException(nameof(EncryptionKey), new ArgumentOutOfRangeException(System.Reflection.ConstructorInfo.ConstructorName));}
             using(BinaryReader keyStream = new BinaryReader(File.OpenRead(System.IO.Path.Combine(keysPath, "Key.key")))){
                 for(int i =0; i < finfo[0].Length; i++){keyBytes[i] = keyStream.ReadByte();}
                 for(int i =0; i < finfo[1].Length; i++){keyScrambler[i] = keyStream.ReadByte();}
@@ -731,7 +731,7 @@ public class Key{
             this.key_ = buffer;
         }
     }
-    public Key(int[] key, byte[] scrambleCode){
+    public EncryptionKey(int[] key, byte[] scrambleCode){
         if(scrambleCode.Length % key.Length != 0){throw new ArgumentOutOfRangeException(nameof(scrambleCode), "The scramble array must be divisible by the key length.");}
         int ScramblePerIncrement = scrambleCode.Length/key.Length;
         int i_ = 1;
@@ -784,6 +784,6 @@ public class Key{
         return TrueKey;
     }
     new int GetHashCode(){return HashCode.Combine(this.GetType(), this.GetType().Name, this.key_);}
-    public static bool operator ==(Key k1, Key k2){if(k1.key_ == k2.key_){return true;}else{return false;}}
-    public static bool operator !=(Key k1, Key k2){return !(k1.key_ == k2.key_);}
+    public static bool operator ==(EncryptionKey k1, EncryptionKey k2){if(k1.key_ == k2.key_){return true;}else{return false;}}
+    public static bool operator !=(EncryptionKey k1, EncryptionKey k2){return !(k1.key_ == k2.key_);}
 }

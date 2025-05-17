@@ -64,10 +64,10 @@ class Entry{
     }
     [Test]
     static void TestKey(){
-        Key k = new([20, 3, 45, 6, 6], 
+        EncryptionKey k = new([20, 3, 45, 6, 6], 
         [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
         MessageBox.Show(k.key_.ToString());
-        int[] array = Key.CreateEncodedKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
+        int[] array = EncryptionKey.CreateEncodedKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
         MessageBox.Show($"{CustomSort.ToString(array)}");
     }
     static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
@@ -210,9 +210,11 @@ public partial class Form1 : Form{
         base.OnKeyDown(e);
         AddKeyValue(e.KeyCode);
     }
-    protected override void OnKeyPress(KeyPressEventArgs e){
+    protected override void OnKeyPress(KeyPressEventArgs e)
+    {
         base.OnKeyPress(e);
-        switch (e.KeyChar){
+        switch (e.KeyChar)
+        {
             case '\b':
                 AddKeyValue(Keys.Delete);
                 return;
@@ -232,9 +234,10 @@ public partial class Form1 : Form{
                 AddKeyValue(Keys.Space);
                 return;
             case (char)Keys.ControlKey:
-                AddKeyValue(Keys.Space);
+                AddKeyValue(Keys.ControlKey);
                 return;
         }
+        e.Handled = true;
     }
     public bool isFullScreen{ get; private set;}
     public void ToggleFullScreen(){if(isFullScreen){ this.LeaveFullScreenMode(); }else{ this.EnterFullScreenMode();}}

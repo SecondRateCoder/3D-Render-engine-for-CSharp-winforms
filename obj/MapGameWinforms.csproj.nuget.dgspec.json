@@ -43,13 +43,17 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "dependencies": {
-            "Microsoft.GameInput": {
-              "target": "Package",
-              "version": "[1.2.26100.4782, )"
-            },
             "NUnit": {
               "target": "Package",
               "version": "[2.5.7.10213, )"
+            },
+            "SharpDX.DirectInput": {
+              "target": "Package",
+              "version": "[4.2.0, )"
+            },
+            "System.Text.Json": {
+              "target": "Package",
+              "version": "[10.0.0-preview.4.25258.110, )"
             }
           },
           "imports": [

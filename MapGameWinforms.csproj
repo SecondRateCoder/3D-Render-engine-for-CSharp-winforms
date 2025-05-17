@@ -11,8 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.GameInput" Version="1.2.26100.4782" />
     <PackageReference Include="NUnit" Version="2.5.7.10213" />
+    <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
+    <PackageReference Include="System.Text.Json" Version="10.0.0-preview.4.25258.110" />
   </ItemGroup>
 
 </Project>
