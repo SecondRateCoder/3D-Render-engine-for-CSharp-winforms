@@ -12,7 +12,7 @@
   <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <SourceRoot Include="/home/codespace/.nuget/packages/" />
   </ItemGroup>
-  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)nunit/4.3.2/build/NUnit.props" Condition="Exists('$(NuGetPackageRoot)nunit/4.3.2/build/NUnit.props')" />
-  </ImportGroup>
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <PkgNUnit Condition=" '$(PkgNUnit)' == '' ">/home/codespace/.nuget/packages/nunit/2.5.7.10213</PkgNUnit>
+  </PropertyGroup>
 </Project>

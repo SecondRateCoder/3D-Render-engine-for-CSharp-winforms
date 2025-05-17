@@ -1,6 +1,3 @@
-using SharpDX.DirectInput;
-
-
 /// <summary>
 /// Handles the control, calling and attaching of functions to Key calls.
 /// </summary>
@@ -248,12 +245,12 @@ static class InputController{
     public static async Task<int> GetDuration(Keys key){
         return await Task.Run(() => {
             int seconds = 0;
-            for(int cc =0; cc < Entry.f.keyBuffer.Length-1;cc++){
-                if(Entry.f.keyBuffer[cc].key == key && Entry.f.keyBuffer[cc+1].key == key){
+            for(int cc =0; cc < Entry.f.KeyBuffer.Length-1;cc++){
+                if(Entry.f.KeyBuffer[cc].key == key && Entry.f.KeyBuffer[cc+1].key == key){
                     seconds++;
-                    for(int cc_ =cc+1; cc_< Entry.f.keyBuffer.Length;cc_++){
-                        if(Entry.f.keyBuffer[cc_-1].key == key && Entry.f.keyBuffer[cc_].key == key){
-                            seconds += Entry.f.keyBuffer[cc_-1].Start.Second - Entry.f.keyBuffer[cc_-1].Start.Second;
+                    for(int cc_ =cc+1; cc_< Entry.f.KeyBuffer.Length;cc_++){
+                        if(Entry.f.KeyBuffer[cc_-1].key == key && Entry.f.KeyBuffer[cc_].key == key){
+                            seconds += Entry.f.KeyBuffer[cc_-1].Start.Second - Entry.f.KeyBuffer[cc_-1].Start.Second;
                         }
                     }
                 }
@@ -262,9 +259,9 @@ static class InputController{
         });
     }
     public static void InvokeKeyHandles(){
-        Keys[] keys = new Keys[Entry.f.keyBuffer.Length];
+        Keys[] keys = new Keys[Entry.f.KeyBuffer.Length];
         int cc =0;
-        foreach((DateTime Start, Keys key) item in Entry.f.keyBuffer){
+        foreach((DateTime Start, Keys key) item in Entry.f.KeyBuffer){
             keys[cc] = item.key;
             cc++;
         }
@@ -282,78 +279,6 @@ static class InputController{
         return;
     }
     class ExternalController{
-        Joystick rudder;
-        JoystickState state;
-        bool isAcquired = false;
-        public ExternalController(){
-            Joystick? rudder = Create();
-            this.rudder = rudder ?? throw new TypeInitializationException(nameof(ExternalController), new ArgumentOutOfRangeException(null, "The next Device was not found"));
-            rudder.Unacquire();
-            Entry.Update += (() => {
-                this.rudder.GetCurrentState(ref this.state);
-            });
-        }
-        public bool AcquireDevice(){
-            if(rudder != null && !isAcquired){
-                rudder.Acquire();
-                isAcquired = true;
-                MessageBox.Show("Device acquired.");
-                return true;
-            }
-            return false;
-        }
-        public void ReleaseDevice(){
-            if (rudder != null && isAcquired) { 
-                rudder.Unacquire();
-                isAcquired = false;
-                MessageBox.Show("Device Released.");
-            }
-        }
-/// <summary>
-/// Attach new KeyBinds to the keys corresponding to <see cref="TrueKey"/>, using <see cref="InputController.KeyBinds"/> to find the correspoding value for the index.
-/// </summary>
-/// <param name="TrueKeys">The original keys that the new Bind should be applied to.</param>
-/// <param name="myButtons">The indexes of <see cref="this.state.Buttons"/> that this should apply to</param>
-/// <returns>Did this function end properly?</returns>
-/// <exception cref="TypeInitializationException">If <see cref="TrueKey"/> and <see cref="myButtons"/> don't have the same Length, a <see cref="TypeInitialisationException"/> will be thrown</exception>
-        public bool AttachKeyBinds(Keys[] TrueKeys, int[] myButtons){
-            if(TrueKeys.Length != myButtons.Length){throw new TypeInitializationException(nameof(ExternalController), new ArgumentOutOfRangeException(null, "TrueKeys and myButtons must have the same length"));}
-            int Length = TrueKeys.Length;
-            for(int cc =0; cc < Length;cc++){
-                if(this.state.Buttons[cc] == true){InputController.ChangeBinding(TrueKeys[cc], InputController.KeyBinds[myButtons[cc]].TrueKey);}
-            }
-            return true;
-        }
-
-
-        static Joystick? Create(){
-            DirectInput directInput = new();
-            // Find a Gamepad Guid
-            Guid joystickGuid = Guid.Empty;
-            DeviceInstance deviceInstance = directInput.GetDevices(DeviceType.Gamepad, DeviceEnumerationFlags.AttachedOnly)!.First();
-            joystickGuid = deviceInstance.InstanceGuid;
-            // If Gamepad not found, look for a Joystick
-            if (joystickGuid == Guid.Empty){
-                deviceInstance = directInput.GetDevices(DeviceType.Joystick, DeviceEnumerationFlags.AttachedOnly).First();
-                joystickGuid = deviceInstance.InstanceGuid;
-            }
-            // If Joystick not found, throws an error
-            if (joystickGuid == Guid.Empty){
-                MessageBox.Show("No Joystick or Gamepad found.");
-                return null;
-            }
-            // Instantiate the joystick
-            Joystick joystick = new Joystick(directInput, joystickGuid);
-            MessageBox.Show($"Found Joystick/Gamepad with GUID: {joystickGuid.ToByteArray().Length}");
-            joystick.Properties.AxisMode = DeviceAxisMode.Absolute;
-            joystick.SetCooperativeLevel(0, CooperativeLevel.Exclusive | CooperativeLevel.Background);
-            joystick.Properties.BufferSize = 128;
-            // Poll events from joystick
-            Entry.Update += (() =>{
-                joystick.Poll();
-                _ = joystick.GetBufferedData();
-            });
-            return joystick;
-        }
+        
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 class TextureStyles{
     /// <summary>Stretches a TextureDatabase to fit the inputted Polygon.</summary>
@@ -408,6 +409,21 @@ static class CustomSort{
         float x = Math.Abs(a.X - b.X);
         float y = Math.Abs(a.Y - b.Y);
         return (float)Math.Sqrt((x * x) + (y * y));
+    }
+    /// <summary>Conert an array to a string</summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="array"></param>
+    /// <param name="AddCommas"></param>
+    /// <returns></returns>
+    public static string ToString<T>(IEnumerable<T> array, bool AddCommas = true){
+        if(array == null){ return string.Empty;}
+        StringBuilder sb = new();
+        bool first = true;
+        foreach(T item in array){
+            if(!first && AddCommas){ sb.Append(", "); }
+            sb.Append(item?.ToString());
+        }
+        return sb.ToString();
     }
 }
 [Serializable]

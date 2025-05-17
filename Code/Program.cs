@@ -13,12 +13,32 @@ class Entry{
     public static Action Update;
     public static Action Start;
     public static Form1 f;
-    static int stackDepthChecking;
+    /// <summary>The that should be between each <see cref="HandleMemUsage"/> call.</summary>
+    static int MemCheckRate;
+    static long TotalMemUsage;
+    static long PeakMemUsage;
+    static long ActualMemUsage;
+    /// <summary>The estimation of the Stack depth.</summary>
+    static int stackDepth;
+    public static int selfDelay;
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    static Process cProc;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    static unsafe Entry(){
+        ApplicationConfiguration.Initialize();
+        f = new();
+        f.EnterFullScreenMode();
+        Cts = new CancellationTokenSource();
+        CollisionManager.ColliderCheckTime = 5000;
+        TUpdate = CollisionManager.HandleCollisions;
+        Update = BuildSquare;
+        Start = ExternalControl.StartTimer;
+        Start += ()=>{PeakMemUsage = GC.GetTotalAllocatedBytes();};
+        Buffer = new(f.Width, f.Height);
+    }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static void Main(){
         Entry.uiContext = SynchronizationContext.Current;
-        ApplicationConfiguration.Initialize();
-        Initialise();
 		StorageManager.filePath = StorageManager.ApplicationPath;
 		ExternalControl.Initialise();
         Update += f._Invoke;
@@ -27,15 +47,15 @@ class Entry{
             Entry.ActualMemUsage = cProc.WorkingSet64;
             Entry.PeakMemUsage = cProc.PeakWorkingSet64;
             Entry.TotalMemUsage = GC.GetTotalMemory(false);
-            stackDepthChecking++;
-            if(stackDepthChecking >= 10){
+            MemCheckRate++;
+            if(MemCheckRate >= 10){
                 GetStackDepth();
             }
         };
-        Start += () => {
-            GC.Collect();
+        Start += (() => {
+            GC.Collect(-1, GCCollectionMode.Aggressive);
             GetStackDepth();
-        };
+        });
         TestKey();
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
         _ = Loop();
@@ -47,47 +67,28 @@ class Entry{
         Key k = new([20, 3, 45, 6, 6], 
         [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
         MessageBox.Show(k.key_.ToString());
-        MessageBox.Show($"{Key.CreateEncodedKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2)}");
+        int[] array = Key.CreateEncodedKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
+        MessageBox.Show($"{CustomSort.ToString(array)}");
     }
-    static unsafe void Initialise(){
-        Cts = new CancellationTokenSource();
-        TUpdate = CollisionManager.Collider;
-        Update = BuildSquare;
-        Start = ExternalControl.StartTimer;
-        Start += ()=>{PeakMemUsage = GC.GetTotalAllocatedBytes();};
-        f = new();
-        Buffer = new(f.Width, f.Height);
-    }
-    public static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
-    static long TotalMemUsage;
-    static long PeakMemUsage;
-    static long ActualMemUsage;
-    /// <summary>
-    /// The size of the Stack available to use.
-    /// </summary>
-    static int stackDepth;
-    static int selfDelay;
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    static Process cProc;
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
     public static async Task Loop(){
-        float iteration = 0;
+        float Runs = 0;
         await Task.Run(async () => {
             cProc = Process.GetCurrentProcess();
             if(Entry.Cts == null){Cts = new CancellationTokenSource();}
             while(!Entry.Cts.IsCancellationRequested){
                 //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
                 InputController.InvokeKeyHandles();
-                MemControl();
-                if(Entry.Buffer != null && iteration >= selfDelay/10){UpdateUI(() => f.Invalidate());}
+                HandleMemUsage();
+                if(Entry.Buffer != null && Runs >= selfDelay/10){UpdateUI(() => f.Invalidate());}
                 await Task.Delay(selfDelay, Entry.Cts.Token);
             }
             if(Update != null){Entry.Update();}
-            iteration+=.1f;
+            Runs+=.1f;
         });
     }
     [Test]
-    static void MemControl(){
+    static void HandleMemUsage(){
         if(ActualMemUsage > TotalMemUsage* .5){selfDelay = Math.Min(selfDelay + 10, 500);}
         if(ActualMemUsage > PeakMemUsage * .6){selfDelay = Math.Min(selfDelay + 100, 500);}
         if(ActualMemUsage < (TotalMemUsage + PeakMemUsage)/2* .5 && selfDelay > 10){selfDelay -= 10;}
@@ -173,13 +174,12 @@ public partial class Form1 : Form{
         Entry.Start();
     }
     public void _Invoke(){
-        if(this.InvokeRequired){
-            this.BeginInvoke(
-                () => {
-                    if(this.Focused | Debugger.IsAttached){
+        if (this.InvokeRequired){
+            this.BeginInvoke(() =>{
+                    if (this.Focused | Debugger.IsAttached){
                         this.Refresh();
                     }
-            });
+                });
         }
     }
     protected override void OnClosing(CancelEventArgs e){
@@ -190,33 +190,65 @@ public partial class Form1 : Form{
     }
     Size buffer;
     protected override void OnPaint(PaintEventArgs e){
-        if(buffer != this.Size){
+        if (buffer != this.Size){
             ViewPort.MarkPPMatrixDirty();
             buffer = this.Size;
         }
         base.OnPaint(e);
-        if(Entry.Buffer != null){e.Graphics.DrawImage((Bitmap)Entry.Buffer, Point.Empty);}
+        if (Entry.Buffer != null) { e.Graphics.DrawImage((Bitmap)Entry.Buffer, Point.Empty); }
     }
-    public (DateTime Start, Keys key)[] keyBuffer{get; private set;} = new (DateTime Start, Keys key)[20];
+    public (DateTime Start, Keys key)[] KeyBuffer { get; private set; } = new (DateTime Start, Keys key)[20];
     int Position = 0;
     void AddKeyValue(Keys key){
-        Position++;
-        if(Position >= 20){InputController.InvokeKeyHandles();   Position = 0;}
-        keyBuffer[Position] = (DateTime.Now, key);
+        lock (KeyBuffer){
+            Position++;
+            if (Position >= 20) { InputController.InvokeKeyHandles(); Position = 0; }
+            KeyBuffer[Position] = (DateTime.Now, key);
+        }
     }
     protected override void OnKeyDown(KeyEventArgs e){
         base.OnKeyDown(e);
-        lock(keyBuffer){
-            AddKeyValue(e.KeyCode);
-        }
-    }
-    protected override void OnKeyUp(KeyEventArgs e){
-        base.OnKeyUp(e);
-        lock(keyBuffer){
-            AddKeyValue(e.KeyCode);
-        }
+        AddKeyValue(e.KeyCode);
     }
     protected override void OnKeyPress(KeyPressEventArgs e){
         base.OnKeyPress(e);
+        switch (e.KeyChar){
+            case '\b':
+                AddKeyValue(Keys.Delete);
+                return;
+            case '\n':
+                AddKeyValue(Keys.Enter);
+                return;
+            case '\r':
+                AddKeyValue(Keys.Return);
+                return;
+            case '\t':
+                AddKeyValue(Keys.Tab);
+                return;
+            case (char)27:
+                AddKeyValue(Keys.Escape);
+                return;
+            case (char)Keys.Space:
+                AddKeyValue(Keys.Space);
+                return;
+            case (char)Keys.ControlKey:
+                AddKeyValue(Keys.Space);
+                return;
+        }
+    }
+    public bool isFullScreen{ get; private set;}
+    public void ToggleFullScreen(){if(isFullScreen){ this.LeaveFullScreenMode(); }else{ this.EnterFullScreenMode();}}
+    public void EnterFullScreenMode(){
+        this.WindowState = FormWindowState.Normal;
+        this.FormBorderStyle = FormBorderStyle.None;
+        this.WindowState = FormWindowState.Maximized;
+        this.isFullScreen = true;
+    }
+
+    public void LeaveFullScreenMode()
+    {
+        this.FormBorderStyle = FormBorderStyle.Sizable;
+        this.WindowState = FormWindowState.Normal;
+        this.isFullScreen = false;
     }
 }

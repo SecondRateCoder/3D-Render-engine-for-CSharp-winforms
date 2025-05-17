@@ -1,7 +1,6 @@
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using NUnit.Framework;
-using SharpDX;
 
 class WriteableBitmap{
     bool disposed = false;

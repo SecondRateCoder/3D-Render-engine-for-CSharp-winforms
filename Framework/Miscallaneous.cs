@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-
 struct Equation{
     public float Gradient;
     public float Y_intercept;

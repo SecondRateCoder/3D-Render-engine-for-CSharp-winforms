@@ -1,6 +1,6 @@
 using System.Collections;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+
 
 [DebuggerDisplay("A: {A}, B: {B}, C: {C}")]
 struct Polygon{
@@ -323,7 +323,7 @@ class Mesh : Rndrcomponent, IEnumerable{
         this.Rotation = new Vector3(bytes, cc + Vector3.Size);
     }
     public override void Initialise(){throw new NotImplementedException();}
-
+    public override string ToString(){ return $"Position: {this.Position}, Rotation: {this.Rotation}, Count: {this.Count}, Size: {this.Size}"; }
     /*
     !Static functions and stuff
     */

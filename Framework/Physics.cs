@@ -95,14 +95,21 @@ static class CollisionManager{
             return new CollisionDatabase();
         }
     }
-    public static void Collider(object? sender, ElapsedEventArgs e){
+    /// <summary>How long should <see cref="HandleCollisions"/> be allowed to run for before being forcibly ended.</summary>
+    public static int ColliderCheckTime;
+    public static void HandleCollicerCheckTime(){ColliderCheckTime = 1 / Entry.selfDelay;}
+    public static void HandleCollisions(object? sender, ElapsedEventArgs e) {
         CollisionDatabase cD = LooseCollisions;
+        CancellationTokenSource cts = new();
         //For now just apply the Normal between the colliding polygons as a force.
-        for(int y =0; y < cD.Length;y++){
-            for(int x =1; x < cD[y].Count;x++){
-                cD[y][0].gameObject.GetComponent<RigidBdy>().velocity = 
-                    Vector3.CProduct(cD[y][0].gameObject.Position, 
-                        cD[y][x].gameObject.Position * cD[y][x].gameObject.GetComponent<RigidBdy>().TrueVelocity)/10;
+        cts.CancelAfter(ColliderCheckTime);
+        int x = 0;
+        int y = 0;
+        for (y = 0; y < cD.Length | !cts.IsCancellationRequested; y++) {
+            for (x = 1; x < cD[y].Count | !cts.IsCancellationRequested; x++) {
+                cD[y][0].gameObject.GetComponent<RigidBdy>().velocity =
+                    Vector3.CProduct(cD[y][0].gameObject.Position,
+                        cD[y][x].gameObject.Position * cD[y][x].gameObject.GetComponent<RigidBdy>().TrueVelocity) / 10;
             }
         }
     }
