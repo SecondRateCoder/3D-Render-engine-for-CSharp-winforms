@@ -42,7 +42,6 @@ class Entry{
 		StorageManager.filePath = StorageManager.ApplicationPath;
 		ExternalControl.Initialise();
         Update += f._Invoke;
-        Update += InputController.InvokeKeyHandles;
         TUpdate += (sender, e) => {
             Entry.ActualMemUsage = cProc.WorkingSet64;
             Entry.PeakMemUsage = cProc.PeakWorkingSet64;
@@ -78,7 +77,6 @@ class Entry{
             if(Entry.Cts == null){Cts = new CancellationTokenSource();}
             while(!Entry.Cts.IsCancellationRequested){
                 //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
-                InputController.InvokeKeyHandles();
                 HandleMemUsage();
                 if(Entry.Buffer != null && Runs >= selfDelay/10){UpdateUI(() => f.Invalidate());}
                 await Task.Delay(selfDelay, Entry.Cts.Token);
@@ -162,7 +160,7 @@ static class ExternalControl{
 }
 
 
-public partial class Form1 : Form{
+partial class Form1 : Form{
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Form1(){
         InitializeComponent();
@@ -197,13 +195,13 @@ public partial class Form1 : Form{
         base.OnPaint(e);
         if (Entry.Buffer != null) { e.Graphics.DrawImage((Bitmap)Entry.Buffer, Point.Empty); }
     }
-    public (DateTime Start, Keys key)[] KeyBuffer { get; private set; } = new (DateTime Start, Keys key)[20];
+    public (DateTime Start, InputController.Keys key)[] KeyBuffer { get; private set; } = new (DateTime Start, InputController.Keys key)[20];
     int Position = 0;
     void AddKeyValue(Keys key){
         lock (KeyBuffer){
             Position++;
-            if (Position >= 20) { InputController.InvokeKeyHandles(); Position = 0; }
-            KeyBuffer[Position] = (DateTime.Now, key);
+            if (Position >= 20) {Position = 0; }
+            KeyBuffer[Position] = (DateTime.Now, InputController.ToInputCotrollerKeys(key));
         }
     }
     protected override void OnKeyDown(KeyEventArgs e){
