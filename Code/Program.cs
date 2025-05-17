@@ -4,44 +4,66 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using NUnit.Framework;
-class Entry{
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public static CancellationTokenSource Cts{get; private set;}
-    public static unsafe WriteableBitmap Buffer;
-    public static ElapsedEventHandler TUpdate;
+static class Entry{
+    /// <summary>The maximum amount of time that <see cref="Entry.Loop"/> is allowed to delay itself by, 
+    /// this is needed because <see cref="Entry.Loop"/> regulates itself by delaying itself between each Loop.</summary>
+    /// <remarks>In Milliseconds.</remarks>
+    static int MaxDelay;
+    /// <summary>Defines the Upper percentage of the <see cref="Entry.TotalMemUsage"/> where if <see cref="Entry.Loop"/>'s Memory usage falls below the value
+    /// , it's Regulation becomes cautious.</summary>
+    public static float UpperLimit { get { return _uLimit; } set { _uLimit = Math.Clamp(value, 0, 1); } }
+    static float _uLimit;
+    /// <summary>Defines the Utmost percentage bounds of <see cref="Entry.TotalMemUsage"/> that <see cref="Entry.Loop"/> is allowed to reach, 
+    /// Beyond this point Regulation becomes aggressive.</summary>
+    public static float GreatestLimit { get { return _gLimit - .1f < 0? _gLimit: _gLimit - .1f; } set { _gLimit = Math.Clamp(value, 0, 1); } }
+    static float _gLimit;
+    /// <summary>Defines the Lower percentage bounds of <see cref="Entry.TotalMemUsage"/> where if <see cref="Entry.Loop"/>'s Memory usage falls below the value, 
+    /// it's Regulation becomes lax.</summary>
+    public static float LowerLimit { get { return _lLimit; } set { _lLimit = Math.Clamp(value, 0, 1); } }
+    static float _lLimit;
+    /// <summary>The public <see cref="CancellationTokenSource"/> that the render loop is architectured around, use <see cref="CancellationTokenSource.Cancel()"/> to stop the Rendering loop.</summary>
+    /// <remarks>Cancelling the Rendering Loop does not end the Program, instead stops the handling of Rendering, all other functions like <see cref="CollisionManager.HandleCollisions(object?, ElapsedEventArgs)"/> runs on <see cref="TUpdate"/></remarks>
+    public static CancellationTokenSource Cts { get; private set; }
+    /// <summary>The context where <see cref="Entry.f"/>'s UI thread lies.</summary>
     internal static SynchronizationContext? uiContext;
+    /// <summary>This delegate is called 60 times a second, it controls the calling of arbitrary functions e.g: <see cref="HandleMemUsage"/>, <see cref="GetStackDepth"/></summary>
+    public static ElapsedEventHandler TUpdate;
+    /// <summary>This delegate runs as many times as possible, it self-regulates to prevent a <see cref="StackOverflowException"/> and the termination of the Program;</summary>
     public static Action Update;
+    /// <summary>The delegate called at <see cref="Entry.f"/>'s creation.</summary>
     public static Action Start;
     public static Form1 f;
-    /// <summary>The that should be between each <see cref="HandleMemUsage"/> call.</summary>
+    /// <summary>The delay that should be between each <see cref="HandleMemUsage"/> call.</summary>
     static int MemCheckRate;
+    /// <summary>An estimation of how much Memory has been assigned to <see cref ="Entry.Loop"/>.</summary>
     static long TotalMemUsage;
+    /// <summary>An estimation of how many bytes have been used by <see cref ="Entry.Loop"/> overall.</summary>
     static long PeakMemUsage;
+    /// <summary>An estimation of the number of bytes used by <see cref ="Entry.Loop"/> at the moment.</summary>
     static long ActualMemUsage;
     /// <summary>The estimation of the Stack depth.</summary>
     static int stackDepth;
-    public static int selfDelay;
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    static int selfDelay;
     static Process cProc;
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    static unsafe Entry(){
+    /// <summary>The Buffer to allow GraphicsData from <see cref="Entry.BuildWorld"/> and <see cref="BuildSquare"/> to be communicated with <see cref="Entry.f"/>'s UI.</summary>
+    public static WriteableBitmap Buffer;
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    static Entry(){
         ApplicationConfiguration.Initialize();
         f = new();
-        f.EnterFullScreenMode();
         Cts = new CancellationTokenSource();
         CollisionManager.ColliderCheckTime = 5000;
         TUpdate = CollisionManager.HandleCollisions;
-        Update = BuildSquare;
         Start = ExternalControl.StartTimer;
-        Start += ()=>{PeakMemUsage = GC.GetTotalAllocatedBytes();};
         Buffer = new(f.Width, f.Height);
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static void Main(){
+        Update += f._Invoke;
+        Application.Run(f);
         Entry.uiContext = SynchronizationContext.Current;
 		StorageManager.filePath = StorageManager.ApplicationPath;
 		ExternalControl.Initialise();
-        Update += f._Invoke;
         TUpdate += (sender, e) => {
             Entry.ActualMemUsage = cProc.WorkingSet64;
             Entry.PeakMemUsage = cProc.PeakWorkingSet64;
@@ -59,17 +81,7 @@ class Entry{
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
         _ = Loop();
         //Source of Exception
-        Application.Run(f);
     }
-    [Test]
-    static void TestKey(){
-        EncryptionKey k = new([20, 3, 45, 6, 6], 
-        [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
-        MessageBox.Show(k.key_.ToString());
-        int[] array = EncryptionKey.CreateEncodedKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
-        MessageBox.Show($"{CustomSort.ToString(array)}");
-    }
-    static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
     public static async Task Loop(){
         float Runs = 0;
         await Task.Run(async () => {
@@ -78,7 +90,8 @@ class Entry{
             while(!Entry.Cts.IsCancellationRequested){
                 //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
                 HandleMemUsage();
-                if(Entry.Buffer != null && Runs >= selfDelay/10){UpdateUI(() => f.Invalidate());}
+                BuildSquare();
+                if (Entry.Buffer != null && Runs >= selfDelay / 10) { UpdateUI(() => f.Invalidate()); }
                 await Task.Delay(selfDelay, Entry.Cts.Token);
             }
             if(Update != null){Entry.Update();}
@@ -87,8 +100,8 @@ class Entry{
     }
     [Test]
     static void HandleMemUsage(){
-        if(ActualMemUsage > TotalMemUsage* .5){selfDelay = Math.Min(selfDelay + 10, 500);}
-        if(ActualMemUsage > PeakMemUsage * .6){selfDelay = Math.Min(selfDelay + 100, 500);}
+        if(ActualMemUsage > ((TotalMemUsage + PeakMemUsage)/2) * Entry._uLimit){selfDelay = Math.Min(selfDelay + 10, Entry.MaxDelay);}
+        if(ActualMemUsage > ((TotalMemUsage + PeakMemUsage)/2) * Entry._gLimit){selfDelay = Math.Min(selfDelay + 50, Entry.MaxDelay);}
         if(ActualMemUsage < (TotalMemUsage + PeakMemUsage)/2* .5 && selfDelay > 10){selfDelay -= 10;}
         if(stackDepth > 1000){
             selfDelay += 200;
@@ -111,6 +124,15 @@ class Entry{
         Span<byte> stackSpace = stackalloc byte[255];
         stackSpace[0] = (byte)depth;
     }
+    [Test]
+    static void TestKey(){
+        EncryptionKey k = new([20, 3, 45, 6, 6], 
+        [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
+        MessageBox.Show(k.key_.ToString());
+        int[] array = EncryptionKey.DecodeKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
+        MessageBox.Show($"{CustomSort.ToString(array)}");
+    }
+    static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
     //Paint the enviroment.
     static void BuildSquare(){
         try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.Cts.IsCancellationRequested}";}
@@ -151,7 +173,7 @@ static class ExternalControl{
     public static Timer _1 = new Timer();
     public static void Initialise(){
         _1.AutoReset = true;
-        _1.Interval = 1000;
+        _1.Interval = 167;
 		if(Entry.TUpdate != null){_1.Elapsed += Entry.TUpdate;}
         _1.Elapsed += ElapsedHandler;
     }
@@ -164,6 +186,7 @@ partial class Form1 : Form{
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Form1(){
         InitializeComponent();
+        this.EnterFullScreenMode();
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     override protected void OnLoad(EventArgs e){

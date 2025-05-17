@@ -11,6 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="GtkSharp" Version="3.24.24.95" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Scripting" Version="4.14.0" />
     <PackageReference Include="NUnit" Version="2.5.7.10213" />
     <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
     <PackageReference Include="System.Text.Json" Version="10.0.0-preview.4.25258.110" />

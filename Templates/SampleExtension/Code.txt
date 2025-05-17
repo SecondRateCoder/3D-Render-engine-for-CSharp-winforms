@@ -1,0 +1,6 @@
+class Template{
+void StartUpFunction(){MessageBox.Show("Extension started.");}
+void Update(){MessageBox.Show("Extension running.");}
+void TimedUpdate(object sender,ElapsedEventArgs eventArgs){MessageBox.Show("Running on time.");}
+void Closing(){}{MessageBox.Show("Ending.");}
+}

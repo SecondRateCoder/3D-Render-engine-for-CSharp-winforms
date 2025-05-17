@@ -5,20 +5,26 @@ using System.Text;
 class TextureStyles{
     /// <summary>Stretches a TextureDatabase to fit the inputted Polygon.</summary>
     /// <remarks>To apply this function; it requires the parameters: "TextureDatabase tD, Mesh m, Equation p0_p1, Equation p1_p2, Equation p0_p2, int StartAt = "0""</remarks>
-    public static TextureStyles StretchToFit = (TextureStyles)0;
-    public static TextureStyles EdgeFillBlack = (TextureStyles)1;
-    public static TextureStyles EdgeFillWhite = (TextureStyles)2;
-    public static TextureStyles Empty = (TextureStyles)int.MaxValue;
+    public enum TrueTextureStyles{
+        Empty = 0,
+        StretchToFit = 1,
+        EdgeFillBlack = 2,
+        EdgeFillWhite = 3,
+        ClipToFit = 4,
+        ClipToFit_EdgeFillBlack = 5,
+        ClipToFit_EdgeFillWhite = 6
+    }
     public static TextureStyles ClipToFit = (TextureStyles)3;
-    public static explicit operator TextureStyles(int i){if(IsStyle(i)){return new TextureStyles(i);}else{return TextureStyles.Empty;}}
+    /// <summary>Converts an integer to a TextureStyle</summary>
+    /// <param name="i"></param>
+    public static explicit operator TextureStyles(int i) { return Enum.IsDefined(typeof(TrueTextureStyles), i) ? new TextureStyles(i) : new((int)TrueTextureStyles.Empty); }
     public static implicit operator int(TextureStyles t){return t.type;}
-    static int[] Styles = [0, 1, 2, 3, 10];
-    public static bool IsStyle(int type){return Styles.Contains(type);}
+    public static implicit operator TrueTextureStyles(TextureStyles tS){ return (TrueTextureStyles)tS.type; }
     int type;
     internal TextureStyles(int i){this.type = i;}
     public static TextureDatabase Apply(TextureStyles tS, TextureDatabase tD, Mesh m, Equation p0_p1, Equation p1_p2, Equation p0_p2, int Start = 0){
         return tS.type switch{
-            0 => StretchToFit_(tD, m, p0_p1, p1_p2, p0_p2, 0).Result,
+            (int)TrueTextureStyles.StretchToFit => StretchToFit_(tD, m, p0_p1, p1_p2, p0_p2, 0).Result,
             _ => tD,
         };
     }
@@ -141,8 +147,14 @@ class TextureStyles{
 /// The true shape of a Collider
 /// </summary>
 class TrueCollider{
+    public enum Colliders{
+        Undefined = 0,
+        Cube = 1,
+        Capsule = 2,
+        Sphere = 3
+    }
     //public static readonly TrueCollider Sphere = 0;
-    public static TrueCollider Cube{get{_cube.Dimensions = (5, 5); return _cube;}}
+    public static TrueCollider Cube { get { return Colliders.Cube; } }
 #pragma warning disable CS8601 // Possible null reference assignment.
     static readonly TrueCollider _cube = (TrueCollider?)1;
     public static TrueCollider Capsule{get{_capsule.Dimensions = (5, 3); return _capsule;}}
@@ -151,12 +163,11 @@ class TrueCollider{
 
     internal string Name{get; private set;}
     internal int type;
-
     public (int height, int width) Dimensions{get; private set;}
     public void UpdateDimensions(int height, int width){this.Dimensions = (height, width);}
 
     internal TrueCollider(int tyPe, int Height = 10, int Width = 3){
-        if(IsCollider(tyPe)){
+        if(Enum.IsDefined(typeof(Colliders), type)){
             this.Name = TrueCollider.GetCollider(tyPe);
             this.type = tyPe;
             this.Dimensions = (Height, Width);
@@ -166,26 +177,26 @@ class TrueCollider{
             this.Dimensions = TrueCollider.Cube.Dimensions;
         }
     }
-
-    public static bool IsCollider(int type){
-        switch(type){
-            case 1: return true;
-            case 2: return true;
-            default: return false;
-        }
-    }
     public static string GetCollider(int type){
-        if(!IsCollider(type)){return "";}else{
-            switch(type){
-                case 1: return  "Cube";
-                case 2: return "Cylinder";
-                default: return "";
-            }
+        if(!Enum.IsDefined(typeof(Colliders), type)){return "";}else{
+            return type switch{
+                1 => "Cube",
+                2 => "Cylinder",
+                _ => "",
+            };
         }
     }
-    public static explicit operator TrueCollider(int type){if(IsCollider(type)){return new TrueCollider(type);}else{return TrueCollider.Cube;}}
-    public static explicit operator int(TrueCollider tC){
-        return tC.type;
+    public static explicit operator TrueCollider(int type){if(Enum.IsDefined(typeof(Colliders), type)){return new TrueCollider(type);}else{return TrueCollider.Cube;}}
+    public static explicit operator int(TrueCollider tC){return tC.type;}
+    public static implicit operator Colliders(TrueCollider tC){ return (Colliders)tC.type; }
+    public static implicit operator TrueCollider(Colliders c){
+        (int, int) Dimensions = c switch{
+            Colliders.Cube => (10, 10),
+            Colliders.Sphere => (10, 10),
+            Colliders.Capsule => (10, 5),
+            _ => (0, 0)
+        };
+        return new TrueCollider((int)c, Dimensions.Item1, Dimensions.Item2);
     }
     public static Polygon[] GetMesh(TrueCollider? tC){
         int bevel = 0;
@@ -410,11 +421,11 @@ static class CustomSort{
         float y = Math.Abs(a.Y - b.Y);
         return (float)Math.Sqrt((x * x) + (y * y));
     }
-    /// <summary>Conert an array to a string</summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="array"></param>
-    /// <param name="AddCommas"></param>
-    /// <returns></returns>
+    /// <summary>Convert an array to a string</summary>
+    /// <typeparam name="T">The Type of the array's elements.</typeparam>
+    /// <param name="array">The array to be converted.</param>
+    /// <param name="AddCommas">Should it add Commas to the string? when false essentially returns a raw string.</param>
+    /// <returns>A string containing <paramref name="array"/>'s elements.</returns>
     public static string ToString<T>(IEnumerable<T> array, bool AddCommas = true){
         if(array == null){ return string.Empty;}
         StringBuilder sb = new();
@@ -424,6 +435,24 @@ static class CustomSort{
             sb.Append(item?.ToString());
         }
         return sb.ToString();
+    }
+    public static T[] GetTupleValueT<T, R>(IEnumerable<(T, R)> data){
+        T[] values = new T[data.Count()];
+        int cc = 0;
+        foreach ((T t, R r) item in data) {
+            values[cc] = item.t;
+            cc++;
+        }
+        return values;
+    }
+    public static R[] GetTupleValueR<T, R>(IEnumerable<(T, R)> data){
+        R[] values = new R[data.Count()];
+        int cc = 0;
+        foreach ((T t, R r) item in data) {
+            values[cc] = item.r;
+            cc++;
+        }
+        return values;
     }
 }
 [Serializable]
@@ -446,7 +475,26 @@ class AssemblyLoadException : Exception{
         if(condition){throw new AssemblyLoadException(message, inner: InnerException ?? new Exception());}
     }
 }
-
+[Serializable]
+public class ParameterNotFoundException : Exception{
+    public ParameterNotFoundException(string message) : base(message){}
+    public ParameterNotFoundException(string message, Exception inner) : base(message, inner){}
+    public ParameterNotFoundException(){}
+    public override string Message => base.Message;
+    public static void ThrowIf(bool condition, string message, Exception? InnerException = null){
+        if(condition){throw new InconsistentDimensionException(message, inner: InnerException ?? new Exception());}
+    }
+}
+[Serializable]
+public class JsonFormatexception : Exception{
+    public JsonFormatexception(string message) : base(message){}
+    public JsonFormatexception(string message, Exception inner) : base(message, inner){}
+    public JsonFormatexception(){}
+    public override string Message => base.Message;
+    public static void ThrowIf(bool condition, string message, Exception? InnerException = null){
+        if(condition){throw new InconsistentDimensionException(message, inner: InnerException ?? new Exception());}
+    }
+}
 
 
 /// <summary>
@@ -455,9 +503,9 @@ class AssemblyLoadException : Exception{
 /// However if the job takes too long, the OnTimeout delegate is called.
 /// </summary>
 /// 
-class BackdoorJob<T, R>{
-    Type paramType{get; set;}
-    Type returnType{get; set;}
+class BackdoorJob<T, R> {
+    Type paramType { get; set; }
+    Type returnType { get; set; }
     /// <summary>
     /// The delegate that represents a job.
     /// </summary>
@@ -508,18 +556,18 @@ class BackdoorJob<T, R>{
     CancellationTokenSource cts;
 
 
-    BackdoorJob(int ID, int Timeout, BackdoorDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null){
+    BackdoorJob(int ID, int Timeout, BackdoorDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null) {
         this.paramType = typeof(T);
         this.returnType = typeof(R);
-        if(OnFinish == null){
+        if (OnFinish == null) {
             this.OnFinish = TrueFinish;
-        }else{
+        } else {
             this.OnFinish = OnFinish;
             this.OnFinish += TrueFinish;
         }
-        if(OnTimeout == null){
+        if (OnTimeout == null) {
             this.OnTimeExceed = TrueTimeout;
-        }else{
+        } else {
             this.OnTimeExceed = OnTimeout;
             this.OnTimeExceed += TrueTimeout;
         }
@@ -528,152 +576,154 @@ class BackdoorJob<T, R>{
         this.Timeout = Timeout;
         this.cts = new CancellationTokenSource();
         result = null;
-        this.cts.Token.Register(() => {this.OnTimeExceed(this.sender ?? new object());});
+        this.cts.Token.Register(() => { this.OnTimeExceed(this.sender ?? new object()); });
     }
-    R? Start(T param){
+    R? Start(T param) {
         R? result = Task.Run(() => this._Start(param)).Result;
         this.OnFinish();
         return result;
     }
-    private R? _Start(T param){
+    private R? _Start(T param) {
         this.running = true;
         cts.CancelAfter(Timeout * 1000);
         R? result = this.Job(param);
         return result;
     }
-    void TrueFinish(){
-        try{
+    void TrueFinish() {
+        try {
             this.Dispose();
-        }catch(Exception ex){
-            _ = MessageBox.Show($"Error in LockJob: ObjectDisposalException.\nMessage: {ex.Message}\nFrom sender: {(string)sender}");
+        } catch (Exception ex) {
+            _ = MessageBox.Show($"Error in LockJob: ObjectDisposalException.\nMessage: {ex.Message}\nFrom sender: {(string)(sender ?? "ERROR: Undefined")}");
         }
         this.running = false;
     }
-    void TrueTimeout(object sender){
+    void TrueTimeout(object sender) {
         _ = MessageBox.Show($"Error in LockJob: TimeoutException.\nFrom sender: {(string)sender}");
     }
 
     IAsyncResult? result;
-	public void Dispose(bool disposing = true){
-		if(!(disposed && running)){
-			if(disposing){
+    public void Dispose(bool disposing = true) {
+        if (!(disposed && running)) {
+            if (disposing) {
                 this.running = false;
-				this.Job.EndInvoke(result);
-			}
-			disposed = true;
-		}
-		GC.SuppressFinalize(this);
-	}
-
-
-	public override bool Equals([NotNullWhen(true)]object? obj){
-		if (obj is BackdoorJob<T, R> other){
-			return _ID == other._ID;
+                this.Job.EndInvoke(result);
+            }
+            disposed = true;
+        }
+        GC.SuppressFinalize(this);
     }
-    return false;
-	}
 
 
-	public static bool operator ==(BackdoorJob<T, R> l1, BackdoorJob<T, R> l2){return l1.Equals(l2);}
-	public static bool operator !=(BackdoorJob<T, R> l1, BackdoorJob<T, R> l2){return !(l1 == l2);}
-	public override int GetHashCode(){return HashCode.Combine(_ID);}
+    public override bool Equals([NotNullWhen(true)] object? obj) {
+        if (obj is BackdoorJob<T, R> other) {
+            return _ID == other._ID;
+        }
+        return false;
+    }
 
-/// <summary>
-/// A static class that controls how BackdoorJobs are handled, it does this through a <see cref="System.Collections.Concurrent"/> that stores the jobs and 
-/// a <see cref="System.Collections.IEnumerable"/> that stores job parametwers locally.
-/// </summary>
-    public static class BackdoorJobHandler{
+
+    public static bool operator ==(BackdoorJob<T, R> l1, BackdoorJob<T, R> l2) { return l1.Equals(l2); }
+    public static bool operator !=(BackdoorJob<T, R> l1, BackdoorJob<T, R> l2) { return !(l1 == l2); }
+    public override int GetHashCode() { return HashCode.Combine(_ID); }
+
+    /// <summary>
+    /// A static class that controls how BackdoorJobs are handled, it does this through a <see cref="System.Collections.Concurrent"/> that stores the jobs and 
+    /// a <see cref="System.Collections.IEnumerable"/> that stores job parametwers locally.
+    /// </summary>
+    public static class BackdoorJobHandler {
         /// <summary>
         /// An offset that is decrimented and incremented with the Queuing and Dequeuing of the handler list.
         /// </summary>
         /// <remarks>If applying this number to any retained ProcessID results in a negative number, it means the process has probably already been completed.</remarks>
         public static int Shifts;
-/// <summary>
-/// The queue of jobs to be processed.
-/// </summary>
-/// <remarks>Thread safe.</remarks>
-		static readonly ConcurrentQueue<BackdoorJob<T, R>> jobs = new();
+        /// <summary>
+        /// The queue of jobs to be processed.
+        /// </summary>
+        /// <remarks>Thread safe.</remarks>
+        static readonly ConcurrentQueue<BackdoorJob<T, R>> jobs = new();
         static List<((Type paramType, Type returnType) Types, object data)> parameterData = [];
 #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-/// <summary>
-/// Adds a job to the running queue, as well as it's parameters.
-/// </summary>
-/// <param name="job">The job.to be run.</param>
-/// <param name="parameters">The input parameters of the LockJob.</param>
-/// <param name="sender">The function where the job originated from.</param>
-/// <param name="timeout">How long the job should last</param>
-/// <returns>An integer holding the ProcessID of this job</returns>
-		static int AddJob(BackdoorDelegate<T, R> job, T parameters, object? sender = null, int timeout = 1000){
+        /// <summary>
+        /// Adds a job to the running queue, as well as it's parameters.
+        /// </summary>
+        /// <param name="job">The job.to be run.</param>
+        /// <param name="parameters">The input parameters of the LockJob.</param>
+        /// <param name="sender">The function where the job originated from.</param>
+        /// <param name="timeout">How long the job should last</param>
+        /// <returns>An integer holding the ProcessID of this job</returns>
+        static int AddJob(BackdoorDelegate<T, R> job, T parameters, object? sender = null, int timeout = 1000) {
             Shifts++;
             jobs.Enqueue(new BackdoorJob<T, R>(jobs.Count, timeout, new BackdoorJob<T, R>.BackdoorDelegate<T, R>(job), null, null, sender));
             parameterData.Add(((typeof(T), typeof(R)), parameters));
-            return jobs.Count-1;
+            return jobs.Count - 1;
         }
 #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-    public static async Task<R> PassJob(BackdoorDelegate<T, R> job, T parameter, object? sender = null, int timeout = 1000){
-        return await Task.Run(() => {
-            AddJob(job, parameter, sender, timeout);
-            R? result = default;
-            do{
-                result = GetMyResult<R>();
-            }while(result == null);
-            return result;
-        });
-    }
+        public static async Task<R> PassJob(BackdoorDelegate<T, R> job, T parameter, object? sender = null, int timeout = 1000) {
+            return await Task.Run(() => {
+                AddJob(job, parameter, sender, timeout);
+                R? result = default;
+                do {
+                    result = GetMyResult<R>();
+                } while (result == null);
+                return result;
+            });
+        }
 
 
-    static int ProcessCounter =0;
-/// <summary>
-/// Runs a job, retrieving it's parameters automaically.
-/// </summary>
-/// <returns>The return of the original Job.</returns>
+        static int ProcessCounter = 0;
+        /// <summary>
+        /// Runs a job, retrieving it's parameters automaically.
+        /// </summary>
+        /// <returns>The return of the original Job.</returns>
 #pragma warning disable CS8603 // Possible null reference return.
-        static async void ProcessJob(){
+        static async void ProcessJob() {
             R? result = await Task.Run(() => {
-                if(jobs.TryDequeue(out BackdoorJob<T, R>? job)){
+                if (jobs.TryDequeue(out BackdoorJob<T, R>? job)) {
                     Shifts--;
-                    ProcessCounter ++;
+                    ProcessCounter++;
                     Type t = job.paramType;
                     Type r = job.returnType;
                     (T, R)? item = RecoverTrueParameters<T, R>();
+                    if (item == null) { throw new Exception(); }
                     return job.Start(item.Value.Item1);
-                }else{
+                } else {
                     return default;
                 }
             });
-            if(result != null){
+            if (result != null) {
                 AddNextResult(typeof(R), result);
             }
         }
-        static (Type r, object data)[] ReturnResult =new (Type r, object data)[20];
+        static (Type r, object data)[] ReturnResult = new (Type r, object data)[20];
         static int Pointer;
-        static void AddNextResult(Type t, object data){
+        static void AddNextResult(Type t, object data) {
             Pointer++;
-            if(Pointer >= 20){Pointer = 0;}
+            if (Pointer >= 20) { Pointer = 0; }
             ReturnResult[Pointer] = (t, data);
         }
-        static Result? GetMyResult<Result>(int timeout = 1000){
+        static Result? GetMyResult<Result>(int timeout = 1000) {
             CancellationTokenSource cts = new();
             cts.CancelAfter(timeout);
-            int cc =0;
-            while(!cts.IsCancellationRequested){
-                if(ReturnResult[cc].GetType() == typeof(Result)){
+            int cc = 0;
+            while (!cts.IsCancellationRequested) {
+                if (ReturnResult[cc].GetType() == typeof(Result)) {
                     return (Result)ReturnResult[cc].data;
                 }
                 cc++;
             }
             return default;
         }
-#pragma warning restore CS8603 // Possible null reference return.
-        static (t, r)? RecoverTrueParameters<t, r>(){
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
+        static (t, r)? RecoverTrueParameters<t, r>() {
             int iD = RecoverParameterIndex(typeof(t), typeof(r));
-            if(iD == -1){return null;}
+            if (iD == -1) { return null; }
             return ((t, r))parameterData[iD].data;
         }
-        static int RecoverParameterIndex(Type T, Type R){
-            int cc =0;
-            foreach(((Type paramType, Type returnType) Types, object data) item in parameterData){
-                if(item.Types.paramType == T && item.Types.returnType == R){return cc;}
+#pragma warning restore CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
+        static int RecoverParameterIndex(Type T, Type R) {
+            int cc = 0;
+            foreach (((Type paramType, Type returnType) Types, object data) item in parameterData) {
+                if (item.Types.paramType == T && item.Types.returnType == R) { return cc; }
                 Task.Delay(100);
                 cc++;
             }
@@ -683,6 +733,7 @@ class BackdoorJob<T, R>{
 }
 
 public class EncryptionKey{
+    public static EncryptionKey Empty = new();
     static EncryptionKey(){
         _masterKey = new EncryptionKey(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
     }
@@ -695,6 +746,9 @@ public class EncryptionKey{
     }}
     static EncryptionKey? _masterKey;
     public int key_{get; private set;}
+    byte[] scrambleCode;
+    int ScramblePerDigit;
+    EncryptionKey(){ this.key_ = 0; this.ScramblePerDigit = 0; this.scrambleCode = []; }
 /// <summary>
 /// Constructs a key from a Key.key and Key.mtf file.
 /// </summary>
@@ -728,7 +782,13 @@ public class EncryptionKey{
                     for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(keyBytes[i] - buffer)) << keyScrambler[cc];}
                 }
             }
+            this.ScramblePerDigit = ScramblePerIncrement;
+            this.scrambleCode = keyScrambler;
             this.key_ = buffer;
+        }else{
+            this.key_ = int.MinValue;
+            this.scrambleCode = [];
+            this.ScramblePerDigit = 0;
         }
     }
     public EncryptionKey(int[] key, byte[] scrambleCode){
@@ -747,19 +807,23 @@ public class EncryptionKey{
                 }
             }
         }
+        this.ScramblePerDigit = ScramblePerIncrement;
+        this.scrambleCode = scrambleCode;
         this.key_ = buffer;
     }
-/// <summary>
-/// Creates a key from a key and a scramble array.
-/// </summary>
+    /// <summary>Creates an encoded key from a key object.</summary>
+    /// <param name="key">The key to have it's data decoded.</param>
+    /// <returns>A decoded Key object.</returns>
+    public static int[] DecodeKey(EncryptionKey key) => DecodeKey(key.key_, key.scrambleCode, key.ScramblePerDigit);
+/// <summary>Creates an encoded key from a key and a scramble array.</summary>
 /// <param name="key">The key to be encoded.</param>
 /// <param name="scrambleArray">The encoding array that the key is encoded by.</param>
 /// <param name="ScrambleCode">The integer that helps the algorithm decide whether to Bit shift forward or Backward.</param>
 /// <param name="ScramblePerDigit">the amount of scrambling that will occur per digit.</param>
 /// <returns>An integer array that encodes the key.</returns>
 /// <exception cref="ArgumentOutOfRangeException">If the ScramblePerDigit and the ScrambleArray are not compatible.</exception>
-/// <remarks>The ScrambleArray and the <see cref="int[]"/> must be retained for the original key to be restored.</remarks> 
-    public static int[] CreateEncodedKey(int key, byte[] scrambleArray, int ScramblePerDigit = 4){
+/// <remarks>The ScrambleArray and the <see cref="return"/> must be retained for the original key to be restored.</remarks> 
+    public static int[] DecodeKey(int key, byte[] scrambleArray, int ScramblePerDigit = 4){
         int ScrambleCode = scrambleArray[0];
         if (scrambleArray.Length % ScramblePerDigit != 0) { throw new ArgumentOutOfRangeException(nameof(scrambleArray), "The scramble array must be divisible by the ScramblePerDigit."); }
         int[] TrueKey = new int[scrambleArray.Length/ScramblePerDigit];
@@ -783,7 +847,13 @@ public class EncryptionKey{
         }
         return TrueKey;
     }
-    new int GetHashCode(){return HashCode.Combine(this.GetType(), this.GetType().Name, this.key_);}
-    public static bool operator ==(EncryptionKey k1, EncryptionKey k2){if(k1.key_ == k2.key_){return true;}else{return false;}}
+    public override bool Equals(object? obj){
+        EncryptionKey? k = obj as EncryptionKey;
+        if (k is not null){
+            return this.GetHashCode() == k.GetHashCode();
+        }else{ return false; }
+    }
+    public override int GetHashCode() { return HashCode.Combine(this.GetType(), CustomSort.ToString(this.scrambleCode), this.key_ + this.ScramblePerDigit); }
+    public static unsafe bool operator ==(EncryptionKey? k1, EncryptionKey? k2){if((object?)k1 != null){return k1.Equals(k2);}else if((object?)k1 == null && (object?)k2 != null){ return false; }else{ return true; }}
     public static bool operator !=(EncryptionKey k1, EncryptionKey k2){return !(k1.key_ == k2.key_);}
 }

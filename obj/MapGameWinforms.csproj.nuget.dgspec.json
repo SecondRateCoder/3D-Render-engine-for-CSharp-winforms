@@ -43,6 +43,18 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "dependencies": {
+            "GtkSharp": {
+              "target": "Package",
+              "version": "[3.24.24.95, )"
+            },
+            "Microsoft.CodeAnalysis.CSharp": {
+              "target": "Package",
+              "version": "[4.14.0, )"
+            },
+            "Microsoft.CodeAnalysis.Scripting": {
+              "target": "Package",
+              "version": "[4.14.0, )"
+            },
             "NUnit": {
               "target": "Package",
               "version": "[2.5.7.10213, )"
