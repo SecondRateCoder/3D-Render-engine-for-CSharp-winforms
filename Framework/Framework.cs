@@ -347,9 +347,11 @@ class gameObj{
 
 
     public void AddComponent<RComponent>(Type? type = null, RComponent? rC = null) where RComponent : Rndrcomponent, new(){
+        _ = type ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException());
+        _ = rC ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException());
         if(this.components == null){
-            this.components = [(typeof(type ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException())))];
-        }else{this.components.Add((typeof(type ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException()))));}
+            this.components = [(type, rC)];
+        }else{this.components.Add((type, rC));}
     }
     public void AddComponents<RComponent>(IEnumerable<(Type type, RComponent rC)> rC) where RComponent : Rndrcomponent{
         foreach((Type type, RComponent rc) rc in rC){
@@ -416,7 +418,7 @@ class gameObj{
     }
 
     public static void Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
-        World.worldData.Add(new gameObj(position, rotation, false, children, Mycomponents, name));
+        World.Add(new gameObj(position, rotation, false, children, Mycomponents, name));
     }
     public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         this.Position = position;
