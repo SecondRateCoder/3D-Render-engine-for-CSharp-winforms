@@ -7,7 +7,7 @@ using NUnit.Framework;
 class Collider{
     /// <summary>Get the TrueCollider cast of this instance.</summary>
     /// <remarks>If it's null, then this collider is custom.</remarks> 
-    public TrueCollider? Type{get{if(TrueCollider.IsCollider(this._type)){return (TrueCollider)this._type;}else{return null;}}}
+    public TrueCollider.Colliders? Type{get{if(this.isCustom){return null;}else{return (TrueCollider.Colliders)this._type;}}}
     //The underlying store for this class' TrueCollider convert.
     int _type;
     /// <summary>Get the Mesh that describes the bounds of this Collider.</summary>
@@ -17,7 +17,7 @@ class Collider{
             if(this.Buffer != null){
                 return Buffer;
             }
-            if (TrueCollider.IsCollider(_type)) {
+            if(this.isCustom){
                 return (Mesh)TrueCollider.GetMesh((TrueCollider)_type);
             }
             throw new InvalidOperationException("Invalid Collider state.");
@@ -97,7 +97,7 @@ static class CollisionManager{
     }
     /// <summary>How long should <see cref="HandleCollisions"/> be allowed to run for before being forcibly ended.</summary>
     public static int ColliderCheckTime;
-    public static void HandleCollicerCheckTime(){ColliderCheckTime = 1 / Entry.selfDelay;}
+    public static void HandleColliderCheckTime(){ColliderCheckTime = 1 / Entry.selfDelay;}
     public static void HandleCollisions(object? sender, ElapsedEventArgs e) {
         CollisionDatabase cD = LooseCollisions;
         CancellationTokenSource cts = new();

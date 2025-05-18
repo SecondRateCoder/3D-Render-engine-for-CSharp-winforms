@@ -73,14 +73,14 @@ class Texturer : Rndrcomponent{
     public Texturer(){
         this.filePath = new Path(StorageManager.ApplicationPath + @"Cache\Images\GrassBlock.png", [".bmp", ".jpeg", ".png"], false);
         this.DataEnd = 0;
-        this.tS = TextureStyles.Empty;
+        this.tS = (TextureStyles)TextureStyles.Styles.Empty;
         this.DataStart = 0;
     }
 #pragma warning restore CS8618
     public Texturer(string? filePath = null, TextureStyles? tS = null){
         this.filePath = filePath == null ? new Path(StorageManager.ApplicationPath + @"Cache\Images\GrassBlock.png", [".bmp", ".jpeg", ".png"], false) :
         new Path(filePath, [".bmp", ".jpeg", ".png"], false);
-        this.tS = tS ?? TextureStyles.Empty;
+        this.tS = tS ?? TextureStyles.Styles.Empty;
         buffer = new Bitmap(1, 1);
     }
 

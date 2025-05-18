@@ -5,7 +5,7 @@ using System.Text;
 class TextureStyles{
     /// <summary>Stretches a TextureDatabase to fit the inputted Polygon.</summary>
     /// <remarks>To apply this function; it requires the parameters: "TextureDatabase tD, Mesh m, Equation p0_p1, Equation p1_p2, Equation p0_p2, int StartAt = "0""</remarks>
-    public enum TrueTextureStyles{
+    public enum Styles{
         Empty = 0,
         StretchToFit = 1,
         EdgeFillBlack = 2,
@@ -17,14 +17,15 @@ class TextureStyles{
     public static TextureStyles ClipToFit = (TextureStyles)3;
     /// <summary>Converts an integer to a TextureStyle</summary>
     /// <param name="i"></param>
-    public static explicit operator TextureStyles(int i) { return Enum.IsDefined(typeof(TrueTextureStyles), i) ? new TextureStyles(i) : new((int)TrueTextureStyles.Empty); }
+    public static explicit operator TextureStyles(int i) {return Enum.IsDefined(typeof(Styles), i) ? new TextureStyles(i) : new((int)Styles.Empty);}
     public static implicit operator int(TextureStyles t){return t.type;}
-    public static implicit operator TrueTextureStyles(TextureStyles tS){ return (TrueTextureStyles)tS.type; }
+    public static implicit operator Styles(TextureStyles tS){return (Styles)tS.type;}
+    public static implicit operator TextureStyles(Styles tS){return new TextureStyles((int)tS);}
     int type;
     internal TextureStyles(int i){this.type = i;}
     public static TextureDatabase Apply(TextureStyles tS, TextureDatabase tD, Mesh m, Equation p0_p1, Equation p1_p2, Equation p0_p2, int Start = 0){
         return tS.type switch{
-            (int)TrueTextureStyles.StretchToFit => StretchToFit_(tD, m, p0_p1, p1_p2, p0_p2, 0).Result,
+            (int)Styles.StretchToFit => StretchToFit_(tD, m, p0_p1, p1_p2, p0_p2, 0).Result,
             _ => tD,
         };
     }
@@ -430,9 +431,10 @@ static class CustomSort{
         if(array == null){ return string.Empty;}
         StringBuilder sb = new();
         bool first = true;
-        foreach(T item in array){
-            if(!first && AddCommas){ sb.Append(", "); }
+        foreach (T item in array){
+            if (!first && AddCommas) { sb.Append(", "); }
             sb.Append(item?.ToString());
+            first = false;
         }
         return sb.ToString();
     }

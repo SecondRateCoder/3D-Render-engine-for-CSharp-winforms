@@ -43,12 +43,13 @@ static class Entry{
     static long ActualMemUsage;
     /// <summary>The estimation of the Stack depth.</summary>
     static int stackDepth;
-    static int selfDelay;
+    public static int selfDelay{get; private set;}
     static Process cProc;
     /// <summary>The Buffer to allow GraphicsData from <see cref="Entry.BuildWorld"/> and <see cref="BuildSquare"/> to be communicated with <see cref="Entry.f"/>'s UI.</summary>
     public static WriteableBitmap Buffer;
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     static Entry(){
+        Entry.MaxDelay = 500;
         try{ExtensionHandler.PreLoadExtensions();}catch{MessageBox.Show("Extensions could not be Pre-Loaded", "ExtensionPre_LoadingException: Extensions could not be loaded.", MessageBoxButtons.OK, MessageBoxIcon.Warning);}
         ApplicationConfiguration.Initialize();
         f = new();
@@ -61,7 +62,6 @@ static class Entry{
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static void Main(){
         Update += f._Invoke;
-        Application.Run(f);
         Entry.uiContext = SynchronizationContext.Current;
 		ExternalControl.Initialise();
         TUpdate += (sender, e) => {
@@ -80,6 +80,7 @@ static class Entry{
         TestKey();
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
         _ = Loop();
+        Application.Run(f);
         //Source of Exception
     }
     public static async Task Loop(){
@@ -128,7 +129,7 @@ static class Entry{
     static void TestKey(){
         EncryptionKey k = new([20, 3, 45, 6, 6], 
         [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
-        MessageBox.Show(k.key_.ToString());
+        MessageBox.Show(CustomSort.ToString([(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]) + "\n" + k.key_.ToString());
         int[] array = EncryptionKey.DecodeKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
         MessageBox.Show($"{CustomSort.ToString(array)}");
     }

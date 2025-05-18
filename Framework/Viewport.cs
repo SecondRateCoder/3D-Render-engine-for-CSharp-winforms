@@ -3,11 +3,28 @@
 ///  This class represents the the Scene and what will be viewed by the user.
 /// </summary>
 static class World{
-    public static List<gameObj> worldData = new List<gameObj>();
-    public static List<Camera> cams = new List<Camera>(){new Camera()};
+    static World(){
+        worldData = [];
+        cams = [new()];
+        lights = [new Light(Vector3.Zero, Color.White, 15)];
+        activeLights = [0];
+    }
+    /// <summary>Stores the entire 3d world.</summary>
+    public static List<gameObj> worldData;
+    /// <summary>Stores all the cams in the world.</summary>
+    public static List<Camera> cams;
+    /// <summary>Stores the index of the selected cam.</summary>
     public static int camIndex{get; private set;}
-    public static List<Light> lights = new List<Light>(){new Light(Vector3.Zero, Color.White, 15)};
-    public static List<int> activeLights = [0];
+    /// <summary>Stores all the lights in the world.</summary>
+    public static List<Light> lights;
+    /// <summary>Stores the indexes of all the lights that are active in the world.</summary>
+    public static List<int> activeLights{get; private set;}
+    /// <summary>Add a <see cref="Camera"/> to the world.</summary>
+    /// <param name="c">The <see cref="Camera"/> to be added.</param>
+    public static void AddCam(Camera c){cams.Add(c);}
+    /// <summary>Try to set a new <see cref="Camera"/> to be the Main in the world.</summary>
+    /// <param name="index">The index of the <see cref="Camera"/> to be selected.</param>
+    /// <returns>Was the <see cref="Camera"/> successfully selected?</returns>
     public static bool TrySetCam(int index){
         if(index < cams.Count && index >= 0){
             camIndex = index;
@@ -15,8 +32,14 @@ static class World{
         }
         return false;
     }
-    public static void AddLight(int light){
-        activeLights.Add(light);
+    /// <summary>Add a new Light to <see cref="World.activeLights"/></summary>
+    /// <param name="light">The Light to be added.</param>
+    public static void AddLight(int light){activeLights.Add(light);}
+    public static bool TrySetLight(int index){
+        if(!activeLights.Contains(index)){
+            activeLights.Add(index);
+            return true;
+        }else{return false;}
     }
     public static void Call(){
         Vector3 camPos = 0f-cams[camIndex].Position;
@@ -113,7 +136,7 @@ static class ViewPort{
         foreach(gameObj gO in World.worldData){
             Vector3[] PolygonOrigins = new Vector3[gO.GetComponent<Mesh>().Count];
             for(int cc =0; cc < PolygonOrigins.Length;cc++){PolygonOrigins[cc] = gO.GetComponent<Mesh>()[cc].origin;}
-            bmp.Set(Convert_(gO.Texture(TextureStyles.StretchToFit), PolygonOrigins), (int)(255/2));
+            bmp.Set(Convert_(gO.Texture(TextureStyles.Styles.StretchToFit), PolygonOrigins), (int)(255/2));
         }
         return bmp;
     }
