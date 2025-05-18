@@ -347,7 +347,9 @@ class gameObj{
 
 
     public void AddComponent<RComponent>(Type? type = null, RComponent? rC = null) where RComponent : Rndrcomponent, new(){
-        components.Add((type == null? typeof(RComponent): type, rC == null? new RComponent(): rC));
+        if(this.components == null){
+            this.components = [(typeof(type ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException())))];
+        }else{this.components.Add((typeof(type ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException()))));}
     }
     public void AddComponents<RComponent>(IEnumerable<(Type type, RComponent rC)> rC) where RComponent : Rndrcomponent{
         foreach((Type type, RComponent rc) rc in rC){

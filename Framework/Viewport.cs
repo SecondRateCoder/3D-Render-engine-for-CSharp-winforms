@@ -11,6 +11,7 @@ static class World{
     }
     /// <summary>Stores the entire 3d world.</summary>
     public static List<gameObj> worldData;
+    public static void Add(gameObj gO){if(worldData == null){worldData = [gO];}else{worldData.Add(gO);}}
     /// <summary>Stores all the cams in the world.</summary>
     public static List<Camera> cams;
     /// <summary>Stores the index of the selected cam.</summary>
