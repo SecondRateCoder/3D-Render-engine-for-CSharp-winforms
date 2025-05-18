@@ -5,7 +5,7 @@
     "Priority": "0",
     "comment": "This is essential for the extension to be added to the function",
     "SetUp": {
-        "RelativeStartUpFilePath": "Code.txt",
+        "RelativeFilePath": "Code.txt",
         "comment": "The StartInFile property details the char index where the StartUpFunction starts.",
         "StartInFile": "16",
         "comment1": "The EndInFile property details the char index where the StartUpFunction ends.",
@@ -14,7 +14,7 @@
     },
     "comment1": "Update cannot have parameters, if it does then the Extension will not be run.",
     "Update": {
-        "RelativeUpdateFilePath": "Code.txt",
+        "RelativeFilePath": "Code.txt",
         "comment": "The StartInFile property details the char index where the UpdateFunction starts.",
         "StartInFile": "80",
         "comment1": "The EndInFile property details the char index where the StartUpFunction ends.",
@@ -23,7 +23,7 @@
     },
     "comments2": "The parameters for this function will be supplemented at runtime",
     "TimedUpdate": {
-        "RelativeUpdateFilePath": "Code.txt",
+        "RelativeFilePath": "Code.txt",
         "comment": "The StartInFile property details the char index where the TimedUpdateFunction starts.",
         "StartInFile": "135",
         "comment1": "The EndInFile property details the char index where the TimedUpdateFunction ends.",
@@ -31,7 +31,7 @@
         "Timedupdate": "TimedUpdate"
     },
     "Closing": {
-        "RelativeUpdateFilePath": "Code.txt",
+        "RelativeFilePath": "Code.txt",
         "comment": "The StartInFile property details the char index where the ClosingFunction starts.",
         "StartInFile": "232",
         "comment1": "The EndInFile property details the char index where the TimedUpdate ends.",
