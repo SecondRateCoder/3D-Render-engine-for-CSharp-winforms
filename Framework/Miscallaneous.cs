@@ -75,13 +75,12 @@ class Camera{
         _ = InputController.AttachKeyhandles(
             new ControlScheme(
                 [Keys.W, Keys.A, Keys.S, Keys.D, Keys.Q, Keys.E], 
-
-                [duration => { Position = new Vector3(Position.X, Position.Y, Position.Z + 1); }, 
-                duration => { Position = new Vector3(Position.X - 1, Position.Y, Position.Z); }, 
-                duration => { Position = new Vector3(Position.X, Position.Y, Position.Z - 1); }, 
-                duration => { Position = new Vector3(Position.X + 1, Position.Y, Position.Z); }, 
-                duration => { Position = new Vector3(Position.X, Position.Y + 1, Position.Z); }, 
-                duration => { Position = new Vector3(Position.X + 1, Position.Y - .5f, Position.Z); }]
+                [(duration, strength) => { Position = new Vector3(Position.X, Position.Y, Position.Z + 1); }, 
+                    (duration, strength) => { Position = new Vector3(Position.X, Position.Y, Position.Z - 1); }, 
+                    (duration, strength) => { Position = new Vector3(Position.X + 1, Position.Y, Position.Z); }, 
+                    (duration, strength) => { Position = new Vector3(Position.X - 1, Position.Y, Position.Z); }, 
+                    (duration, strength) => { Position = new Vector3(Position.X, Position.Y + 1, Position.Z); }, 
+                    (duration, strength) => { Position = new Vector3(Position.X, Position.Y - .5f, Position.Z); }]
             ));
     }
     public void Translate(Vector3 position, Vector3 rotation){

@@ -49,6 +49,7 @@ static class Entry{
     public static WriteableBitmap Buffer;
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     static Entry(){
+        try{ExtensionHandler.PreLoadExtensions();}catch{MessageBox.Show("Extensions could not be Pre-Loaded", "ExtensionPre_LoadingException: Extensions could not be loaded.", MessageBoxButtons.OK, MessageBoxIcon.Warning);}
         ApplicationConfiguration.Initialize();
         f = new();
         Cts = new CancellationTokenSource();
@@ -62,7 +63,6 @@ static class Entry{
         Update += f._Invoke;
         Application.Run(f);
         Entry.uiContext = SynchronizationContext.Current;
-		StorageManager.filePath = StorageManager.ApplicationPath;
 		ExternalControl.Initialise();
         TUpdate += (sender, e) => {
             Entry.ActualMemUsage = cProc.WorkingSet64;

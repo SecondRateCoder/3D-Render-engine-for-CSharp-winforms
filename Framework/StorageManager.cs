@@ -8,9 +8,6 @@ using System.Text.Json;
 using Gtk;
 static class StorageManager{
     static string PathProp = "";
-    public static string filePath{set{
-        PathProp = value + @"";
-    } get{return PathProp;}}
     static string fileSpecific = @"\Cache\Saves\1.bin";
 	public static Path ApplicationPath{
 		get{
@@ -216,6 +213,7 @@ class Path{
 		System.IO.Directory.Exists(s));}
 }
 static class ExtensionHandler{
+	const int MaxTries = 20;
 	/// <summary>A enum to differentiate beteen the various Method extension types.</summary>
 	public enum MethodType{
 		/// <summary>Runs with <see cref="Entry.Start"/>.</summary>
@@ -227,7 +225,7 @@ static class ExtensionHandler{
 		/// <summary>Runs when the application ends.</summary>
 		OnClosing = 3,
 		/// <summary>This means the method runs outside the rendering loop, the method types are not protected against and can damage the application.</summary>
-		/// <remarks>UNIMPLEMENTED, DON NOT USE.</remarks>
+		/// <remarks>UNIMPLEMENTED, DO NOT USE.</remarks>
 		Workspace = 4
 	}
 	static ExtensionHandler() { extensions = []; IndexToName = []; }
@@ -235,7 +233,21 @@ static class ExtensionHandler{
 	static Dictionary<int, string> IndexToName;
 	/// <summary>Stores all the data needed for the system to interface with the method and understand it for what it needs to do.</summary>
 	static Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> extensions;
-	/// <summary>Invoke all the extension events.</summary>
+	/// <summary>Loads extensions from the Cache\Saves\Extensions.txt cache, allowing extensions to be automatically loaded from start-up.</summary>
+	public static void PreLoadExtensions(){
+		List<string> ExtensionFilePaths = File.ReadAllLines(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt").ToList();
+		int cc = 0;
+		foreach (string s in ExtensionFilePaths) {
+			if (!HandleJsonObject(s)){ExtensionFilePaths.RemoveAt(cc);	cc--; }
+			cc++;
+		}
+		using (FileStream stream = new(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt", FileMode.Open, FileAccess.ReadWrite)) {
+			int cc_ = 0;
+			foreach(string s_ in ExtensionFilePaths){ cc_ += s_.Length; }
+			File.WriteAllLines(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt", ExtensionFilePaths);
+		}
+	}
+	/// <summary>Invoke all the extension functions of type: <paramref name="type"/>.</summary>
 	/// <param name="type">The extension type that is being called.</param>
 	/// <param name="parameters">The parameters needed to run the program</param>
 	/// <returns>Where methids invoked?</returns>
@@ -247,12 +259,14 @@ static class ExtensionHandler{
 			int errorCalls = item.Value.ErrorCalls;
 			if(item.Value.type == type){
 				try{
-					item.Value.method.Invoke(null, BindingFlags.Static, null, type == MethodType.Update? []: parameters, CultureInfo.InvariantCulture);
+					if(item.Value.method.GetParameters().Length > 0){
+						item.Value.method.Invoke(null, BindingFlags.Static, null, type == MethodType.Update? []: parameters, CultureInfo.InvariantCulture);
+					}else{item.Value.method.Invoke(null, BindingFlags.Static, null, [], CultureInfo.InvariantCulture);}
 				}catch(Exception ex){
-					if(item.Value.ErrorCalls > (int)(20/item.Key)){
-						MessageBox.Show(ex.Message + $"{IndexToName[item.Key]} has called too many errors({(int)(20/item.Key)} Exceptions) and has been removed from the Application to maintain performance.", $"Error in Extension: {IndexToName[item.Key]}", MessageBoxButtons.OK);
+					if(item.Value.ErrorCalls > (int)(MaxTries/item.Key)){
+						MessageBox.Show(ex.Message + $"{IndexToName[item.Key]} has called too many errors({(int)(MaxTries/item.Key)} Exceptions) and has been removed from the Application to maintain performance.", $"Error in Extension: {IndexToName[item.Key]}", MessageBoxButtons.OK, MessageBoxIcon.Error);
 					}else{
-						DialogResult dR = MessageBox.Show(ex.Message + $"Should this extension be removed? \n(It's possible that it will be removed later if it calls {(int)(20/item.Key)} Exceptions.)", $"Error in Extension: {IndexToName[item.Key]}", MessageBoxButtons.OKCancel);
+						DialogResult dR = MessageBox.Show(ex.Message + $"Should this extension be removed? \n(It's possible that it will be removed later if it calls {(int)(MaxTries/item.Key)} Exceptions.)", $"Error in Extension: {IndexToName[item.Key]}", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
 						if(dR == DialogResult.OK){ extensions.Remove(item.Key); continue; }else{ errorCalls++; }
 					}
 				}
@@ -264,43 +278,50 @@ static class ExtensionHandler{
 		return Invoked;
 		
 	}
-	/// <summary>Loads extensions from the Cache\Saves\Extensions.txt cache, allowing extensions to be automatically loaded from start-up.</summary>
-	static void CollectRecordedExtensions(){
-		List<string> ExtensionFilePaths = File.ReadAllLines(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt").ToList();
-		int cc = 0;
-		foreach (string s in ExtensionFilePaths) {
-			if (!CoalesceJsonObject(s)){ExtensionFilePaths.RemoveAt(cc);	cc--; }
-			cc++;
-		}
-		using (FileStream stream = new(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt", FileMode.Open, FileAccess.ReadWrite)) {
-			int cc_ = 0;
-			foreach(string s_ in ExtensionFilePaths){ cc_ += s_.Length; }
-			File.WriteAllLines(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt", ExtensionFilePaths);
-		}
-	}
-	/// <summary>Open a <see cref="Gtk.FileChooserDialog"/> and use it to select a folder.</summary>
+	/// <summary>Open a <see cref="Gtk.FileChooserDialog"/> and use it to select a folder containing a Metadata.json file.</summary>
 	/// <returns>Was the folder containing viable data for an extension attaching.</returns>
-	public static bool AttachExtension(){
+	public static async Task<bool> AttachExtension(){
+		string folderPath = "";
+		bool Suceeded = true;
 		Gtk.Application.Init();
-		using(FileChooserDialog fD = new(
-			"Open a folder containing a Metadata.json and a Code.txt file",
-			null,
-			FileChooserAction.SelectFolder,
-			"Cancel", Gtk.ResponseType.Cancel,
-			"Open", Gtk.ResponseType.Accept)){
+		await Task.Run(() => {
+			using(FileChooserDialog fD = new("Open a folder containing a Metadata.json file", null, FileChooserAction.SelectFolder, "Cancel", Gtk.ResponseType.Cancel, "Open", Gtk.ResponseType.Accept)){
 				if(fD.Run() == (int)Gtk.ResponseType.Accept){
-				string selectedFolder = fD.Filename;
+				folderPath = fD.Filename;
 				Gtk.Application.Quit();
-				return CoalesceJsonObject(selectedFolder.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString())
-					? selectedFolder
-					: selectedFolder + System.IO.Path.DirectorySeparatorChar);
-				}else{ return false; }
+				Suceeded = HandleJsonObject(folderPath.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString())
+					? folderPath
+					: folderPath + System.IO.Path.DirectorySeparatorChar);
+				}else{ Suceeded = false; }
 			}
+		});
+		if (MessageBox.Show("Shoukld the extension be Pre-Loaded on startup of application?", "Per-load extension?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
+			using(FileStream fS = File.OpenWrite(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt")){
+				byte[] array = Encoding.Default.GetBytes(folderPath);
+				bool completed = true;
+				int num = 0;
+				do{
+					try{
+						fS.Write(array, 0, array.Length);
+						completed = true;
+					}catch(Exception ex){
+						if(num < MaxTries){
+							if (MessageBox.Show($"The extension could not be written to {StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt"}\nRetry?",
+								"Error Message:\n{ex.Message}",
+								MessageBoxButtons.RetryCancel, MessageBoxIcon.Error) == DialogResult.Retry) { completed = false; num++; }else{break;}
+							await Task.Delay(1000);
+						}
+					}
+				}while(!completed);
+				if(completed){_ = MessageBox.Show("Extension loaded successfully.", null, MessageBoxButtons.OK, MessageBoxIcon.Information);}
+			}
+		}
+		return Suceeded;
 	}
 	/// <summary>Builds and stores the Json file object, checking if the File contains the right properties.</summary>
 	/// <param name="filePath">The file path of the Json.</param>
 	/// <returns>Was the Json file of the right format?</returns>
-	static bool CoalesceJsonObject(string filePath){
+	static bool HandleJsonObject(string filePath){
 		string Jsonbody = "";
 		try{
 			Jsonbody = File.ReadAllText(filePath + "Metadata.json");
@@ -320,7 +341,7 @@ static class ExtensionHandler{
 		}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
 		//Priority of the extension.
 		_ = Jsondata.TryGetValue("Priority", out object? priority) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-		_ = priority ?? (MessageBox.Show($"The Json at {filePath} does not have a Priority of expected value, changing value to Priority: {extensions.Count}"));
+		_ = priority ?? (MessageBox.Show($"The Json at {filePath} does not have a Priority of expected value, changing value to Priority: {extensions.Count}", null, MessageBoxButtons.OK, MessageBoxIcon.Warning));
 		int Priority = priority is JsonElement je ? je.GetInt32() : throw new Exception("Priority is not a JsonElement");
 		bool SetUp = HandleSetUpFunction(Jsondata, Name, filePath, Priority);
 		if(!SetUp){ return false; }
