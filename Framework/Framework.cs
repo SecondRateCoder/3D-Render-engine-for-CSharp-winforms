@@ -417,8 +417,9 @@ class gameObj{
         return (scope, Dis <= LowerBd && Dis > 0? true: false);
     }
 
-    public static void Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
+    public static int Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         World.Add(new gameObj(position, rotation, false, children, Mycomponents, name));
+        return World.worldData.Count - 2;
     }
     public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         this.Position = position;
@@ -433,7 +434,7 @@ class gameObj{
         }
         this.Rotation = rotation;
         this.Name = name == null? $"{World.worldData.Count+1}": name;
-        if(Create){World.worldData.Add(this);}
+        if(Create){World.Add(this);}
     }
 
     public static gameObj operator +(gameObj parent, Polygon[] children){
