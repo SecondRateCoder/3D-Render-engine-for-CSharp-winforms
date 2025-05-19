@@ -150,8 +150,22 @@ static class StorageManager{
 	public static PointF ReadPointF(byte[] bytes, int startFrom =0){
 		return new PointF(ReadInt32(bytes), ReadInt32(bytes, sizeof(int)));
 	}
+	public static string FindFileFolder(string FileFolderName, bool Directory, string BeginFrom = ""){
+		BeginFrom = string.IsNullOrEmpty(BeginFrom) ? ApplicationPath : BeginFrom;
+		if(!File.Exists(BeginFrom)){return "";}
+		if (Directory){
+            // Search for directories
+            foreach (var dir in System.IO.Directory.EnumerateDirectories(BeginFrom, FileFolderName, SearchOption.AllDirectories)){return dir;}
+        }else{
+            // Search for files
+            foreach (var file in System.IO.Directory.EnumerateFiles(BeginFrom, FileFolderName, SearchOption.AllDirectories)){return file;}
+        }
+		return "";
+	}
 }
 class Path{
+	static Path(){ Empty = new("", [], false); }
+	public static Path Empty;
 	string filePath;
 	string[] fileExtensions;
 	bool Directory;
@@ -171,6 +185,11 @@ class Path{
 		}
 	}
     public Path(string filePath, IEnumerable<string>? fileExtensions, bool Directory){
+		if(string.IsNullOrWhiteSpace(filePath) & ((fileExtensions != null && !fileExtensions.Any()) | fileExtensions == null) & !Directory){
+			this.filePath = filePath;
+			this.fileExtensions = [.. (fileExtensions ?? [])];
+			this.Directory = false;
+		}
 		//Check if the item there is a directory.
 		if(Directory && fileExtensions == null){
 			this.Directory = Exists(filePath) | System.IO.Directory.Exists(filePath);		
@@ -200,7 +219,7 @@ class Path{
 				p.filePath += s;
 			}
 		}
-		return p;
+		return p ?? new Path("", [], false);
 	}
 	public static implicit operator string(Path p){return p.Get();}
 	public static explicit operator Path(string s){return new Path(
@@ -209,6 +228,10 @@ class Path{
 		System.IO.Directory.Exists(s));}
 }
 static class ExtensionHandler{
+	static readonly string Start = "SetUp";
+	static readonly string TUpdate = "TimedUpdate";
+	static readonly string Update = "Update";
+	static readonly string Closing = "Closing";
 	const int MaxTries = 20;
 	/// <summary>A enum to differentiate beteen the various Method extension types.</summary>
 	public enum MethodType{
@@ -219,7 +242,7 @@ static class ExtensionHandler{
 		/// <summary>Runs with <see cref="Entry.TUpdate"/>.</summary>
 		TimedUpdate = 2,
 		/// <summary>Runs when the application ends.</summary>
-		OnClosing = 3,
+		Closing = 3,
 		/// <summary>This means the method runs outside the rendering loop, the method types are not protected against and can damage the application.</summary>
 		/// <remarks>UNIMPLEMENTED, DO NOT USE.</remarks>
 		Workspace = 4
@@ -230,17 +253,21 @@ static class ExtensionHandler{
 	/// <summary>Stores all the data needed for the system to interface with the method and understand it for what it needs to do.</summary>
 	static Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> extensions;
 	/// <summary>Loads extensions from the Cache\Saves\Extensions.txt cache, allowing extensions to be automatically loaded from start-up.</summary>
-	public static void PreLoadExtensions(){
-		List<string> ExtensionFilePaths = File.ReadAllLines(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt").ToList();
-		int cc = 0;
-		foreach (string s in ExtensionFilePaths) {
-			if (!HandleJsonObject(s)){ExtensionFilePaths.RemoveAt(cc);	cc--; }
-			cc++;
-		}
-		using (FileStream stream = new(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt", FileMode.Open, FileAccess.ReadWrite)) {
-			int cc_ = 0;
-			foreach(string s_ in ExtensionFilePaths){ cc_ += s_.Length; }
-			File.WriteAllLines(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt", ExtensionFilePaths);
+	public static async Task PreLoadExtensions(){
+		try{
+			List<string> ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt")).ToList();
+			List<string> validPaths = [];
+			foreach (string s in ExtensionFilePaths) {
+				if (await HandleJsonObject(s)){validPaths.Add(s);}
+			}
+			File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"), validPaths);
+		}catch(FileNotFoundException){
+			List<string> ExtensionFilePaths = File.ReadAllLines(StorageManager.FindFileFolder("Extensions.txt", false, StorageManager.ApplicationPath)).ToList();
+			List<string> validPaths = [];
+			foreach (string s in ExtensionFilePaths) {
+				if (await HandleJsonObject(s)){validPaths.Add(s);}
+			}
+			File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"), validPaths);
 		}
 	}
 	/// <summary>Invoke all the extension functions of type: <paramref name="type"/>.</summary>
@@ -286,13 +313,12 @@ static class ExtensionHandler{
 				folderPath = fD.Filename;
 				Gtk.Application.Quit();
 				Suceeded = HandleJsonObject(folderPath.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString())
-					? folderPath
-					: folderPath + System.IO.Path.DirectorySeparatorChar);
+					? folderPath: folderPath + System.IO.Path.DirectorySeparatorChar).Result;
 				}else{ Suceeded = false; }
 			}
 		});
 		if (MessageBox.Show("Shoukld the extension be Pre-Loaded on startup of application?", "Per-load extension?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
-			using(FileStream fS = File.OpenWrite(StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt")){
+			using(FileStream fS = File.OpenWrite(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"))){
 				byte[] array = Encoding.Default.GetBytes(folderPath);
 				bool completed = true;
 				int num = 0;
@@ -302,8 +328,8 @@ static class ExtensionHandler{
 						completed = true;
 					}catch(Exception ex){
 						if(num < MaxTries){
-							if (MessageBox.Show($"The extension could not be written to {StorageManager.ApplicationPath + @"Cache\Saves\Extensions.txt"}\nRetry?",
-								"Error Message:\n{ex.Message}",
+							if (MessageBox.Show($"The extension could not be written to {System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt")}\nRetry?",
+								$"Error Message:\n{ex.Message}",
 								MessageBoxButtons.RetryCancel, MessageBoxIcon.Error) == DialogResult.Retry) { completed = false; num++; }else{break;}
 							await Task.Delay(1000);
 						}
@@ -317,7 +343,7 @@ static class ExtensionHandler{
 	/// <summary>Builds and stores the Json file object, checking if the File contains the right properties.</summary>
 	/// <param name="filePath">The file path of the Json.</param>
 	/// <returns>Was the Json file of the right format?</returns>
-	static bool HandleJsonObject(string filePath){
+	static async Task<bool> HandleJsonObject(string filePath){
 		string Jsonbody = "";
 		try{
 			Jsonbody = File.ReadAllText(filePath + "Metadata.json");
@@ -339,26 +365,12 @@ static class ExtensionHandler{
 		_ = Jsondata.TryGetValue("Priority", out object? priority) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
 		_ = priority ?? (MessageBox.Show($"The Json at {filePath} does not have a Priority of expected value, changing value to Priority: {extensions.Count}", null, MessageBoxButtons.OK, MessageBoxIcon.Warning));
 		int Priority = priority is JsonElement je ? je.GetInt32() : throw new Exception("Priority is not a JsonElement");
-		bool SetUp = HandleSetUpFunction(Jsondata, Name, filePath, Priority);
+		bool SetUp = await HandleSetUpFunction(Jsondata, Name, Priority);
 		if(!SetUp){ return false; }
-		bool Update = HandleUpdateFunction(Jsondata, Name, filePath, Priority);
-		bool TimedUpdate = HandleTimedUpdateFunction(Jsondata, Name, filePath, Priority);
-		bool OnClosing = HandleClosingFunction(Jsondata, Name, filePath, Priority);
-		return SetUp || (Update | TimedUpdate |OnClosing);
-	}
-	/// <summary>Returns the Method body of a function from a jSon</summary>
-	/// <param name="Json">The Dictionary that describes the original json object for te function</param>
-	/// <param name="CodeText">The whole text that the Function Body resides in.</param>
-	/// <returns>A string containing the function body</returns>
-	/// <exception cref="FileFormatException">If the .json wasn't formatted correctly, then <see cref="FileFormatException"/> will be called.</exception>
-	static string GetFunctionBody(Dictionary<string, object> Json, string CodeText){
-		(int Start, int End) FunctionBounds = (0, 0);
-		bool StartUpFound = Json.TryGetValue("SetUp", out var SetUp) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-		if (StartUpFound && SetUp is JsonElement element) {
-			if (element.TryGetProperty("StartInFile", out var Start)) { FunctionBounds.Start = Start.GetInt32(); }
-			if (element.TryGetProperty("EndInFile", out var End)) { FunctionBounds.End = End.GetInt32(); }
-		}
-		return CustomSort.ToString<char>(new Span<char>(CodeText.ToArray()).Slice(FunctionBounds.Start, FunctionBounds.End).ToArray(), false);
+		bool Update = await HandleUpdateFunction(Jsondata, Name, Priority);
+		bool TimedUpdate = await HandleTimedUpdateFunction(Jsondata, Name, Priority);
+		bool OnClosing = await HandleClosingFunction(Jsondata, Name, Priority);
+		return SetUp && true | Update | TimedUpdate | OnClosing;
 	}
 	/// <summary>Returns the Method body of a function from a jSon</summary>
 	/// <param name="functionName">The name of the function.</param>
@@ -366,16 +378,22 @@ static class ExtensionHandler{
 	/// <param name="CodeText">The whole text that the Function Body resides in.</param>
 	/// <returns>A string containing the function body</returns>
 	/// <exception cref="FileFormatException">If the .json wasn't formatted correctly, then <see cref="FileFormatException"/> will be called.</exception>
-	static string GetFunctionBody(string filePath, Dictionary<string, object> Json){
-		string CodeText = File.ReadAllText(filePath);
+	static string GetFunctionBody(string FunctionName, Dictionary<string, object> Json){
+		bool FunctionFound = Json.TryGetValue(FunctionName, out var Function) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
 		(int Start, int End) FunctionBounds = (0, 0);
-		bool StartUpFound = Json.TryGetValue("SetUp", out var SetUp) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-		if (StartUpFound && SetUp is JsonElement element) {
-			if (element.TryGetProperty("StartInFile", out var Start)) { FunctionBounds.Start = Start.GetInt32(); }
-			if (element.TryGetProperty("EndInFile", out var End)) { FunctionBounds.End = End.GetInt32(); }
+		string CodeText = "";
+		if (FunctionFound && Function is JsonElement element){
+			FunctionBounds = GetFunctionBounds(element);
+			_ = element.TryGetProperty("RelativeFilePath", out JsonElement element_) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
+			CodeText = File.ReadAllText(element_.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension"));
 		}
 		return CustomSort.ToString<char>(new Span<char>(CodeText.ToArray()).Slice(FunctionBounds.Start, FunctionBounds.End).ToArray(), false);
 	}
+	/// <summary>Return the bounding values for the specified function.</summary>
+	/// <param name="element">The element for the function.</param>
+	/// <exception cref="FileFormatException">If the deserialised Json does not contain the function this Exception will be thrown.</exception>
+	static (int, int) GetFunctionBounds(JsonElement element){return (element.GetProperty("StartInFile").GetInt32(), element.GetProperty("EndInFile").GetInt32());}
+	
 	/// <summary>Saves an extension function to be runnable.</summary>
 	/// <param name="Priority">The extionsion function's property.</param>
 	/// <param name="ClassName">The name of the function's parent extension.</param>
@@ -384,12 +402,12 @@ static class ExtensionHandler{
 	/// <param name="methodType">The type of extension it's from, selected from <see cref="ExtensionHandler.MethodType"/></param>
 	/// <returns>Was the function processed successfully.</returns>
 	/// <exception cref="Exception">Did the compilation of the function fail? then call the Exception.</exception>
-	static async Task<bool> Load_SaveFunctionFromJson(int Priority,string ClassName , string functionName, string FunctionBody, MethodType methodType) {
+	static async Task<bool> Load_SaveFunctionFromJson(int Priority,string ClassName , string functionName, string FunctionBody, MethodType methodType){
 		return await Task.Run(() => {
 			ScriptOptions scriptOptions = ScriptOptions.Default
 				.WithReferences(typeof(object).Assembly)
 				.WithImports("System");
-			FunctionBody = @"class ScriptClass{" + (FunctionBody + @"}");
+			FunctionBody = "class " + ClassName + "{" + FunctionBody + @"}";
 			Script<object> script = CSharpScript.Create(FunctionBody, scriptOptions);
 			Compilation compilation = script.GetCompilation();
 			using(MemoryStream ms = new()){
@@ -397,94 +415,90 @@ static class ExtensionHandler{
 				ms.Seek(0, SeekOrigin.Begin);
 				Assembly assembly = Assembly.Load(ms.ToArray());
 				try{
-					Type type = assembly.GetType("ScriptClass") ?? throw new ArgumentNullException("");
+					Type type = assembly.GetType(ClassName) ?? throw new ArgumentNullException("");
 					object instance = Activator.CreateInstance(type) ?? throw new ArgumentNullException();
 				//There is already an entry with the same Priority, give the function a lower Priority until it can be put into the Dictionary.
 				if (extensions.TryGetValue(Priority, out (int ErrorCalls, MethodType type, MethodInfo method) value) && (value.type == methodType)){
-						bool skip = false;
-						if(!extensions.TryGetValue(0, out (int ErrorCalls, MethodType type, MethodInfo method) _value) && (_value.type == methodType)){ Priority = 0;  skip = true;}
-						while ((extensions.TryGetValue(Priority, out (int ErrorCalls, MethodType type, MethodInfo method) value_) && (value_.type == methodType)) | !skip) Priority++;
+						bool skip = true;
+						if(!extensions.TryGetValue(Priority, out (int ErrorCalls, MethodType type, MethodInfo method) _value) && (_value.type == methodType)){skip = false;}else{
+							DialogResult dR = MessageBox.Show(
+								"Should all other Priorities be shifted upwards to accomodate this extension(CONTINUE)?\nShould this extension be given the next available Priority allotment(TRY)?\n(THIS MAY AFFECT HOW THE EXTENSION INTERACTS WITH THE APPLICATION AND IT MAY CRASH!)\n\nShould the extension not be added(CANCEL)?", $"ExtensionPriorityConflictionException: There are already an extension with Priority {Priority}", 
+								MessageBoxButtons.CancelTryContinue, MessageBoxIcon.Warning
+							);
+							if (dR == DialogResult.Continue){
+								// Create a new dictionary with incremented keys
+								Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> updatedExtensions = [];
+								Dictionary<int, string> updatedIndexToName = [];
+								int sameShift = 0;
+								foreach (KeyValuePair<int, (int ErrorCalls, MethodType type, MethodInfo method)> item in extensions){
+									if(item.Key > Priority){
+										updatedExtensions.Add(item.Key + 1, item.Value);
+										if (IndexToName.TryGetValue(item.Key, out string? name)){
+											updatedIndexToName.Add(item.Key + 1, name);
+										}
+									}else if(item.Key == Priority){
+										sameShift++;
+										updatedExtensions.Add(item.Key + sameShift, item.Value);
+										if (IndexToName.TryGetValue(item.Key, out string? name)){
+											updatedIndexToName.Add(item.Key + sameShift, name);
+										}
+									}
+								}
+								extensions = updatedExtensions;
+								IndexToName = updatedIndexToName;
+							}else if(dR == DialogResult.TryAgain){
+								while((extensions.TryGetValue(Priority, out (int ErrorCalls, MethodType type, MethodInfo method) value_) && (value_.type == methodType)) | !skip){
+									Priority++;
+								}
+							}else{return false;}
+						}
 					}
 					_ =extensions.TryAdd(Priority,(0, methodType, type.GetMethod(functionName) ?? throw new ArgumentNullException()));
 					_ = IndexToName.TryAdd(Priority, ClassName);
 					ms.Dispose();
-				}catch(ArgumentNullException){return false;}
+				}catch(ArgumentNullException){
+					ms.Dispose();
+					return false;
+				}
 			}
 			return true;
 		});
 	}
 	/// <summary>Handles an extension's SetUp function.</summary>
 	/// <param name="JsonDeserialised">The Json <see cref="Dictionary"/> that describes the extension function's metedata.json(Deserialsed).</param>
-	/// <param name="filePath">The filePath to the extension's Parent folder.</param>
 	/// <param name="ClassName">The name of the class.</param>
 	/// <param name="Priority">The priority of the extension.</param>
 	/// <returns>Did the SetUp function successfully get added.</returns>
 	/// <exception cref="FileFormatException">If the Json doesn't contain certain properties name word for word, this exception will be thrown.</exception>
 	/// <remarks>If this function does not successfully call true, the extension will not be added.</remarks>
-	static bool HandleSetUpFunction(Dictionary<string, object> JsonDeserialised, string filePath, string ClassName, int Priority){
-		bool SetupFound = JsonDeserialised.TryGetValue("Setup", out object? Setup) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-		(int Start, int End) FunctionBounds = (0, 0);
-		string relativeFilePath = "";
-		if(SetupFound && Setup is JsonElement element){
-			if(element.TryGetProperty("RelativeFilePath", out var FilePath)){relativeFilePath = FilePath.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-			if (element.TryGetProperty("StartInFile", out var Start)){FunctionBounds.Start = Start.GetInt32();}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-			if (element.TryGetProperty("EndInFile", out var End)){FunctionBounds.End = End.GetInt32();}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-		}
-		if(relativeFilePath == null){throw new FileFormatException("File was not in the same Format as expected of a Json extension");}else if(string.IsNullOrEmpty(relativeFilePath)){relativeFilePath = "Code.txt";}
-		return Load_SaveFunctionFromJson(Priority, ClassName, "SetUp", GetFunctionBody(filePath + relativeFilePath, JsonDeserialised), MethodType.Start).Result;
+	static Task<bool> HandleSetUpFunction(Dictionary<string, object> JsonDeserialised, string ClassName, int Priority){
+		return Load_SaveFunctionFromJson(Priority, ClassName, Start, GetFunctionBody(Start, JsonDeserialised), MethodType.Start);
 	}
 	/// <summary>Handles an extension's Update function.</summary>
 	/// <param name="JsonDeserialised">The Json <see cref="Dictionary"/> that describes the extension function's metedata.json(Deserialsed).</param>
-	/// <param name="filePath">The filePath to the extension's Parent folder.</param>
 	/// <param name="ClassName">The name of the class.</param>
 	/// <param name="Priority">The priority of the extension.</param>
 	/// <returns>Did the Update function successfully get added.</returns>
 	/// <exception cref="FileFormatException">If the Json doesn't contain certain properties name word for word, this exception will be thrown.</exception>
-	static bool HandleUpdateFunction(Dictionary<string, object> JsonDeserialised, string filePath, string ClassName, int Priority){
-		bool UpdateFound = JsonDeserialised.TryGetValue("Update", out var Update) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-		(int Start, int End) FunctionBounds = (0, 0);
-		string relativeFilePath = "";
-		if(UpdateFound && Update is JsonElement element){
-			if(element.TryGetProperty("RelativeFilePath", out var FilePath)){relativeFilePath = FilePath.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-			if (element.TryGetProperty("StartInFile", out var Start)){FunctionBounds.Start = Start.GetInt32();}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-			if (element.TryGetProperty("EndInFile", out var End)){FunctionBounds.End = End.GetInt32();}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-		}
-		return Load_SaveFunctionFromJson(Priority, ClassName, "Update", GetFunctionBody(filePath + relativeFilePath, JsonDeserialised), MethodType.Update).Result;
+	static Task<bool> HandleUpdateFunction(Dictionary<string, object> JsonDeserialised, string ClassName, int Priority){
+		return Load_SaveFunctionFromJson(Priority, ClassName, Update, GetFunctionBody(Update, JsonDeserialised), MethodType.Update);
 	}
 	/// <summary>Handles an extension's Timed Update function.</summary>
 	/// <param name="JsonDeserialised">The Json <see cref="Dictionary"/> that describes the extension function's metedata.json(Deserialsed).</param>
-	/// <param name="filePath">The filePath to the extension's Parent folder.</param>
 	/// <param name="ClassName">The name of the class.</param>
 	/// <param name="Priority">The priority of the extension.</param>
 	/// <returns>Did the Timed Update function successfully get added.</returns>
 	/// <exception cref="FileFormatException">If the Json doesn't contain certain properties name word for word, this exception will be thrown.</exception>
-	static bool HandleTimedUpdateFunction(Dictionary<string, object> JsonDeserialised, string filePath, string ClassName, int Priority){
-		bool TimedUpdateFound = JsonDeserialised.TryGetValue("TimedUpdate", out var TimedUpdate) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-		(int Start, int End) FunctionBounds = (0, 0);
-		string relativeFilePath = "";
-		if(TimedUpdateFound && TimedUpdate is JsonElement element){
-			if(element.TryGetProperty("RelativeFilePath", out var FilePath)){relativeFilePath = FilePath.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-			if (element.TryGetProperty("StartInFile", out var Start)){FunctionBounds.Start = Start.GetInt32();}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-			if (element.TryGetProperty("EndInFile", out var End)){FunctionBounds.End = End.GetInt32();}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-		}
-		return Load_SaveFunctionFromJson(Priority, ClassName, "TimedUpdate", GetFunctionBody(filePath + relativeFilePath, JsonDeserialised), MethodType.TimedUpdate).Result;
+	static Task<bool> HandleTimedUpdateFunction(Dictionary<string, object> JsonDeserialised, string ClassName, int Priority){
+		return Load_SaveFunctionFromJson(Priority, ClassName, TUpdate, GetFunctionBody(TUpdate, JsonDeserialised), MethodType.TimedUpdate);
 	}
 	/// <summary>Handles an extension's Closing function.</summary>
 	/// <param name="JsonDeserialised">The Json <see cref="Dictionary"/> that describes the extension function's metedata.json(Deserialsed).</param>
-	/// <param name="filePath">The filePath to the extension's Parent folder.</param>
 	/// <param name="ClassName">The name of the class.</param>
 	/// <param name="Priority">The priority of the extension.</param>
 	/// <returns>Did the Closing function successfully get added.</returns>
 	/// <exception cref="FileFormatException">If the Json doesn't contain certain properties name word for word, this exception will be thrown.</exception>
-	static bool HandleClosingFunction(Dictionary<string, object> JsonDeserialised, string filePath, string ClassName, int Priority){
-		bool TimedUpdateFound = JsonDeserialised.TryGetValue("Closing", out var Closing) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-		(int Start, int End) FunctionBounds = (0, 0);
-		string relativeFilePath = "";
-		if(TimedUpdateFound && Closing is JsonElement element){
-			if(element.TryGetProperty("RelativeFilePath", out var FilePath)){relativeFilePath = FilePath.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-			if (element.TryGetProperty("StartInFile", out var Start)){FunctionBounds.Start = Start.GetInt32();}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-			if (element.TryGetProperty("EndInFile", out var End)){FunctionBounds.End = End.GetInt32();}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
-		}
-		return Load_SaveFunctionFromJson(Priority, ClassName, "TimedUpdate", GetFunctionBody(filePath + relativeFilePath, JsonDeserialised), MethodType.TimedUpdate).Result;
+	static Task<bool> HandleClosingFunction(Dictionary<string, object> JsonDeserialised, string ClassName, int Priority){
+		return Load_SaveFunctionFromJson(Priority, ClassName, Closing, GetFunctionBody(Closing, JsonDeserialised), MethodType.Closing);
 	}
 }
