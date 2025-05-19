@@ -253,22 +253,25 @@ static class ExtensionHandler{
 	/// <summary>Stores all the data needed for the system to interface with the method and understand it for what it needs to do.</summary>
 	static Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> extensions;
 	/// <summary>Loads extensions from the Cache\Saves\Extensions.txt cache, allowing extensions to be automatically loaded from start-up.</summary>
-	public static async Task PreLoadExtensions(){
-		try{
-			List<string> ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt")).ToList();
-			List<string> validPaths = [];
-			foreach (string s in ExtensionFilePaths) {
-				if (await HandleJsonObject(s)){validPaths.Add(s);}
+	public static bool PreLoadExtensions() {
+		bool result = Task.Run(() => {
+			bool result = false;
+			try{
+				List<string> ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt")).ToList();
+				List<string> validPaths = [];
+				foreach(string s in ExtensionFilePaths){
+					if (HandleJsonObject(s).Result){validPaths.Add(s); result = true;}else{result = false;}
+				}
+				File.WriteAllLines(StorageManager.FindFileFolder("Extensions.txt", false, StorageManager.ApplicationPath), validPaths);
+			}catch(FileNotFoundException){
+				List<string> ExtensionFilePaths = File.ReadAllLines(StorageManager.FindFileFolder("Extensions.txt", false, StorageManager.ApplicationPath)).ToList();
+				List<string> validPaths = [];
+				foreach(string s in ExtensionFilePaths){if(HandleJsonObject(s).Result){validPaths.Add(s); result = true;}else{result = false;}}
+				File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"), validPaths);
 			}
-			File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"), validPaths);
-		}catch(FileNotFoundException){
-			List<string> ExtensionFilePaths = File.ReadAllLines(StorageManager.FindFileFolder("Extensions.txt", false, StorageManager.ApplicationPath)).ToList();
-			List<string> validPaths = [];
-			foreach (string s in ExtensionFilePaths) {
-				if (await HandleJsonObject(s)){validPaths.Add(s);}
-			}
-			File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"), validPaths);
-		}
+			return result;
+		}).Result;
+		return result;
 	}
 	/// <summary>Invoke all the extension functions of type: <paramref name="type"/>.</summary>
 	/// <param name="type">The extension type that is being called.</param>

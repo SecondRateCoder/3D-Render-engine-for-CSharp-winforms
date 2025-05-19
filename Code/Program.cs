@@ -77,7 +77,7 @@ static class Entry{
             GC.Collect(-1, GCCollectionMode.Aggressive);
             GetStackDepth();
         });
-        TestKey();
+        //!Test later: TestKey();
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
         _ = Loop();
         Application.Run(f);
