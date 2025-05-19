@@ -347,7 +347,7 @@ class gameObj{
 
 
     public void AddComponent<RComponent>(Type? type = null, RComponent? rC = null) where RComponent : Rndrcomponent, new(){
-        components.Add((type == null? typeof(RComponent): type, rC == null? new RComponent(): rC));
+        if (this.components == null) { components = [(type, rC)]; }
     }
     public void AddComponents<RComponent>(IEnumerable<(Type type, RComponent rC)> rC) where RComponent : Rndrcomponent{
         foreach((Type type, RComponent rc) rc in rC){
@@ -414,7 +414,7 @@ class gameObj{
     }
 
     public static void Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
-        World.worldData.Add(new gameObj(position, rotation, false, children, Mycomponents, name));
+        World.Add(new gameObj(position, rotation, false, children, Mycomponents, name));
     }
     public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         this.Position = position;
