@@ -351,9 +351,9 @@ static class ExtensionHandler{
 		int Priority = priority is JsonElement je ? Convert.ToInt32(je.ToString()) : throw new Exception("Priority is not a JsonElement");
 		bool Start = await LoadToMemory(Priority, Name, Jsondata, MethodType.Start);
 		if(!Start){ return false; }
-		bool Update = await LoadToMemory(Priority, Name, Jsondata, MethodType.Update);
-		bool TimedUpdate = await LoadToMemory(Priority, Name, Jsondata, MethodType.TimedUpdate);
-		bool OnClosing = await LoadToMemory(Priority, Name, Jsondata, MethodType.Closing);
+		bool Update = await LoadToMemory(filePath, Priority, Name, Jsondata, MethodType.Update);
+		bool TimedUpdate = await LoadToMemory(filePath, Priority, Name, Jsondata, MethodType.TimedUpdate);
+		bool OnClosing = await LoadToMemory(filePath, Priority, Name, Jsondata, MethodType.Closing);
 		return Start && true | Update | TimedUpdate | OnClosing;
 	}
 	/// <summary>Invoke all the extension functions of type: <paramref name="type"/>.</summary>
@@ -393,8 +393,8 @@ static class ExtensionHandler{
 	/// <param name="JsonDeserialised">The raw Json that contains the object.</param>
 	/// <param name="methodType">The type of the method.</param>
 	/// <returns></returns>
-	static async Task<bool> LoadToMemory(int Priority, string ClassName, Dictionary<string, object> JsonDeserialised, MethodType methodType) {
-		return await LoadToMemory(Priority, ClassName, NameFromType(methodType), GetFunctionBody(NameFromType(methodType), JsonDeserialised), methodType);
+	static async Task<bool> LoadToMemory(string PathToExtension, int Priority, string ClassName, Dictionary<string, object> JsonDeserialised, MethodType methodType) {
+		return await LoadToMemory(Priority, ClassName, NameFromType(methodType), GetFunctionBody(PathToExtension, NameFromType(methodType), JsonDeserialised), methodType);
 	}
 	static string NameFromType(MethodType methodType) {
 		switch (methodType){
@@ -486,14 +486,14 @@ static class ExtensionHandler{
 	/// <param name="CodeText">The whole text that the Function Body resides in.</param>
 	/// <returns>A string containing the function body</returns>
 	/// <exception cref="FileFormatException">If the .json wasn't formatted correctly, then <see cref="FileFormatException"/> will be called.</exception>
-	static string GetFunctionBody(string FunctionName, Dictionary<string, object> Json){
+	static string GetFunctionBody(string PathToExtension, string FunctionName, Dictionary<string, object> Json){
 		bool FunctionFound = Json.TryGetValue(FunctionName, out var Function) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
 		(int Start, int End) FunctionBounds = (0, 0);
 		string CodeText = "";
 		if (FunctionFound && Function is JsonElement element){
 			FunctionBounds = (Convert.ToInt32(element.GetProperty("StartInFile").GetString()), Convert.ToInt32(element.GetProperty("EndInFile").GetString()));
 			_ = element.TryGetProperty("RelativeFilePath", out JsonElement element_) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-			CodeText = File.ReadAllText(element_.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension"));
+			CodeText = File.ReadAllText(PathToExtension + element_.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension"));
 		}
 		return CustomFunctions.ToString<char>(new Span<char>(CodeText.ToArray()).Slice(FunctionBounds.Start, FunctionBounds.End).ToArray(), false);
 	}
