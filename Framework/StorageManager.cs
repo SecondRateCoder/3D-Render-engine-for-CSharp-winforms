@@ -155,12 +155,22 @@ static class StorageManager{
 		if(!File.Exists(BeginFrom)){return "";}
 		if (Directory){
             // Search for directories
-            foreach (var dir in System.IO.Directory.EnumerateDirectories(BeginFrom, FileFolderName, SearchOption.AllDirectories)){return dir;}
+            foreach (string dir in System.IO.Directory.EnumerateDirectories(BeginFrom, FileFolderName, SearchOption.AllDirectories)){if((new FileInfo(dir).Directory ?? new DirectoryInfo(GetParentDirectory(dir))).Name == FileFolderName){return dir;}}
         }else{
             // Search for files
-            foreach (var file in System.IO.Directory.EnumerateFiles(BeginFrom, FileFolderName, SearchOption.AllDirectories)){return file;}
+            foreach (string file in System.IO.Directory.EnumerateFiles(BeginFrom, FileFolderName, SearchOption.AllDirectories)){if(new FileInfo(file).Name == FileFolderName){return file;}}
         }
 		return "";
+	}
+	public static string GetParentDirectory(string fullPath){
+		char seperator = System.IO.Path.DirectorySeparatorChar;
+		StringBuilder sB = new();
+		char c = 'c';
+		for(int cc =0; cc < fullPath.Length; cc++, c = fullPath[cc]){
+			if(c == seperator){return sB.ToString();}
+			sB.Append(c);
+		}
+		return sB.ToString();
 	}
 }
 class Path{
@@ -320,7 +330,7 @@ static class ExtensionHandler{
 				}else{ Suceeded = false; }
 			}
 		});
-		if (MessageBox.Show("Shoukld the extension be Pre-Loaded on startup of application?", "Per-load extension?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
+		if (MessageBox.Show("Should the extension be Pre-Loaded on startup of application?", "Per-load extension?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
 			using(FileStream fS = File.OpenWrite(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"))){
 				byte[] array = Encoding.Default.GetBytes(folderPath);
 				bool completed = true;
@@ -349,9 +359,9 @@ static class ExtensionHandler{
 	static async Task<bool> HandleJsonObject(string filePath){
 		string Jsonbody = "";
 		try{
-			Jsonbody = File.ReadAllText(filePath + "Metadata.json");
+			Jsonbody = filePath.Contains("Metadata.json")? File.ReadAllText(filePath):File.ReadAllText(filePath + "Metadata.json");
 		}catch(FileNotFoundException){
-			MessageBox.Show($"The file: Metadata.json was not found at: {filePath}", "ExtensionDataNotFoundException handled.");
+			MessageBox.Show($"The file: Metadata.json was not found at: {filePath}", "ExtensionDataNotFoundException handled.", MessageBoxButtons.OK, MessageBoxIcon.Error);
 		}
 		//foreach (char c in Jsonbody) { if (!(char.IsLetterOrDigit(c) | char.IsPunctuation(c))) { throw new JsonFormatexception($"The file at: {filePath + "MetaData.json"} had the wrong format and is incompatible"); } }
 		Dictionary<string, object> Jsondata = JsonSerializer.Deserialize<Dictionary<string, object>>(Jsonbody, JsonSerializerOptions.Default) ?? throw new ArgumentException();
