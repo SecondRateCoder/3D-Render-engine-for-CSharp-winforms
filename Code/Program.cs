@@ -129,9 +129,9 @@ static class Entry{
     static void TestKey(){
         EncryptionKey k = new([20, 3, 45, 6, 6], 
         [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
-        MessageBox.Show(CustomSort.ToString([(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]) + "\n" + k.key_.ToString());
+        MessageBox.Show(CustomFunctions.ToString([(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]) + "\n" + k.key_.ToString());
         int[] array = EncryptionKey.DecodeKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
-        MessageBox.Show($"{CustomSort.ToString(array)}");
+        MessageBox.Show($"{CustomFunctions.ToString(array)}");
     }
     static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
     //Paint the enviroment.

@@ -61,7 +61,7 @@ class TextureStyles{
                 PointF[] PolygonAsPointF = [new PointF(((PointF)p.A).X * p.A.Magnitude, ((PointF)p.A).X * p.A.Magnitude), 
                     new PointF(((PointF)p.B).X * p.B.Magnitude, ((PointF)p.B).X * p.B.Magnitude), 
                         new PointF(((PointF)p.C).X * p.C.Magnitude, ((PointF)p.C).X * p.C.Magnitude)];
-                PolygonAsPointF = CustomSort.SortPointArray_ByY(PolygonAsPointF).Result.ToArray();
+                PolygonAsPointF = CustomFunctions.SortPointArray_ByY(PolygonAsPointF).Result.ToArray();
 
 
                 //To handle how TextureData is scaled, or whether it is scaled.
@@ -293,7 +293,7 @@ class ForceMode{
         }
     }
 }
-static class CustomSort{
+static class CustomFunctions{
     /// <summary>
     /// Sort the Point array on all Axis.</summary>
     /// <param name="points">The array to be sorted.</param>
@@ -312,7 +312,7 @@ static class CustomSort{
                         do{
                             cc_++;
                             if(points[cc].Y <= points[cc_].Y){
-                                CustomSort.SwapItems(points, cc, cc_);
+                                CustomFunctions.SwapItems(points, cc, cc_);
                                 break;
                             }
                         }while((points[cc_].Y > points[cc_+1].Y) | cc_< points.Length);
@@ -322,7 +322,7 @@ static class CustomSort{
                     //Swap Xs next
                     if((points[cc].X > points[cc+1].X) && (points[cc].Y == points[cc+1].Y)){
                         swapped = true;
-                        CustomSort.SwapItems(points, cc, cc+1);
+                        CustomFunctions.SwapItems(points, cc, cc+1);
                     }
                 }
             }while(swapped);
@@ -334,9 +334,9 @@ static class CustomSort{
         await Task.Run(() => {
             int cc =0;
             do{
-                if(CustomSort.GetDistance(PointF.Empty, points[cc]) > CustomSort.GetDistance(PointF.Empty, points[cc+1])){
+                if(CustomFunctions.GetDistance(PointF.Empty, points[cc]) > CustomFunctions.GetDistance(PointF.Empty, points[cc+1])){
                     swapped = true;
-                    CustomSort.SwapItems(points, cc, cc+1);
+                    CustomFunctions.SwapItems(points, cc, cc+1);
                 }
                 cc++;
             }while(swapped);
@@ -347,7 +347,7 @@ static class CustomSort{
         bool swapped = false;
         Task<bool> t = Task.Run(() => {
             for(int cc =0; cc < points.Length;cc++){
-                if(CustomSort.GetDistance(Point.Empty, points[cc]) > CustomSort.GetDistance(Point.Empty, points[cc+1])){
+                if(CustomFunctions.GetDistance(Point.Empty, points[cc]) > CustomFunctions.GetDistance(Point.Empty, points[cc+1])){
                     swapped = true;
                     break;
                 }
@@ -363,7 +363,7 @@ static class CustomSort{
             do{
                 if(points[cc].X > points[cc+1].X){
                     swapped = true;
-                    CustomSort.SwapItems(points, cc, cc+1);
+                    CustomFunctions.SwapItems(points, cc, cc+1);
                 }
                 cc++;
             }while(swapped);
@@ -390,7 +390,7 @@ static class CustomSort{
             do{
                 if(points.ElementAt(cc).Y > points.ElementAt(cc+1).Y){
                     swapped = true;
-                    CustomSort.SwapItems(points, cc, cc+1);
+                    CustomFunctions.SwapItems(points, cc, cc+1);
                 }
                 cc++;
             }while(swapped);
@@ -455,6 +455,13 @@ static class CustomSort{
             cc++;
         }
         return values;
+    }
+    public static IEnumerable<byte> ToBytes(string s){
+        List<byte> array = new List<byte>();
+        foreach(char c in s){
+            array.AddRange(BitConverter.GetBytes(c));
+        }
+        return array;
     }
 }
 [Serializable]
@@ -855,7 +862,7 @@ public class EncryptionKey{
             return this.GetHashCode() == k.GetHashCode();
         }else{ return false; }
     }
-    public override int GetHashCode() { return HashCode.Combine(this.GetType(), CustomSort.ToString(this.scrambleCode), this.key_ + this.ScramblePerDigit); }
+    public override int GetHashCode() { return HashCode.Combine(this.GetType(), CustomFunctions.ToString(this.scrambleCode), this.key_ + this.ScramblePerDigit); }
     public static unsafe bool operator ==(EncryptionKey? k1, EncryptionKey? k2){if((object?)k1 != null){return k1.Equals(k2);}else if((object?)k1 == null && (object?)k2 != null){ return false; }else{ return true; }}
     public static bool operator !=(EncryptionKey k1, EncryptionKey k2){return !(k1.key_ == k2.key_);}
 }

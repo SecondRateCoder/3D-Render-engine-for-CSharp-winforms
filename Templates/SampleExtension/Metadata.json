@@ -1,6 +1,6 @@
 {
     "ClassName": "Template",
-    "Name": "Template",
+    "Name": "_Template",
     "comments": "Priority isn't as important, it simply helps to support the Dictionary functions of the ExtensionLoader and so extensions that need more focus get to run the soonest.",
     "Priority": "0",
     "comment": "This is essential for the extension to be added to the function",

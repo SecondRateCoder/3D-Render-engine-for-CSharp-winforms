@@ -127,7 +127,7 @@ class Texturer : Rndrcomponent{
                 //!If this component has not already appended it's data to the static textureData list then that is peak, ur stuff gon hafta tank ts.
                 for (int cc = 0; cc < UVpoints.Count; cc++){
                     (int a, int b) Section = (result.Count, 0);
-                    UVpoints[cc] = [.. CustomSort.SortPointArray_ByY(UVpoints[cc]).Result];
+                    UVpoints[cc] = [.. CustomFunctions.SortPointArray_ByY(UVpoints[cc]).Result];
                     //Find the length of the 2d polygon then find the range
                     float YRange = (int)(UVpoints[cc][2].Y - UVpoints[cc][0].Y);
                     //Point 0 (UVPoints[cc][0]) to Point 1 (UVPoints[cc][1])
