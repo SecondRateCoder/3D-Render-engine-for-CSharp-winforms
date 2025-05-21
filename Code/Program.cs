@@ -60,6 +60,7 @@ static class Entry{
         Buffer = new(f.Width, f.Height);
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+	[STAThread]
     public static void Main(){
         Update += f._Invoke;
         Entry.uiContext = SynchronizationContext.Current;
