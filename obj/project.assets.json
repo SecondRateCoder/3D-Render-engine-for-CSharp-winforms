@@ -5188,11 +5188,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
+      "projectUniqueName": "c:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
       "projectName": "MapGameWinforms",
-      "projectPath": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
+      "projectPath": "c:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
       "packagesPath": "C:\\Users\\olusa\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\obj\\",
+      "outputPath": "c:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

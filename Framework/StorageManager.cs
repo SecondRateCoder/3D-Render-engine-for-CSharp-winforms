@@ -296,6 +296,7 @@ static class ExtensionHandler{
 				File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt"), validPaths);
 			}
 			if(!Entry.SkipStartUpWarnings){MessageBox.Show("The path and the Message line-up, where there is a \"...\" Message that means that a more impactful error was thrown\n\n" + CustomFunctions.ToString(CustomFunctions.GetTupleArrayT(ErrorMessage)) + "\n" + CustomFunctions.ToString(CustomFunctions.GetTupleArrayR(ErrorMessage)), "Error PreLoading error: Debugged info", MessageBoxButtons.OK, MessageBoxIcon.Warning);}
+			StartUp = false;
 			return result;
 		}).Result;
 		return result;
@@ -446,7 +447,7 @@ static class ExtensionHandler{
 	static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType methodType, int Recalls = 0){
 		return await Task<bool>.Run(() => {
 			ScriptOptions scriptOptions = ScriptOptions.Default
-				.WithReferences(typeof(Form).Assembly, typeof(Entry).Assembly)
+				.WithReferences(typeof(MessageBox).Assembly, typeof(MessageBoxButtons).Assembly, typeof(MessageBoxIcon).Assembly, typeof(Entry).Assembly, typeof(gameObj).Assembly)
 				.WithImports("System");
 			string returnType = methodType switch{
 				MethodType.Start => "void ",
@@ -461,15 +462,16 @@ static class ExtensionHandler{
 			using (MemoryStream ms = new()){
 				if(!compilation.Emit(ms).Success){
 					DialogResult dR;
-					if(Recalls < 10){
-						if(!(Entry.SkipStartUpWarnings && StartUp)){
+					bool Warn = !(Entry.SkipStartUpWarnings && StartUp);
+					if (Recalls < 10) {
+						if (Warn) {
 							dR = MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
-						}else{dR = DialogResult.Ignore;}
+						} else { dR = DialogResult.Ignore; }
 						//!(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error)
-					}else{
-						if(!(Entry.SkipStartUpWarnings && StartUp)){
+					} else {
+						if (Warn) {
 							dR = MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error);
-						}else{dR = DialogResult.OK;}
+						} else { dR = DialogResult.OK; }
 						cts.Cancel();
 					}
 					if(dR == DialogResult.Retry && Recalls < 10){
