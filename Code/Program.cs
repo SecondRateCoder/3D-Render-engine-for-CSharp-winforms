@@ -3,7 +3,6 @@ using System.Timers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using NUnit.Framework;
 static class Entry{
     /// <summary>The maximum amount of time that <see cref="Entry.Loop"/> is allowed to delay itself by, 
     /// this is needed because <see cref="Entry.Loop"/> regulates itself by delaying itself between each Loop.</summary>
@@ -29,9 +28,9 @@ static class Entry{
     /// <summary>This delegate is called 60 times a second, it controls the calling of arbitrary functions e.g: <see cref="HandleMemUsage"/>, <see cref="GetStackDepth"/></summary>
     public static ElapsedEventHandler TUpdate;
     /// <summary>This delegate runs as many times as possible, it self-regulates to prevent a <see cref="StackOverflowException"/> and the termination of the Program;</summary>
-    public static Action Update;
+    public static event Action Update;
     /// <summary>The delegate called at <see cref="Entry.f"/>'s creation.</summary>
-    public static Action Start;
+    public static event Action Start;
     public static Form1 f;
     /// <summary>The delay that should be between each <see cref="HandleMemUsage"/> call.</summary>
     static int MemCheckRate;
@@ -95,12 +94,11 @@ static class Entry{
                 BuildSquare();
                 if (Entry.Buffer != null && Runs >= selfDelay / 10) { UpdateUI(() => f.Invalidate()); }
                 await Task.Delay(selfDelay, Entry.Cts.Token);
+            	Runs+=.1f;
             }
             if(Update != null){Entry.Update();}
-            Runs+=.1f;
         });
     }
-    [Test]
     static void HandleMemUsage(){
         if(ActualMemUsage > ((TotalMemUsage + PeakMemUsage)/2) * Entry._uLimit){selfDelay = Math.Min(selfDelay + 10, Entry.MaxDelay);}
         if(ActualMemUsage > ((TotalMemUsage + PeakMemUsage)/2) * Entry._gLimit){selfDelay = Math.Min(selfDelay + 50, Entry.MaxDelay);}
@@ -126,7 +124,6 @@ static class Entry{
         Span<byte> stackSpace = stackalloc byte[255];
         stackSpace[0] = (byte)depth;
     }
-    [Test]
     static void TestKey(){
         EncryptionKey k = new([20, 3, 45, 6, 6], 
         [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
