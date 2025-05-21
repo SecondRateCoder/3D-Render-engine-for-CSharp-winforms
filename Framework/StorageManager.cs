@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using Gtk;
 static class StorageManager{
 	public static string ApplicationPath{
 		get{
@@ -150,18 +149,6 @@ static class StorageManager{
 	public static PointF ReadPointF(byte[] bytes, int startFrom =0){
 		return new PointF(ReadInt32(bytes), ReadInt32(bytes, sizeof(int)));
 	}
-	public static string FindFileFolder(string FileFolderName, bool Directory, string BeginFrom = ""){
-		BeginFrom = string.IsNullOrEmpty(BeginFrom) ? ApplicationPath : BeginFrom;
-		if(!File.Exists(BeginFrom)){return "";}
-		if (Directory){
-            // Search for directories
-            foreach (string dir in System.IO.Directory.EnumerateDirectories(BeginFrom, FileFolderName, SearchOption.AllDirectories)){if((new FileInfo(dir).Directory ?? new DirectoryInfo(GetParentDirectory(dir))).Name == FileFolderName){return dir;}}
-        }else{
-            // Search for files
-            foreach (string file in System.IO.Directory.EnumerateFiles(BeginFrom, FileFolderName, SearchOption.AllDirectories)){if(new FileInfo(file).Name == FileFolderName){return file;}}
-        }
-		return "";
-	}
 	public static string GetParentDirectory(string fullPath){
 		char seperator = System.IO.Path.DirectorySeparatorChar;
 		char c = fullPath.Last();
@@ -244,6 +231,7 @@ static class ExtensionHandler{
 	static readonly string Closing = "Closing";
 	/// <summary>This is simply for the sake of allowng the process to remember the Location of the Extension without passing more Parameters.</summary>
 	static string PathToExtension = "";
+	static CancellationTokenSource cts = new();
 	const int MaxTries = 20;
 	/// <summary>A enum to differentiate beteen the various Method extension types.</summary>
 	public enum MethodType{
@@ -285,9 +273,9 @@ static class ExtensionHandler{
 					}
 					cc++;
 				}
-				File.WriteAllLines(StorageManager.FindFileFolder("Extensions.txt", false, StorageManager.ApplicationPath), validPaths);
+				File.WriteAllLines(StorageManager.ApplicationPath + @"Cache\Extensins.txt", validPaths);
 			}catch(FileNotFoundException ex){
-				string[] ExtensionFilePaths = File.ReadAllLines(StorageManager.FindFileFolder("Extensions.txt", false, StorageManager.ApplicationPath));
+				string[] ExtensionFilePaths = File.ReadAllLines(StorageManager.ApplicationPath + @"Cache\Extensins.txt");
 				result = new bool[ExtensionFilePaths.Length];
 				List<string> validPaths = [];
 				int cc =0;
@@ -317,7 +305,6 @@ static class ExtensionHandler{
 		//!Use OpenFileDialog!!!
 		string folderPath = "";
 		bool Suceeded = true;
-		Gtk.Application.Init();
 		await Task.Run(() => {
 			using(OpenFileDialog fD = new()){
 				    fD.Title = "Open Metadata.json";
@@ -330,8 +317,9 @@ static class ExtensionHandler{
 					Suceeded = BuildJsonObject().Result;
 				}else{ Suceeded = false; }
 			}
+			if(Suceeded){SaveExtension();}
+			return Suceeded;
 		});
-		SaveExtension();
 		return Suceeded;
 	}
 	static void SaveExtension(){
@@ -454,23 +442,39 @@ static class ExtensionHandler{
 	/// <param name="methodType">The type of extension function it is, selected from <see cref="ExtensionHandler.MethodType"/></param>
 	/// <returns>Was the function processed successfully.</returns>
 	/// <exception cref="Exception">Did the compilation of the function fail? then call the Exception.</exception>
-	static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType methodType) {
-		return await Task.Run(() => {
+	static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType methodType, int Recalls = 0){
+		return await Task<bool>.Run(() => {
 			ScriptOptions scriptOptions = ScriptOptions.Default
-				.WithReferences(typeof(object).Assembly)
+				.WithReferences(typeof(Form).Assembly, typeof(Entry).Assembly)
 				.WithImports("System");
 			string returnType = methodType switch{
 				MethodType.Start => "void ",
 				MethodType.Update => "void ",
 				MethodType.TimedUpdate => "void ",
 				MethodType.Closing => "void ",
-				_ => "void",
+				_ => "void ",
 			};
-			FunctionBody = "class " + ClassName + "{ " + returnType + FunctionBody + @"}";
+			FunctionBody = "class " + ClassName + "{ " + returnType + FunctionBody + "}";
 			Script<object> script = CSharpScript.Create(FunctionBody, scriptOptions);
 			Compilation compilation = script.GetCompilation();
-			using (MemoryStream ms = new()) {
-				if(!compilation.Emit(ms).Success){throw new Exception("Compilation failed.");}
+			using (MemoryStream ms = new()){
+				if(!compilation.Emit(ms).Success){
+					DialogResult dR;
+					if(Recalls < 10){
+						dR = MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
+					}else{
+						dR = MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error);
+						cts.Cancel();
+					}
+					if(dR == DialogResult.Retry && Recalls < 10){
+                        return LoadToMemory(Priority, ClassName, functionName, FunctionBody, methodType, Recalls + 1).Result;
+					}else if(dR == DialogResult.Abort && Recalls < 10){
+						cts.Cancel();
+						return false;
+					}else if(dR == DialogResult.Ignore){
+                        return LoadToMemory(Priority, ClassName, functionName, FunctionBody, methodType, 10).Result;
+					}else if(dR == DialogResult.OK){return false;}
+				}
 				ms.Seek(0, SeekOrigin.Begin);
 				Assembly assembly = Assembly.Load(ms.ToArray());
 				try {
@@ -509,7 +513,7 @@ static class ExtensionHandler{
 								while ((extensions.TryGetValue(Priority, out (int ErrorCalls, MethodType type, MethodInfo method) value_) && (value_.type == methodType)) | !skip) {
 									Priority++;
 								}
-							} else { return false; }
+							} else {return false;}
 						}
 					}
 					_ = extensions.TryAdd(Priority, (0, methodType, type.GetMethod(functionName) ?? throw new ArgumentNullException()));

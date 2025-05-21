@@ -52,12 +52,6 @@ c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bi
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\MapGameWinforms.runtimeconfig.json
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\MapGameWinforms.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\MapGameWinforms.pdb
-c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\AtkSharp.dll
-c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\CairoSharp.dll
-c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\GdkSharp.dll
-c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\GioSharp.dll
-c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\GLibSharp.dll
-c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\GtkSharp.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\Microsoft.CodeAnalysis.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\Microsoft.CodeAnalysis.CSharp.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\Microsoft.CodeAnalysis.CSharp.Scripting.dll
@@ -65,7 +59,6 @@ c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bi
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\nunit.framework.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\nunit.mocks.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\pnunit.framework.dll
-c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\PangoSharp.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\SharpDX.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\SharpDX.DirectInput.dll
 c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\System.Collections.Immutable.dll
