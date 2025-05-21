@@ -323,7 +323,7 @@ static class ExtensionHandler{
 				    openFileDialog.CheckFileExists = true;
 				    openFileDialog.CheckPathExists = true;
 				if(fD.ShowDialog() == DialogResult.OK){
-					Suceeded = BuildJsonObject(System.IO.Path.GetDirectoryname(fD.Filename).Result;
+					Suceeded = BuildJsonObject(fD.Filename).Result;
 				}else{ Suceeded = false; }
 			}
 		});
