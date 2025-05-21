@@ -260,7 +260,7 @@ static class ExtensionHandler{
 		bool[] result = Task.Run(() => {
 			bool[] result = [];
 			try{
-				string[] ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"));
+				string[] ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt"));
 				result = new bool[ExtensionFilePaths.Length];
 				List<string> validPaths = [];
 				int cc =0;
@@ -275,14 +275,15 @@ static class ExtensionHandler{
 					}
 					cc++;
 				}
-				File.WriteAllLines(StorageManager.ApplicationPath + @"Cache\Extensins.txt", validPaths);
+				File.WriteAllLines(StorageManager.ApplicationPath + @"Cache\Extensions.txt", validPaths);
 			}catch(FileNotFoundException ex){
-				string[] ExtensionFilePaths = File.ReadAllLines(StorageManager.ApplicationPath + @"Cache\Extensins.txt");
+				string[] ExtensionFilePaths = File.ReadAllLines(StorageManager.ApplicationPath + @"Cache\Extensions.txt");
 				result = new bool[ExtensionFilePaths.Length];
 				List<string> validPaths = [];
 				int cc =0;
 				ErrorMessage.Add(("...", ex.Message));
 				foreach(string s in ExtensionFilePaths){
+					PathToExtension = s;
 					if(BuildJsonObject().Result){
 						validPaths.Add(s);
 						result[cc] = true;
@@ -292,7 +293,7 @@ static class ExtensionHandler{
 					}
 					cc++;
 				}
-				File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"), validPaths);
+				File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt"), validPaths);
 			}
 			if(!Entry.SkipStartUpWarnings){MessageBox.Show("The path and the Message line-up, where there is a \"...\" Message that means that a more impactful error was thrown\n\n" + CustomFunctions.ToString(CustomFunctions.GetTupleArrayT(ErrorMessage)) + "\n" + CustomFunctions.ToString(CustomFunctions.GetTupleArrayR(ErrorMessage)), "Error PreLoading error: Debugged info", MessageBoxButtons.OK, MessageBoxIcon.Warning);}
 			return result;
@@ -324,7 +325,7 @@ static class ExtensionHandler{
 	}
 	static void SaveExtension(){
 		if (MessageBox.Show("Should the extension be Pre-Loaded on startup of application?", "Pre-load extensions?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
-			using(FileStream fS = File.OpenWrite(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"))){
+			using(FileStream fS = File.OpenWrite(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt"))){
 				byte[] array = Encoding.Default.GetBytes(PathToExtension);
 				bool completed = true;
 				int num = 0;
@@ -334,7 +335,7 @@ static class ExtensionHandler{
 						completed = true;
 					}catch(Exception ex){
 						if(num < MaxTries){
-							if (MessageBox.Show($"The extension could not be written to {System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt")}\nRetry?",
+							if (MessageBox.Show($"The extension could not be written to {System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt")}\nRetry?",
 								$"Error Message:\n{ex.Message}",
 								MessageBoxButtons.RetryCancel, MessageBoxIcon.Error) == DialogResult.Retry) { completed = false; num++; }else{break;}
 							Task.Delay(1000);
@@ -461,9 +462,14 @@ static class ExtensionHandler{
 				if(!compilation.Emit(ms).Success){
 					DialogResult dR;
 					if(Recalls < 10){
-						dR = !(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error): DialogResult.Ignore;
+						if(!(Entry.SkipStartUpWarnings && StartUp)){
+							dR = MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
+						}else{dR = DialogResult.Ignore;}
+						//!(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error)
 					}else{
-						dR = !(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error): DialogResult.OK;
+						if(!(Entry.SkipStartUpWarnings && StartUp)){
+							dR = MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error);
+						}else{dR = DialogResult.OK;}
 						cts.Cancel();
 					}
 					if(dR == DialogResult.Retry && Recalls < 10){
@@ -487,7 +493,7 @@ static class ExtensionHandler{
 							DialogResult dR = !(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show(
 								"Should all other Priorities be shifted upwards to accomodate this extension(CONTINUE)?\nShould this extension be given the next available Priority allotment(TRY)?\n(THIS MAY AFFECT HOW THE EXTENSION INTERACTS WITH THE APPLICATION AND IT MAY CRASH!)\n\nShould the extension not be added(CANCEL)?", $"ExtensionPriorityConflictionException: There are already an extension with Priority {Priority}",
 								MessageBoxButtons.CancelTryContinue, MessageBoxIcon.Warning): Entry.DefaultPriorityConflictBehaviour;
-							if (dR == DialogResult.Continue) {
+							if (dR == DialogResult.Continue){
 								// Create a new dictionary with incremented keys
 								Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> updatedExtensions = [];
 								Dictionary<int, string> updatedIndexToName = [];
