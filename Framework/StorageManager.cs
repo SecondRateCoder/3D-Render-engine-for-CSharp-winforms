@@ -161,13 +161,13 @@ static class StorageManager{
 	}
 }
 class Path{
-	static Path(){ Empty = new("", [], false); }
+	static Path(){ Empty = new("", [], true); }
 	public static Path Empty;
 	string filePath;
 	string[] fileExtensions;
 	bool Directory;
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public Path(string filePath, string? fileExtension, bool Directory){
+    public Path(string filePath, string? fileExtension, bool Directory, bool Empty = false){
 		//Check if there is something at the specified path.
 		if(!Exists(filePath)){throw new TypeInitializationException($"Path: {filePath}", new ArgumentException());}
 		//Check if the item there is a directory.
@@ -177,20 +177,19 @@ class Path{
 		if(!Directory && !(string.IsNullOrEmpty(fileExtension) | string.IsNullOrWhiteSpace(fileExtension))){
 			this.Directory = false;
 			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException($"Path: {filePath}", new ArgumentException());
-		}else{
-			throw new TypeInitializationException($"Path: {filePath}", new FileNotFoundException());
-		}
+		}else if(Empty){
+			this.Directory = false;
+			this.fileExtensions = [];
+			this.filePath = "";
+		}else{throw new TypeInitializationException(nameof(Path), new FileNotFoundException());}
 	}
-    public Path(string filePath, IEnumerable<string>? fileExtensions, bool Directory){
+    public Path(string filePath, IEnumerable<string>? fileExtensions, bool Empty = false){
 		if(string.IsNullOrWhiteSpace(filePath) & ((fileExtensions != null && !fileExtensions.Any()) | fileExtensions == null) & !Directory){
 			this.filePath = filePath;
 			this.fileExtensions = [.. (fileExtensions ?? [])];
 			this.Directory = false;
 		}
 		//Check if the item there is a directory.
-		if(Directory && fileExtensions == null){
-			this.Directory = Exists(filePath) | System.IO.Directory.Exists(filePath);		
-			this.filePath = Directory? filePath: throw new TypeInitializationException($"Path: {filePath}", new ArgumentException());}else
 		if(fileExtensions != null && !Directory && fileExtensions.Any()){
 			this.Directory = false;
 			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException($"Path", new ArgumentException());
@@ -198,7 +197,11 @@ class Path{
 			foreach(string s in fileExtensions){
 				fileExtensions = this.fileExtensions.Append(new FileInfo(filePath).Extension != s? new FileInfo(filePath).Extension: s);
 			}
-		}else{throw new TypeInitializationException($"Conflicting parameters caused this .ctor to throw an error.", new ArgumentException());}
+		}else if(Empty){
+			this.Directory = false;
+			this.fileExtensions = [];
+			this.filePath = "";
+		}else{throw new TypeInitializationException(nameof(Path), new ArgumentException());}
 	}
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 	public bool Update(string newPath){
@@ -231,6 +234,7 @@ static class ExtensionHandler{
 	static readonly string Closing = "Closing";
 	/// <summary>This is simply for the sake of allowng the process to remember the Location of the Extension without passing more Parameters.</summary>
 	static string PathToExtension = "";
+	static string Usings = "";
 	static CancellationTokenSource cts = new();
 	const int MaxTries = 20;
 	/// <summary>A enum to differentiate beteen the various Method extension types.</summary>
@@ -301,29 +305,6 @@ static class ExtensionHandler{
 		}).Result;
 		return result;
 	}
-	//!This is the only point where the Extension loading process it allowed to be started (aside from PreloadExtensions), it retrieves all the data it needs locally so it doesnt need any parameters.
-	/// <summary>Begins the process of attaching an extension, doing it's logic checks and validation locally.</summary>
-	/// <remarks>Open a <see cref="Gtk.FileChooserDialog"/> and use it to select a folder containing a Metadata.json file.</remarks>
-	/// <returns>Was the folder containing viable data for an extension attaching.</returns>
-	public static async Task<bool> AttachExtension(){
-		bool Suceeded = true;
-		await Task.Run(() => {
-			using(OpenFileDialog fD = new()){
-				    fD.Title = "Open Metadata.json";
-				    fD.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
-				    fD.FileName = "Metadata.json";
-				    fD.CheckFileExists = true;
-				    fD.CheckPathExists = true;
-				if(fD.ShowDialog() == DialogResult.OK){
-					PathToExtension = fD.FileName;
-					Suceeded = BuildJsonObject().Result;
-				}else{ Suceeded = false; }
-			}
-			if(Suceeded){SaveExtension();}
-			return Suceeded;
-		});
-		return Suceeded;
-	}
 	static void SaveExtension(){
 		if (MessageBox.Show("Should the extension be Pre-Loaded on startup of application?", "Pre-load extensions?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
 			using(FileStream fS = File.OpenWrite(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt"))){
@@ -347,6 +328,29 @@ static class ExtensionHandler{
 			}
 		}
 	}
+	//!This is the only point where the Extension loading process it allowed to be started (aside from PreloadExtensions), it retrieves all the data it needs locally so it doesnt need any parameters.
+	/// <summary>Begins the process of attaching an extension, doing it's logic checks and validation locally.</summary>
+	/// <remarks>Open a <see cref="OpenFileDialog"/> and use it to select a folder containing a Metadata.json file.</remarks>
+	/// <returns>Was the folder containing viable data for an extension attaching.</returns>
+	public static async Task<bool> AttachExtension(){
+		bool Suceeded = true;
+		await Task.Run(() => {
+			using(OpenFileDialog fD = new()){
+				    fD.Title = "Open Metadata.json";
+				    fD.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+				    fD.FileName = "Metadata.json";
+				    fD.CheckFileExists = true;
+				    fD.CheckPathExists = true;
+				if(fD.ShowDialog() == DialogResult.OK){
+					PathToExtension = fD.FileName;
+					Suceeded = BuildJsonObject().Result;
+				}else{ Suceeded = false; }
+			}
+			if(Suceeded){SaveExtension();}
+			return Suceeded;
+		});
+		return Suceeded;
+	}
 	/// <summary>Builds and stores the Json file object, checking if the File contains the right properties.</summary>
 	/// <returns>Was the Json file of the right format?</returns>
 	static async Task<bool> BuildJsonObject(){
@@ -365,6 +369,7 @@ static class ExtensionHandler{
 		_ = Jsondata.TryGetValue("Priority", out object? priority) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
 		_ = priority ?? (!Entry.SkipStartUpWarnings? MessageBox.Show($"The Json at {PathToExtension} does not have a Priority of expected value, changing value of Priority to: {extensions.Count}", null, MessageBoxButtons.OK, MessageBoxIcon.Warning): DialogResult.OK);
 		int Priority = priority is JsonElement je ? Convert.ToInt32(je.ToString()) : throw new Exception("Priority is not a JsonElement");
+		GatherUsings();
 		bool Start = await LoadToMemory(Priority, Name, Jsondata, MethodType.Start);
 		if(!Start){ return false; }
 		bool Update = await LoadToMemory(Priority, Name, Jsondata, MethodType.Update);
@@ -456,7 +461,7 @@ static class ExtensionHandler{
 				MethodType.Closing => "void ",
 				_ => "void ",
 			};
-			FunctionBody = "class " + ClassName + "{ " + returnType + FunctionBody + "}";
+			FunctionBody = "class " + ClassName + "{ " + Usings + returnType + FunctionBody + "}";
 			Script<object> script = CSharpScript.Create(FunctionBody, scriptOptions);
 			Compilation compilation = script.GetCompilation();
 			using (MemoryStream ms = new()){
@@ -598,5 +603,24 @@ static class ExtensionHandler{
 			}
 		}
 		return FunctionBounds;
+	}
+
+	public static string GatherUsings(){
+		string CodeTxt = File.ReadAllText(StorageManager.GetParentDirectory(PathToExtension) + "Code.txt");
+		int cc = 0;
+		StringBuilder Line = new();
+		Line.Append('\n');
+		foreach(char c_ in CodeTxt){
+			if(c_ == 'u'){
+				char c = CodeTxt[cc];
+				for(int cc_ = cc; cc < CodeTxt.Length || c != ';';cc_++, c = CodeTxt[cc_ >= CodeTxt.Length? CodeTxt.Length - 1: cc_]){
+					Line.Append(c);
+				}
+				Line.Append('\n');
+			}
+			cc++;
+		}
+		ExtensionHandler.Usings = Line.ToString();
+		return Line.ToString();
 	}
 }
