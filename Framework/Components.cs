@@ -237,9 +237,11 @@ class RigidBdy : Rndrcomponent{
         this.MetaData.cS = cS == null?Collider.Cube: cS;
         this.MetaData.fM = fM == null? ForceMode.Impulse: fM;
         this.Mass = m;
+        this.Speed = 0;
     }
     public RigidBdy(){
         this.Mass = 100;
+        this.Speed = 0;
         this.MetaData = RigidBdyMetadata.Default;
         this.MetaData.pM = PhysicsMaterial.GlazedWood;
         this.MetaData.cS = Collider.Cube;

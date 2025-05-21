@@ -3,6 +3,8 @@ using System.Timers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 static class Entry{
     /// <summary>The maximum amount of time that <see cref="Entry.Loop"/> is allowed to delay itself by, 
     /// this is needed because <see cref="Entry.Loop"/> regulates itself by delaying itself between each Loop.</summary>
@@ -46,10 +48,17 @@ static class Entry{
     static Process cProc;
     /// <summary>The Buffer to allow GraphicsData from <see cref="Entry.BuildWorld"/> and <see cref="BuildSquare"/> to be communicated with <see cref="Entry.f"/>'s UI.</summary>
     public static WriteableBitmap Buffer;
+    public static bool SkipStartUpWarnings;
+    public static DialogResult DefaultPriorityConflictBehaviour;
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     static Entry(){
+        Dictionary<string, object> Settings = JsonSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(StorageManager.ApplicationPath + @"Cache\Settings.json")) ?? throw new FileNotFoundException();
+        _ = Settings.TryGetValue("SkipStartUpWarnings", out object? Skip_);
+        _ = Settings.TryGetValue("DefaultPriorityConflictResponse", out object? Default_);
+        if (Skip_ is JsonElement jE) { SkipStartUpWarnings = jE.GetBoolean(); }
+        if (Default_ is JsonElement jE_) { DefaultPriorityConflictBehaviour = (DialogResult)Convert.ToInt32(jE_.GetString()); }
         Entry.MaxDelay = 500;
-        try{ExtensionHandler.PreLoadExtensions();}catch{MessageBox.Show("Extensions could not be Pre-Loaded", "ExtensionPre_LoadingException: Extensions could not be loaded.", MessageBoxButtons.OK, MessageBoxIcon.Warning);}
+        try { ExtensionHandler.PreLoadExtensions(); } catch { if (!SkipStartUpWarnings) { MessageBox.Show("Extensions could not be Pre-Loaded", "ExtensionPre_LoadingException: Extensions could not be loaded.", MessageBoxButtons.OK, MessageBoxIcon.Warning); } }
         ApplicationConfiguration.Initialize();
         f = new();
         Cts = new CancellationTokenSource();
@@ -124,13 +133,13 @@ static class Entry{
         Span<byte> stackSpace = stackalloc byte[255];
         stackSpace[0] = (byte)depth;
     }
-    static void TestKey(){
-        EncryptionKey k = new([20, 3, 45, 6, 6], 
-        [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
-        MessageBox.Show(CustomFunctions.ToString([(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]) + "\n" + k.key_.ToString());
-        int[] array = EncryptionKey.DecodeKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
-        MessageBox.Show($"{CustomFunctions.ToString(array)}");
-    }
+    // static void TestKey(){
+    //     EncryptionKey k = new([20, 3, 45, 6, 6], 
+    //     [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]);
+    //     MessageBox.Show(CustomFunctions.ToString([(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15]) + "\n" + k.key_.ToString());
+    //     int[] array = EncryptionKey.DecodeKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
+    //     MessageBox.Show($"{CustomFunctions.ToString(array)}");
+    // }
     static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
     //Paint the enviroment.
     static void BuildSquare(){

@@ -568,15 +568,15 @@ class BackdoorJob<T, R> {
     BackdoorJob(int ID, int Timeout, BackdoorDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null) {
         this.paramType = typeof(T);
         this.returnType = typeof(R);
-        if (OnFinish == null) {
+        if(OnFinish == null){
             this.OnFinish = TrueFinish;
-        } else {
+        }else{
             this.OnFinish = OnFinish;
             this.OnFinish += TrueFinish;
         }
-        if (OnTimeout == null) {
+        if (OnTimeout == null){
             this.OnTimeExceed = TrueTimeout;
-        } else {
+        }else{
             this.OnTimeExceed = OnTimeout;
             this.OnTimeExceed += TrueTimeout;
         }
@@ -585,6 +585,7 @@ class BackdoorJob<T, R> {
         this.Timeout = Timeout;
         this.cts = new CancellationTokenSource();
         result = null;
+        this.sender = sender ?? this.GetType();
         this.cts.Token.Register(() => { this.OnTimeExceed(this.sender ?? new object()); });
     }
     R? Start(T param) {

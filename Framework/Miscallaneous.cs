@@ -50,13 +50,9 @@ class Camera{
     public Vector3 Position{get; set;} = Vector3.Zero;
     public Vector3 Rotation{get; set;} = Vector3.Zero;
 	/// <summary>
-	/// The resolution at which textures are applied to a mesh
+	/// The normalised resolution at which textures are applied to a mesh
 	/// </summary>
 	public int Resolution;
-    /// <summary>
-    ///  The tolerance for how small a polygon at the boundary of the viewport can be clipped before it's simply deleted.
-    /// </summary>
-    public float clipTol;
     ///<summary>The angle from the camera to the window.</summary>
     public float theta{get{return (float)(2*Math.Atan((ViewPort.boundary.r/2)/this.near_));}}
     float near_;
@@ -68,7 +64,8 @@ class Camera{
     ///</summary>
     ///<remarks>This property cant be changed after being assigned.</remarks>
     public float far{get{return fov_;} set{fov_ = (fov_ == 0? value: fov_);}}
-    public Camera(float Fov = 15f, Vector3? pos = null, Vector3? rot = null){
+    public Camera(float Fov = 15f, Vector3? pos = null, Vector3? rot = null, int Resolution = 1){
+        this.Resolution = Resolution;
         this.far = Fov;
         this.Position = pos == null? Vector3.Zero: pos.Value;
         this.Rotation = pos == null? Vector3.Zero: pos.Value;

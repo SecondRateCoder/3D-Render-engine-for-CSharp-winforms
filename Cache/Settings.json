@@ -1,0 +1,5 @@
+{
+    "SkipStartUpWarnings": true,
+    "comment": "This should line-up with DialogResult enum",
+    "DefaultPriorityConflictResponse": "11"
+}

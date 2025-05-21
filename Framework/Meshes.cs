@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 
 [DebuggerDisplay("A: {A}, B: {B}, C: {C}")]
@@ -327,23 +328,29 @@ class Mesh : Rndrcomponent, IEnumerable{
     /*
     !Static functions and stuff
     */
-    public static bool CompareTo(Mesh m, Mesh m2, int Tolerance){
+    public static bool CompareTo([NotNull]Mesh m, [NotNull]Mesh m2, int Tolerance){
         Tolerance = Tolerance > 1? 1: Tolerance;
         Tolerance = Tolerance < 0? 0: Tolerance;
         int sQ = 0;
-        if(object.Equals(m, null) | object.Equals(m2, null)){return false;}
-        if(m.Count != m2.Count){
-            return false;
-        }else{
-			int increment = 1/m.Count;
-            for(int cc = 0; cc < m.Count; cc++){
-				if(m[cc] == m2[cc]){
-					sQ += increment;
-				}
-			}
+        m = m ?? new Mesh();
+        m2 = m2 ?? new Mesh();
+#pragma warning disable CS8777
+        if(object.Equals(m, null) | object.Equals(m2, null)){return false;}else{
+#pragma warning disable CS8602
+            if(m.Count != m2.Count){
+                return false;
+            }else{
+                int increment = 1/m.Count;
+                for(int cc = 0; cc < m.Count; cc++){
+                    if(m[cc] == m2[cc]){
+                        sQ += increment;
+                    }
+                }
             }
+        }
         return sQ >= Tolerance? true: false;
     }
+#pragma warning restore
     /// <summary>
     ///  Checks how similar two meshes are, measuring it as percentage of the mesh sizes.
     /// </summary>
@@ -351,21 +358,7 @@ class Mesh : Rndrcomponent, IEnumerable{
     /// <param name="m2">The 2nd mesh to be compared to.</param>
     /// <returns>A bool.</returns>
 	/// <remarks>Both meshes must be same sized.</remarks>
-    public static bool operator ==(Mesh? m, Mesh? m2){
-        int sQ = 0;
-        if(object.Equals(m, null) | object.Equals(m2, null)){return false;}
-        if(m.Count != m2.Count){
-            return false;
-        }else{
-			int increment = 1/m.Count;
-            for(int cc = 0; cc < m.Count; cc++){
-				if(m[cc] == m2[cc]){
-					sQ += increment;
-				}
-			}
-            }
-        return sQ >= 1? true: false;
-	}
+    public static bool operator ==(Mesh? m, Mesh? m2){return Mesh.Equals(m, m2);}
     /// <summary>
 	/// Checks how similar two meshes are and returns the inverse of that value.
 	/// </summary>
@@ -373,9 +366,7 @@ class Mesh : Rndrcomponent, IEnumerable{
 	/// <param name="m2">The 2nd mesh to be compared.</param>
 	/// <returns>A boolean value.</returns>
 	/// <remarks>Both meshes must be same-sized.</remarks>
-	public static bool operator !=(Mesh? m, Mesh? m2){
-		return !(m == m2);
-	}
+	public static bool operator !=(Mesh? m, Mesh? m2){return !(m == m2);}
     public static explicit operator Mesh(Polygon[] polygons){return new Mesh(polygons);}
     public static explicit operator Polygon[](Mesh mesh){return mesh.Get();}
 

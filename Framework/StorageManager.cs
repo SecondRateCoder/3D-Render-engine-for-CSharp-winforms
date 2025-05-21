@@ -247,13 +247,15 @@ static class ExtensionHandler{
 		/// <remarks>UNIMPLEMENTED, DO NOT USE.</remarks>
 		Workspace = 4
 	}
+	static bool StartUp;
 	static ExtensionHandler() { extensions = []; IndexToName = []; }
 	/// <summary>Convert from a Priority key to an Extension name, mainly for Exception logging.</summary>
 	static Dictionary<int, string> IndexToName;
 	/// <summary>Stores all the data needed for the system to interface with the method and understand it for what it needs to do.</summary>
 	static Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> extensions;
 	/// <summary>Loads extensions from the Cache\Saves\Extensions.txt cache, allowing extensions to be automatically loaded from start-up.</summary>
-	public static bool[] PreLoadExtensions() {
+	public static bool[] PreLoadExtensions(){
+		StartUp = true;
 		List<(string Path, string Message)> ErrorMessage = [];
 		bool[] result = Task.Run(() => {
 			bool[] result = [];
@@ -292,7 +294,7 @@ static class ExtensionHandler{
 				}
 				File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"), validPaths);
 			}
-			MessageBox.Show("The path and the Message line-up, where there is a \"...\" Message that means that a more impactful error was thrown\n\n" + CustomFunctions.ToString(CustomFunctions.GetTupleArrayT(ErrorMessage)) + "\n" + CustomFunctions.ToString(CustomFunctions.GetTupleArrayR(ErrorMessage)), "Error PreLoading error: Debugged info", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			if(!Entry.SkipStartUpWarnings){MessageBox.Show("The path and the Message line-up, where there is a \"...\" Message that means that a more impactful error was thrown\n\n" + CustomFunctions.ToString(CustomFunctions.GetTupleArrayT(ErrorMessage)) + "\n" + CustomFunctions.ToString(CustomFunctions.GetTupleArrayR(ErrorMessage)), "Error PreLoading error: Debugged info", MessageBoxButtons.OK, MessageBoxIcon.Warning);}
 			return result;
 		}).Result;
 		return result;
@@ -302,8 +304,6 @@ static class ExtensionHandler{
 	/// <remarks>Open a <see cref="Gtk.FileChooserDialog"/> and use it to select a folder containing a Metadata.json file.</remarks>
 	/// <returns>Was the folder containing viable data for an extension attaching.</returns>
 	public static async Task<bool> AttachExtension(){
-		//!Use OpenFileDialog!!!
-		string folderPath = "";
 		bool Suceeded = true;
 		await Task.Run(() => {
 			using(OpenFileDialog fD = new()){
@@ -361,7 +361,7 @@ static class ExtensionHandler{
 		}else{throw new FileFormatException("File was not in the same Format as expected of a Json extension");}
 		//Priority of the extension.
 		_ = Jsondata.TryGetValue("Priority", out object? priority) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
-		_ = priority ?? (MessageBox.Show($"The Json at {PathToExtension} does not have a Priority of expected value, changing value of Priority to: {extensions.Count}", null, MessageBoxButtons.OK, MessageBoxIcon.Warning));
+		_ = priority ?? (!Entry.SkipStartUpWarnings? MessageBox.Show($"The Json at {PathToExtension} does not have a Priority of expected value, changing value of Priority to: {extensions.Count}", null, MessageBoxButtons.OK, MessageBoxIcon.Warning): DialogResult.OK);
 		int Priority = priority is JsonElement je ? Convert.ToInt32(je.ToString()) : throw new Exception("Priority is not a JsonElement");
 		bool Start = await LoadToMemory(Priority, Name, Jsondata, MethodType.Start);
 		if(!Start){ return false; }
@@ -461,9 +461,9 @@ static class ExtensionHandler{
 				if(!compilation.Emit(ms).Success){
 					DialogResult dR;
 					if(Recalls < 10){
-						dR = MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
+						dR = !(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error): DialogResult.Ignore;
 					}else{
-						dR = MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error);
+						dR = !(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error): DialogResult.OK;
 						cts.Cancel();
 					}
 					if(dR == DialogResult.Retry && Recalls < 10){
@@ -484,10 +484,9 @@ static class ExtensionHandler{
 					if (extensions.TryGetValue(Priority, out (int ErrorCalls, MethodType type, MethodInfo method) value) && (value.type == methodType)) {
 						bool skip = true;
 						if (!extensions.TryGetValue(Priority, out (int ErrorCalls, MethodType type, MethodInfo method) _value) && (_value.type == methodType)) { skip = false; } else {
-							DialogResult dR = MessageBox.Show(
+							DialogResult dR = !(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show(
 								"Should all other Priorities be shifted upwards to accomodate this extension(CONTINUE)?\nShould this extension be given the next available Priority allotment(TRY)?\n(THIS MAY AFFECT HOW THE EXTENSION INTERACTS WITH THE APPLICATION AND IT MAY CRASH!)\n\nShould the extension not be added(CANCEL)?", $"ExtensionPriorityConflictionException: There are already an extension with Priority {Priority}",
-								MessageBoxButtons.CancelTryContinue, MessageBoxIcon.Warning
-							);
+								MessageBoxButtons.CancelTryContinue, MessageBoxIcon.Warning): Entry.DefaultPriorityConflictBehaviour;
 							if (dR == DialogResult.Continue) {
 								// Create a new dictionary with incremented keys
 								Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> updatedExtensions = [];
