@@ -30,7 +30,7 @@ static class Entry{
     /// <summary>This delegate runs as many times as possible, it self-regulates to prevent a <see cref="StackOverflowException"/> and the termination of the Program;</summary>
     public static event Action Update;
     /// <summary>The delegate called at <see cref="Entry.f"/>'s creation.</summary>
-    public static event Action Start;
+    public static Action Start;
     public static Form1 f;
     /// <summary>The delay that should be between each <see cref="HandleMemUsage"/> call.</summary>
     static int MemCheckRate;

@@ -438,7 +438,7 @@ static class CustomFunctions{
         }
         return sb.ToString();
     }
-    public static T[] GetTupleValueT<T, R>(IEnumerable<(T, R)> data){
+    public static T[] GetTupleArrayT<T, R>(IEnumerable<(T, R)> data){
         T[] values = new T[data.Count()];
         int cc = 0;
         foreach ((T t, R r) item in data) {
@@ -447,7 +447,7 @@ static class CustomFunctions{
         }
         return values;
     }
-    public static R[] GetTupleValueR<T, R>(IEnumerable<(T, R)> data){
+    public static R[] GetTupleArrayR<T, R>(IEnumerable<(T, R)> data){
         R[] values = new R[data.Count()];
         int cc = 0;
         foreach ((T t, R r) item in data) {
