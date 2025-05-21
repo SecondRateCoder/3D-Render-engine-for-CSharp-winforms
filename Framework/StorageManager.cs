@@ -209,7 +209,7 @@ class Path{
 			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException($"Path", new ArgumentException());
 			this.fileExtensions = [];
 			foreach(string s in fileExtensions){
-				this.fileExtensions.Append(new FileInfo(filePath).Extension != s? new FileInfo(filePath).Extension: s);
+				fileExtensions = this.fileExtensions.Append(new FileInfo(filePath).Extension != s? new FileInfo(filePath).Extension: s);
 			}
 		}else{throw new TypeInitializationException($"Conflicting parameters caused this .ctor to throw an error.", new ArgumentException());}
 	}
@@ -360,9 +360,8 @@ static class ExtensionHandler{
 	/// <summary>Builds and stores the Json file object, checking if the File contains the right properties.</summary>
 	/// <returns>Was the Json file of the right format?</returns>
 	static async Task<bool> BuildJsonObject(){
-		string Jsonbody = File.ReadAllText(PathToExtension);
 		//foreach (char c in Jsonbody) { if (!(char.IsLetterOrDigit(c) | char.IsPunctuation(c))) { throw new JsonFormatexception($"The file at: {filePath + "MetaData.json"} had the wrong format and is incompatible"); } }
-		Dictionary<string, object> Jsondata = JsonSerializer.Deserialize<Dictionary<string, object>>(Jsonbody, JsonSerializerOptions.Default) ?? throw new ArgumentException();
+		Dictionary<string, object> Jsondata = JsonSerializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(PathToExtension), JsonSerializerOptions.Default) ?? throw new ArgumentException();
 		//Code file Path
 		//Error handling.
 		//The ClassName.
@@ -424,19 +423,15 @@ static class ExtensionHandler{
 		return await LoadToMemory(Priority, ClassName, NameFromType(methodType), GetFunctionBody(NameFromType(methodType), JsonDeserialised), methodType);
 	}
 	static string NameFromType(MethodType methodType) {
-		switch (methodType){
-			case MethodType.Start:
-				return Start;
-			case MethodType.Update:
-				return Update;
-			case MethodType.TimedUpdate:
-				return TUpdate;
-			case MethodType.Closing:
-				return Closing;
-			default:
-				throw new ArgumentException();
-		}
-	}
+        return methodType switch
+        {
+            MethodType.Start => Start,
+            MethodType.Update => Update,
+            MethodType.TimedUpdate => TUpdate,
+            MethodType.Closing => Closing,
+            _ => throw new ArgumentException(),
+        };
+    }
 	static MethodType TypeFromName(string MethodName) {
 		switch (MethodName){
 			case "SetUp":
@@ -464,11 +459,18 @@ static class ExtensionHandler{
 			ScriptOptions scriptOptions = ScriptOptions.Default
 				.WithReferences(typeof(object).Assembly)
 				.WithImports("System");
-			FunctionBody = "class " + ClassName + "{" + FunctionBody + @"}";
+			string returnType = methodType switch{
+				MethodType.Start => "void ",
+				MethodType.Update => "void ",
+				MethodType.TimedUpdate => "void ",
+				MethodType.Closing => "void ",
+				_ => "void",
+			};
+			FunctionBody = "class " + ClassName + "{ " + returnType + FunctionBody + @"}";
 			Script<object> script = CSharpScript.Create(FunctionBody, scriptOptions);
 			Compilation compilation = script.GetCompilation();
 			using (MemoryStream ms = new()) {
-				if (!compilation.Emit(ms).Success) { throw new Exception("Compilation failed."); }
+				if(!compilation.Emit(ms).Success){throw new Exception("Compilation failed.");}
 				ms.Seek(0, SeekOrigin.Begin);
 				Assembly assembly = Assembly.Load(ms.ToArray());
 				try {
@@ -537,44 +539,53 @@ static class ExtensionHandler{
 			CodeText = File.ReadAllText(StorageManager.GetParentDirectory(PathToExtension) + element_.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension"));
 		}
 		string s =CustomFunctions.ToString<char>(new Span<char>(CodeText.ToArray()).Slice(FunctionBounds.Start, FunctionBounds.End).ToArray(), false);
-		if(!ModerateFunction(s)){s = GetFunction(TypeFromName(FunctionName), CodeText); }
+		if(!ModerateFunction(s)){
+			(int Start, int End) fBounds = GetFunctionBounds(TypeFromName(FunctionName), CodeText);
+			s = CustomFunctions.ToString<char>(new Span<char>(CodeText.ToArray()).Slice(fBounds.Start, fBounds.End - fBounds.Start).ToArray(), false);
+		}
 		return s;
 	}
 	
 	static bool ModerateFunction(string function){
 		int Scopes = 0;
 		char c = function[0];
-		for(int cc =0; cc < function.Length; cc++, c = function[cc]){
+		int Length = function.Length;
+		for(int cc =0; cc < Length; cc++, c = function[cc == Length? Length - 1: cc]){
 			if(c == '{'){Scopes++;}else if(c == '}'){Scopes--;}
 		}
 		return Scopes == 0;
 	}
-	static string GetFunction(MethodType mT, string WholeFunction){
+	static (int, int) GetFunctionBounds(MethodType mT, string WholeFunction){
 		int Scopes = 0;
-		string result = "";
 		string MethodName = NameFromType(mT);
-		int MethodNameLength = MethodName.Length;
 		char c = WholeFunction[0];
 		(int MethodStart, int MethodEnd) FunctionBounds = (0, 0);
 		int Length = WholeFunction.Length;
-		for(int cc =0; cc < Length;cc++, c = WholeFunction[cc]){
+		for(int cc =0; cc < Length;cc++, c = WholeFunction[cc == Length? Length - 1: cc]){
 			if(c == '{'){Scopes++;}else if(c == '}'){Scopes--;}
 			if(c == MethodName[0]){
 				if(CustomFunctions.ToString(new Span<char>(WholeFunction.ToArray()).Slice(cc, MethodName.Length).ToArray(), false) == MethodName){
-					StringBuilder sB = new();
 					FunctionBounds.MethodStart = cc;
+					StringBuilder sB = new();
 					int Buffer = Scopes;
-					int cc_ = cc;
-					char cTemp;
-					while(Scopes != Buffer){
-						cTemp = WholeFunction[cc_];
-						if (cTemp == '{') { Scopes++; } else if (cTemp == '}') { Scopes--; }
-						sB.Append(cTemp);
+					int cc_ = cc+MethodName.Length;
+					sB.Append(MethodName);
+					while(WholeFunction[cc_ == WholeFunction.Length? WholeFunction.Length - 1: cc_] != '{'){
+						sB.Append(WholeFunction[cc_]);
+						cc_++;
 					}
-					result = sB.ToString();
+					do{
+						if (cc_ == WholeFunction.Length) { break; }
+						char cTemp = WholeFunction[cc_];
+						if (cTemp == '{') { Buffer++; } else if (cTemp == '}') { Buffer--; }
+						sB.Append(cTemp);
+						cc_++;
+					}while(Buffer != Scopes);
+					FunctionBounds.MethodEnd = sB.Length + FunctionBounds.MethodStart;
+					break;
 				}
 			}
 		}
-		return result;
+		return FunctionBounds;
 	}
 }

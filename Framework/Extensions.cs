@@ -433,7 +433,7 @@ static class CustomFunctions{
         bool first = true;
         foreach (T item in array){
             if (!first && AddCommas) { sb.Append(", "); }
-            sb.Append(item?.ToString());
+            sb = sb.Append(item?.ToString());
             first = false;
         }
         return sb.ToString();
