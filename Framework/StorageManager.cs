@@ -263,22 +263,45 @@ static class ExtensionHandler{
 	/// <summary>Stores all the data needed for the system to interface with the method and understand it for what it needs to do.</summary>
 	static Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> extensions;
 	/// <summary>Loads extensions from the Cache\Saves\Extensions.txt cache, allowing extensions to be automatically loaded from start-up.</summary>
-	public static bool PreLoadExtensions() {
-		bool result = Task.Run(() => {
-			bool result = false;
+	public static bool[] PreLoadExtensions() {
+		List<(string Path, string Message)> ErrorReturns = [];
+		bool[] result = Task.Run(() => {
+			bool[] result = [];
 			try{
-				List<string> ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt")).ToList();
+				string[] ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt")).ToList();
+				result = new bool[ExtensionFilePaths.Length];
 				List<string> validPaths = [];
+				int cc =0;
 				foreach(string s in ExtensionFilePaths){
-					if (BuildJsonObject(s).Result){validPaths.Add(s); result = true;}else{result = false;}
+					if (BuildJsonObject(s).Result){
+						validPaths.Add(s);
+						result[cc] = true;
+					}else{
+						result[cc] = false;
+						ErrorReturns.Add((s, "File was not in the same Format as expected of a Json extension"));
+					}
+					cc++;
 				}
 				File.WriteAllLines(StorageManager.FindFileFolder("Extensions.txt", false, StorageManager.ApplicationPath), validPaths);
-			}catch(FileNotFoundException){
+			}catch(FileNotFoundException ex){
 				List<string> ExtensionFilePaths = File.ReadAllLines(StorageManager.FindFileFolder("Extensions.txt", false, StorageManager.ApplicationPath)).ToList();
+				result = new bool[ExtensionFilePaths.Length];
 				List<string> validPaths = [];
-				foreach(string s in ExtensionFilePaths){if(BuildJsonObject(s).Result){validPaths.Add(s); result = true;}else{result = false;}}
+				int cc =0;
+				ErrorReturns.Add(("...", ex.Message));
+				foreach(string s in ExtensionFilePaths){
+					if(BuildJsonObject(s).Result){
+						validPaths.Add(s);
+						result[cc] = true;
+					}else{
+						result[cc] = false;
+						ErrorReturns.Add((s, "File was not in the same Format as expected of a Json extension"));
+					}
+					cc++;
+				}
 				File.WriteAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"), validPaths);
 			}
+			MessageBox.Show("The path and the Message line-up, where there is a \"...\" Message that means that a more impactful error was thrown\n\n" + 				CustomFunctions.ToString(CustomFunctions.GetTypeParamT(ErrorMessage)) + "\n" + CustomFunctions.ToString(CustomFunctions.GetTypeParamR(ErrorMessage), "Error PreLoading error: Debugged info", MessageBoxButtons.Ok, MessageBoxIcons.Warning);
 			return result;
 		}).Result;
 		return result;
@@ -288,20 +311,23 @@ static class ExtensionHandler{
 	/// <remarks>Open a <see cref="Gtk.FileChooserDialog"/> and use it to select a folder containing a Metadata.json file.</remarks>
 	/// <returns>Was the folder containing viable data for an extension attaching.</returns>
 	public static async Task<bool> AttachExtension(){
+		//!Use OpenFileDialog!!!
 		string folderPath = "";
 		bool Suceeded = true;
 		Gtk.Application.Init();
 		await Task.Run(() => {
-			using(FileChooserDialog fD = new("Open a folder containing a Metadata.json file", null, FileChooserAction.SelectFolder, "Cancel", Gtk.ResponseType.Cancel, "Open", Gtk.ResponseType.Accept)){
-				if(fD.Run() == (int)Gtk.ResponseType.Accept){
-				folderPath = fD.Filename;
-				Gtk.Application.Quit();
-				Suceeded = BuildJsonObject(folderPath.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString())
-					? folderPath: folderPath + System.IO.Path.DirectorySeparatorChar).Result;
+			using(OpenFDialog fD = new()){
+				    openFileDialog.Title = "Open Metadata.json";
+				    openFileDialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+				    openFileDialog.FileName = "Metadata.json";
+				    openFileDialog.CheckFileExists = true;
+				    openFileDialog.CheckPathExists = true;
+				if(fD.ShowDialog() == DialogResult.OK){
+					Suceeded = BuildJsonObject(System.IO.Path.GetDirectoryname(fD.Filename).Result;
 				}else{ Suceeded = false; }
 			}
 		});
-		if (MessageBox.Show("Should the extension be Pre-Loaded on startup of application?", "Per-load extension?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
+		if (MessageBox.Show("Should the extension be Pre-Loaded on startup of application?", "Pre-load extensions?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
 			using(FileStream fS = File.OpenWrite(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Saves\Extensions.txt"))){
 				byte[] array = Encoding.Default.GetBytes(folderPath);
 				bool completed = true;
