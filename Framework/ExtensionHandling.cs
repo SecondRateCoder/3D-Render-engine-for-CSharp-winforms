@@ -403,7 +403,7 @@ static class ExtensionHandler{
 			lineLength = 0;
 			while(CodeTxt[lineLength + counter] != (';' | '{')){lineLength++;}
 			if(CodeTxt[lineLength + counter + 1] == ';'){
-				
+
 			}
 			Span<char> Line = new Span<char>(CodeTxt.ToArray()).Slice(counter, lineLength+1);
 			//Validate if it's a property or field.
@@ -411,6 +411,41 @@ static class ExtensionHandler{
 			counter++;
 		}
 	}
+
+	/*
+	public static void GatherProperty_Field()
+{
+    string codeTxt = File.ReadAllText(PathToExtension + "Code.txt");
+    var lines = codeTxt.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+    StringBuilder properties = new();
+    StringBuilder fields = new();
+
+    foreach (var line in lines)
+    {
+        string trimmedLine = line.Trim();
+        // Ignore comments and usings
+        if (trimmedLine.StartsWith("//") || trimmedLine.StartsWith("using") || trimmedLine.Length == 0)
+            continue;
+
+        // Very naive check: property must contain "{" and "get;" or "set;"
+        if (trimmedLine.Contains("{") && (trimmedLine.Contains("get;") || trimmedLine.Contains("set;")))
+        {
+            properties.AppendLine(trimmedLine);
+        }
+        // Field: line ends with semicolon and doesn't have parentheses (not a method)
+        else if (trimmedLine.EndsWith(";") && !trimmedLine.Contains("("))
+        {
+            fields.AppendLine(trimmedLine);
+        }
+    }
+
+    // Store or process as needed
+    // e.g., save to static string Properties/Fields or process further
+    Properties = properties.ToString();
+    // You can add a Fields static string if desired
+    // Fields = fields.ToString();
+}
+	*/
 	static class ErrorQueue{
 		public bool Warn{get{return !(Entry.SkipStartUpWarnings && StartUp);}}
 		List<(string Message, object[] Data)> ErrorInfo = [];
