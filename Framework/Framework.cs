@@ -136,7 +136,7 @@ struct Vector3{
         List<byte> result = [..BitConverter.GetBytes(this.X)];
         result.AddRange(BitConverter.GetBytes(this.Y));
         result.AddRange(BitConverter.GetBytes(this.Z));
-        return result.ToArray();
+        return [.. result];
     }
     
     public static float ComputeDot(Vector3 vector, Vector3 lightPosition){
@@ -160,7 +160,7 @@ struct Vector3{
         List<byte> result = [.. BitConverter.GetBytes(v.X)];
         result.AddRange(BitConverter.GetBytes(v.Y));
         result.AddRange(BitConverter.GetBytes(v.Z));
-        return result.ToArray();
+        return [.. result];
     }
     ///<summary>
     /// Get the distance from 2 vectors, as a float;

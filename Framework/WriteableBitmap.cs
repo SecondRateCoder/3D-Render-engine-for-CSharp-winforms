@@ -186,8 +186,8 @@ class WriteableBitmap{
         this.pixelHeight = Height;
         this.pixelWidth = Width;
         ArgumentNullException.ThrowIfNull(bytes);
-        ArgumentOutOfRangeException.ThrowIfLessThan<int>(Width, 0, "Width must be positive.");
-        ArgumentOutOfRangeException.ThrowIfLessThan<int>(Height, 0, "Height must be positive.");
+        ArgumentOutOfRangeException.ThrowIfLessThan(Width, 0, "Width must be positive.");
+        ArgumentOutOfRangeException.ThrowIfLessThan(Height, 0, "Height must be positive.");
         if((bytes.Count() != Width * Height * 4) | bytes.Count() % 4 != 0){throw new ArgumentOutOfRangeException("Initialise(IEnumerable<byte> bytes, int Width, int Height)");}else{
             this.bmp = new Bitmap(Width, Height);
             this.Update(bytes);

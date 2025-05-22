@@ -134,9 +134,9 @@ static class InputController{
 		Alt = 262144,
 		Modifers = -65536
 	}
-	public static System.Windows.Forms.Keys ToWinFormsKeys(InputController.Keys k) { return (System.Windows.Forms.Keys)(int)k; }
-	public static InputController.Keys ToInputCotrollerKeys(System.Windows.Forms.Keys key){ return (InputController.Keys)((int)key); }
-	public static bool CompareTo(System.Windows.Forms.Keys key, InputController.Keys key2){ return (ToWinFormsKeys(key2) == key); }
+	public static System.Windows.Forms.Keys ToWinFormsKeys(Keys k) { return (System.Windows.Forms.Keys)(int)k; }
+	public static Keys ToInputCotrollerKeys(System.Windows.Forms.Keys key){ return (Keys)((int)key); }
+	public static bool CompareTo(System.Windows.Forms.Keys key, Keys key2){ return (ToWinFormsKeys(key2) == key); }
 	public static bool CompareTo(Keys k1, Keys k2) { return k1 == k2; }
 	static KeyPressedDelegate OnA;
 	static KeyPressedDelegate OnB;
@@ -469,7 +469,7 @@ static class InputController{
 	/// <param name="duration">How long was the keypressed for.</param>
 	/// <param name="strength">How much strength was applied to the keypress as a normalised float, (FOR JOYSTICK INTEGRATION, do not handle unless).</param>
 	public delegate void KeyPressedDelegate(int duration, float strength);
-	public static Dictionary<InputController.Keys, int> TrueKeyToIndex { get; set; }
+	public static Dictionary<Keys, int> TrueKeyToIndex { get; set; }
 
 
 

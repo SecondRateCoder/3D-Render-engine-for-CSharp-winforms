@@ -5,47 +5,47 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 static class Entry{
-    /// <summary>The maximum amount of time that <see cref="Entry.Loop"/> is allowed to delay itself by, 
-    /// this is needed because <see cref="Entry.Loop"/> regulates itself by delaying itself between each Loop.</summary>
+    /// <summary>The maximum amount of time that <see cref="Loop"/> is allowed to delay itself by, 
+    /// this is needed because <see cref="Loop"/> regulates itself by delaying itself between each Loop.</summary>
     /// <remarks>In Milliseconds.</remarks>
     static int MaxDelay;
-    /// <summary>Defines the Upper percentage of the <see cref="Entry.TotalMemUsage"/> where if <see cref="Entry.Loop"/>'s Memory usage falls below the value
+    /// <summary>Defines the Upper percentage of the <see cref="TotalMemUsage"/> where if <see cref="Loop"/>'s Memory usage falls below the value
     /// , it's Regulation becomes cautious.</summary>
     public static float UpperLimit { get { return _uLimit; } set { _uLimit = Math.Clamp(value, 0, 1); } }
     static float _uLimit;
-    /// <summary>Defines the Utmost percentage bounds of <see cref="Entry.TotalMemUsage"/> that <see cref="Entry.Loop"/> is allowed to reach, 
+    /// <summary>Defines the Utmost percentage bounds of <see cref="TotalMemUsage"/> that <see cref="Loop"/> is allowed to reach, 
     /// Beyond this point Regulation becomes aggressive.</summary>
     public static float GreatestLimit { get { return _gLimit - .1f < 0? _gLimit: _gLimit - .1f; } set { _gLimit = Math.Clamp(value, 0, 1); } }
     static float _gLimit;
-    /// <summary>Defines the Lower percentage bounds of <see cref="Entry.TotalMemUsage"/> where if <see cref="Entry.Loop"/>'s Memory usage falls below the value, 
+    /// <summary>Defines the Lower percentage bounds of <see cref="TotalMemUsage"/> where if <see cref="Loop"/>'s Memory usage falls below the value, 
     /// it's Regulation becomes lax.</summary>
     public static float LowerLimit { get { return _lLimit; } set { _lLimit = Math.Clamp(value, 0, 1); } }
     static float _lLimit;
     /// <summary>The public <see cref="CancellationTokenSource"/> that the render loop is architectured around, use <see cref="CancellationTokenSource.Cancel()"/> to stop the Rendering loop.</summary>
     /// <remarks>Cancelling the Rendering Loop does not end the Program, instead stops the handling of Rendering, all other functions like <see cref="CollisionManager.HandleCollisions(object?, ElapsedEventArgs)"/> runs on <see cref="TUpdate"/></remarks>
     public static CancellationTokenSource Cts { get; private set; }
-    /// <summary>The context where <see cref="Entry.f"/>'s UI thread lies.</summary>
+    /// <summary>The context where <see cref="f"/>'s UI thread lies.</summary>
     internal static SynchronizationContext? uiContext;
     /// <summary>This delegate is called 60 times a second, it controls the calling of arbitrary functions e.g: <see cref="HandleMemUsage"/>, <see cref="GetStackDepth"/></summary>
     public static ElapsedEventHandler TUpdate;
     /// <summary>This delegate runs as many times as possible, it self-regulates to prevent a <see cref="StackOverflowException"/> and the termination of the Program;</summary>
     public static event Action Update;
-    /// <summary>The delegate called at <see cref="Entry.f"/>'s creation.</summary>
+    /// <summary>The delegate called at <see cref="f"/>'s creation.</summary>
     public static Action Start;
     public static Form1 f;
     /// <summary>The delay that should be between each <see cref="HandleMemUsage"/> call.</summary>
     static int MemCheckRate;
-    /// <summary>An estimation of how much Memory has been assigned to <see cref ="Entry.Loop"/>.</summary>
+    /// <summary>An estimation of how much Memory has been assigned to <see cref ="Loop"/>.</summary>
     static long TotalMemUsage;
-    /// <summary>An estimation of how many bytes have been used by <see cref ="Entry.Loop"/> overall.</summary>
+    /// <summary>An estimation of how many bytes have been used by <see cref ="Loop"/> overall.</summary>
     static long PeakMemUsage;
-    /// <summary>An estimation of the number of bytes used by <see cref ="Entry.Loop"/> at the moment.</summary>
+    /// <summary>An estimation of the number of bytes used by <see cref ="Loop"/> at the moment.</summary>
     static long ActualMemUsage;
     /// <summary>The estimation of the Stack depth.</summary>
     static int stackDepth;
     public static int selfDelay{get; private set;}
     static Process cProc;
-    /// <summary>The Buffer to allow GraphicsData from <see cref="Entry.BuildWorld"/> and <see cref="BuildSquare"/> to be communicated with <see cref="Entry.f"/>'s UI.</summary>
+    /// <summary>The Buffer to allow GraphicsData from <see cref="BuildWorld"/> and <see cref="BuildSquare"/> to be communicated with <see cref="f"/>'s UI.</summary>
     public static WriteableBitmap Buffer;
     public static bool SkipStartUpWarnings;
     public static DialogResult DefaultPriorityConflictBehaviour;

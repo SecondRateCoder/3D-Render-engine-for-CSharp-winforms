@@ -133,7 +133,7 @@ class TextureDatabase : IEnumerable{
     }
     public void AddRangeAt(int index, IEnumerable<TexturePoint> data, bool AddSection = true){
         (int a, int b) Section = (0, 0);
-        if(index > this.Count){this.Append(data.ToList());}else{
+        if(index > this.Count){this.Append([.. data]);}else{
             if(AddSection == true){Section.a = this.td.Count;}
             int cc =index;
             foreach(TexturePoint item in data){

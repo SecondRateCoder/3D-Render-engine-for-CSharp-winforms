@@ -41,7 +41,7 @@ static class ExtensionHandler{
 	public static bool[] PreLoadExtensions(){
 		StartUp = true;
 		List<(string Path, string Message)> ErrorMessage = [];
-		bool[] result = Task.Run<bool[]>(() => {
+		bool[] result = Task.Run(() => {
 			bool[] result = [];
 			string[] ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt"));
 			result = new bool[ExtensionFilePaths.Length];
@@ -177,8 +177,7 @@ static class ExtensionHandler{
 		return await LoadToMemory(Priority, ClassName, NameFromType(methodType), GetFunctionBody(NameFromType(methodType)), methodType);
 	}
 	static string NameFromType(MethodType methodType) {
-        return methodType switch
-        {
+        return methodType switch{
             MethodType.Start => Start,
             MethodType.Update => Update,
             MethodType.TimedUpdate => TUpdate,
@@ -200,15 +199,15 @@ static class ExtensionHandler{
 				throw new ArgumentException();
 		}
 	}
-	/// <summary>Saves a singular extension function to allow it to be runnable.</summary>
-	/// <param name="Priority">The extionsion function's property.</param>
-	/// <param name="ClassName">The name of the function's parent extension.</param>
-	/// <param name="functionName">The name of the function.</param>
-	/// <param name="FunctionBody">The actual logic of the function.</param>
-	/// <param name="methodType">The type of extension function it is, selected from <see cref="ExtensionHandler.MethodType"/></param>
-	/// <returns>Was the function processed successfully.</returns>
-	/// <exception cref="Exception">Did the compilation of the function fail? then call the Exception.</exception>
-	static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType methodType, int Recalls = 0){
+    /// <summary>Saves a singular extension function to allow it to be runnable.</summary>
+    /// <param name="Priority">The extionsion function's property.</param>
+    /// <param name="ClassName">The name of the function's parent extension.</param>
+    /// <param name="functionName">The name of the function.</param>
+    /// <param name="FunctionBody">The actual logic of the function.</param>
+    /// <param name="methodType">The type of extension function it is, selected from <see cref="MethodType"/></param>
+    /// <returns>Was the function processed successfully.</returns>
+    /// <exception cref="Exception">Did the compilation of the function fail? then call the Exception.</exception>
+    static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType methodType, int Recalls = 0){
 		return await Task<bool>.Run(() => {
 			ScriptOptions scriptOptions = ScriptOptions.Default
 				.WithReferences(typeof(MessageBox).Assembly, typeof(MessageBoxButtons).Assembly, typeof(MessageBoxIcon).Assembly, typeof(Entry).Assembly, typeof(gameObj).Assembly)
@@ -220,7 +219,7 @@ static class ExtensionHandler{
 				MethodType.Closing => "void ",
 				_ => "void ",
 			};
-			FunctionBody = "class " + ClassName + "{ " + Usings + returnType + FunctionBody + "}";
+			FunctionBody = Usings + "static class " + ClassName + "{ static " + returnType + FunctionBody + "}";
 			Script<object> script = CSharpScript.Create(FunctionBody, scriptOptions);
 			Compilation compilation = script.GetCompilation();
 			using (MemoryStream ms = new()){
@@ -313,10 +312,10 @@ static class ExtensionHandler{
 			_ = element.TryGetProperty("RelativeFilePath", out JsonElement element_) == true ? true : throw new FileFormatException("File was not in the same Format as expected of a Json extension");
 			CodeText = File.ReadAllText(PathToExtension + element_.GetString() ?? throw new FileFormatException("File was not in the same Format as expected of a Json extension"));
 		}
-		string s =CustomFunctions.ToString<char>(new Span<char>(CodeText.ToArray()).Slice(FunctionBounds.Start, FunctionBounds.End).ToArray(), false);
+		string s =CustomFunctions.ToString(new Span<char>([.. CodeText]).Slice(FunctionBounds.Start, FunctionBounds.End).ToArray(), false);
 		if(!ModerateFunction(s)){
 			(int Start, int End) fBounds = GetFunctionBounds(TypeFromName(FunctionName), CodeText);
-			s = CustomFunctions.ToString<char>(new Span<char>(CodeText.ToArray()).Slice(fBounds.Start, fBounds.End - fBounds.Start).ToArray(), false);
+			s = CustomFunctions.ToString(new Span<char>([.. CodeText]).Slice(fBounds.Start, fBounds.End - fBounds.Start).ToArray(), false);
 		}
 		return s;
 	}
@@ -325,6 +324,7 @@ static class ExtensionHandler{
 		int Scopes = 0;
 		char c = function[0];
 		int Length = function.Length;
+		if(!(function.Contains('{') && function.Contains('}'))){return false;}
 		for(int cc =0; cc < Length; cc++, c = function[cc == Length? Length - 1: cc]){
 			if(c == '{'){Scopes++;}else if(c == '}'){Scopes--;}
 		}
@@ -339,7 +339,7 @@ static class ExtensionHandler{
 		for(int cc =0; cc < Length;cc++, c = WholeFunction[cc == Length? Length - 1: cc]){
 			if(c == '{'){Scopes++;}else if(c == '}'){Scopes--;}
 			if(c == MethodName[0]){
-				if(CustomFunctions.ToString(new Span<char>(WholeFunction.ToArray()).Slice(cc, MethodName.Length).ToArray(), false) == MethodName){
+				if(CustomFunctions.ToString(new Span<char>([.. WholeFunction]).Slice(cc, MethodName.Length).ToArray(), false) == MethodName){
 					FunctionBounds.MethodStart = cc;
 					StringBuilder sB = new();
 					int Buffer = Scopes;
@@ -364,26 +364,31 @@ static class ExtensionHandler{
 		return FunctionBounds;
 	}
 
-	public static string GatherUsings(){
+	public static void GatherUsings(){
 		string CodeTxt = File.ReadAllText(PathToExtension + "Code.txt");
 		int counter = 0;
 		StringBuilder usings = new();
 		int Length = CodeTxt.Length;
 		foreach(char _ in CodeTxt){
+			if(counter >= Length){counter = Length - 1;}
 			string temp = ((counter < Length)? CodeTxt[counter].ToString(): "") + ((counter+1 < Length)? CodeTxt[counter+1].ToString(): "") + ((counter+2 < Length)? CodeTxt[counter+2].ToString(): "") + ((counter+3 < Length)? CodeTxt[counter+3].ToString(): "") + ((counter+4 < Length)? CodeTxt[counter+4].ToString(): "");
 			if(temp == "using"){
 				int lineLength;
-				for(int cc_ = counter;cc_ < Length;cc_++){
+				for(int cc_ = counter;cc_ < Length;cc_+=lineLength+1){
+					if(cc_ >= Length){cc_ = Length -1;}
 					lineLength = 0;
-					while(CodeTxt[lineLength] != ';'){lineLength++;}
-					Span<char> Line = new Span<char>(CodeTxt.ToArray()).Slice(cc_, lineLength+1);
-					if(CustomFunctions.ToString(Line.ToArray(), false).Contains("using")){usings.AppendLine(CustomFunctions.ToString(Line.ToArray()));}
+					while(CodeTxt[lineLength + cc_] != ';'){lineLength++;}
+					if(cc_ + lineLength - 1 == Length){lineLength = lineLength - cc_ +1;}
+					Span<char> Line = new Span<char>([.. CodeTxt]).Slice(cc_, lineLength+1);
+					if(CustomFunctions.ToString(Line.ToArray(), false).Contains("using")){usings.AppendLine(CustomFunctions.ToString(Line.ToArray(), false));}else{
+						ExtensionHandler.Usings = usings.ToString();
+						return;
+					}
 				}
 				//Line.Append(";\r\n");
 			}
 			counter++;
 		}
-		ExtensionHandler.Usings = usings.ToString();
-		return usings.ToString();
+		return;
 	}
 }

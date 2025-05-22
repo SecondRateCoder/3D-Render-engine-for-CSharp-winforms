@@ -33,7 +33,7 @@ static class World{
         }
         return false;
     }
-    /// <summary>Add a new Light to <see cref="World.activeLights"/></summary>
+    /// <summary>Add a new Light to <see cref="activeLights"/></summary>
     /// <param name="light">The Light to be added.</param>
     public static void AddLight(int light){activeLights.Add(light);}
     public static bool TrySetLight(int index){

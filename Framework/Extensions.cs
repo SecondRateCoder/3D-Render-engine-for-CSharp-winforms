@@ -61,7 +61,7 @@ class TextureStyles{
                 PointF[] PolygonAsPointF = [new PointF(((PointF)p.A).X * p.A.Magnitude, ((PointF)p.A).X * p.A.Magnitude), 
                     new PointF(((PointF)p.B).X * p.B.Magnitude, ((PointF)p.B).X * p.B.Magnitude), 
                         new PointF(((PointF)p.C).X * p.C.Magnitude, ((PointF)p.C).X * p.C.Magnitude)];
-                PolygonAsPointF = CustomFunctions.SortPointArray_ByY(PolygonAsPointF).Result.ToArray();
+                PolygonAsPointF = [.. CustomFunctions.SortPointArray_ByY(PolygonAsPointF).Result];
 
 
                 //To handle how TextureData is scaled, or whether it is scaled.
@@ -411,7 +411,7 @@ static class CustomFunctions{
         return t;
     }
     public static IEnumerable<T> SwapItems<T>(IEnumerable<T> items, int FirstItem, int SecondItem){
-        T[] values = items.ToArray();
+        T[] values = [.. items];
         T buffer = values[FirstItem];
         values[FirstItem]= values[SecondItem];
         values[SecondItem] = buffer;
@@ -663,7 +663,7 @@ class BackdoorJob<T, R> {
         /// <returns>An integer holding the ProcessID of this job</returns>
         static int AddJob(BackdoorDelegate<T, R> job, T parameters, object? sender = null, int timeout = 1000) {
             Shifts++;
-            jobs.Enqueue(new BackdoorJob<T, R>(jobs.Count, timeout, new BackdoorJob<T, R>.BackdoorDelegate<T, R>(job), null, null, sender));
+            jobs.Enqueue(new BackdoorJob<T, R>(jobs.Count, timeout, new BackdoorDelegate<T, R>(job), null, null, sender));
             parameterData.Add(((typeof(T), typeof(R)), parameters));
             return jobs.Count - 1;
         }

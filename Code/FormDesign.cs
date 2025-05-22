@@ -4,7 +4,7 @@ partial class Form1{
     /// <summary>
     ///  Required designer variable.
     /// </summary>
-    private System.ComponentModel.IContainer components = null;
+    private IContainer components = null;
 
     /// <summary>
     ///  Clean up any resources being used.
@@ -32,9 +32,9 @@ partial class Form1{
         //Form
         this.Name = "TheWindow";
         this.Text = "TheWindowText";
-        this.components = new System.ComponentModel.Container();
+        this.components = new Container();
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-        this.ClientSize = new System.Drawing.Size(900, 900);
+        this.ClientSize = new Size(900, 900);
         this.Controls.Add(this.Tbox);
         this.ResumeLayout(false);
         this.PerformLayout();

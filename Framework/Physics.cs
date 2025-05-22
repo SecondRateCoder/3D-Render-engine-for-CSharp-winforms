@@ -87,7 +87,7 @@ static class CollisionManager{
                 }
             }
         }
-        return result.ToArray();
+        return [.. result];
     }
 
     public static CollisionDatabase FineCollisions{

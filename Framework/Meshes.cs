@@ -33,7 +33,7 @@ struct Polygon{
         this.A = a;
         this.B = b;
         this.C = c;
-        this.UpdateTexture(uVPoints.ToArray());
+        this.UpdateTexture([.. uVPoints]);
     }
     PointF[] uPoints;
     
@@ -69,7 +69,7 @@ struct Polygon{
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Polygon(byte[] bytes){
         if(bytes.Length < Vector3.Size * 3){throw new TypeInitializationException("Polygon", new ArgumentOutOfRangeException());}
-        List<byte[]> buffer = bytes.Chunk(Vector3.Size).ToList();
+        List<byte[]> buffer = [.. bytes.Chunk(Vector3.Size)];
         this.A = new Vector3(buffer[0]);
         this.B = new Vector3(buffer[1]);
         this.C = new Vector3(buffer[2]);
@@ -95,7 +95,7 @@ struct Polygon{
         bytes.AddRange(BitConverter.GetBytes(this.uPoints[1].Y));
         bytes.AddRange(BitConverter.GetBytes(this.uPoints[2].X));
         bytes.AddRange(BitConverter.GetBytes(this.uPoints[2].Y));
-        return bytes.ToArray();
+        return [.. bytes];
     }
     public static Polygon PolyClip(Polygon target, Vector3 focus, float Range){
         (bool a, bool b, bool c) item_ = (true, true, true);
@@ -214,7 +214,7 @@ struct Polygon{
             _buff.Y = Height/2;
             _buff.Z = width;
 		}
-		return result.ToArray();
+		return [.. result];
 	}
 }
 [DebuggerDisplay("Position: {Position}, Rotation: {Rotation}, Count: {Count}")]
@@ -225,7 +225,7 @@ class Mesh : Rndrcomponent, IEnumerable{
     public Vector3 Rotation{get; private set;}
     List<Polygon> mesh;
     public int Count{get{return this.mesh.Count;}}
-    public Polygon[] Get(){return this.mesh.ToArray();}
+    public Polygon[] Get(){return [.. this.mesh]; }
 	public void Add(Polygon poly){mesh.Add(poly);}
 	public void AddRange(IEnumerable<Polygon> polygons){mesh.AddRange(polygons);}
 	public void RemoveAt(int index){this.mesh.RemoveAt(index);}
@@ -240,7 +240,7 @@ class Mesh : Rndrcomponent, IEnumerable{
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Mesh(IEnumerable<Polygon> p){
-        this.mesh = p.ToList();
+        this.mesh = [.. p];
     }
     public async void Translate(Vector3 position, Vector3 rotation){
         this.Position += position;
@@ -308,7 +308,7 @@ class Mesh : Rndrcomponent, IEnumerable{
         }
         bytes.AddRange(this.Position.ToBytes());
         bytes.AddRange(this.Rotation.ToBytes());
-        return bytes.ToArray();
+        return [.. bytes];
     }
     public override void FromBytes(byte[] bytes){
         int Count = StorageManager.ReadInt32(bytes, 0);

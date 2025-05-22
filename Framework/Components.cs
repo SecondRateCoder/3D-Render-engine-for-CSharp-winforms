@@ -190,11 +190,11 @@ class Texturer : Rndrcomponent{
     //! RndrComponent overrides
     public override unsafe int Size { get { return (0); } }
     public override byte[] ToByte(){
-        List<byte> result = BitConverter.GetBytes(this.filePath.Get().Length).ToList();
+        List<byte> result = [.. BitConverter.GetBytes(this.filePath.Get().Length)];
         result.AddRange(Encoding.UTF8.GetBytes(this.filePath));
         result.AddRange(BitConverter.GetBytes(this.DataStart));
         result.AddRange(BitConverter.GetBytes(this.DataStart));
-        return result.ToArray();
+        return [.. result];
     }
     public override void FromBytes(byte[] bytes){
         this.filePath = (Path)StorageManager.ReadString(bytes, Encoding.Unicode, bytes.Length - (sizeof(int) * 2));

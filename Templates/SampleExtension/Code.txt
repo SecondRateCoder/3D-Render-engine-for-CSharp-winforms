@@ -2,7 +2,7 @@ using System.Windows.Forms;
 using Timer = System.Timers.Timer;
 using System.Timers;
 
-void SetUp(){MessageBox.Show("Extension started.");}
-void Update(){MessageBox.Show("Extension running.");}
-void TimedUpdate(object sender,ElapsedEventArgs eventArgs){MessageBox.Show("Running on time.");}
-void Closing(){System.Windows.Forms.MessageBox.Show("Ending.");}
+static void SetUp(){MessageBox.Show("Extension started.");}
+static void Update(){MessageBox.Show("Extension running.");}
+static void TimedUpdate(object sender,ElapsedEventArgs eventArgs){MessageBox.Show("Running on time.");}
+static void Closing(){System.Windows.Forms.MessageBox.Show("Ending.");}
