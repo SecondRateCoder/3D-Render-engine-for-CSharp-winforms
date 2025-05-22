@@ -208,7 +208,8 @@ static class ExtensionHandler{
     /// <returns>Was the function processed successfully.</returns>
     /// <exception cref="Exception">Did the compilation of the function fail? then call the Exception.</exception>
     static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType methodType, int Recalls = 0){
-		return await Task<bool>.Run(() => {
+		bool Warn = !(Entry.SkipStartUpWarnings && StartUp);
+		return await Task.Run(() => {
 			ScriptOptions scriptOptions = ScriptOptions.Default
 				.WithReferences(typeof(MessageBox).Assembly, typeof(MessageBoxButtons).Assembly, typeof(MessageBoxIcon).Assembly, typeof(Entry).Assembly, typeof(gameObj).Assembly)
 				.WithImports("System");
@@ -219,13 +220,16 @@ static class ExtensionHandler{
 				MethodType.Closing => "void ",
 				_ => "void ",
 			};
-			FunctionBody = Usings + "static class " + ClassName + "{ static " + returnType + FunctionBody + "}";
+			if(IndexToName.ContainsValue(ClassName) && Warn){
+				MessageBox.Show("The extension has a name that conflicts with extensions with a similar name.\nIt will be assigned a temporary name.", "ExtensionNamingConflict", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+				ClassName = $"[{IndexToName.Count}]thExtension";
+			}
+			FunctionBody = Usings + "partial class " + ClassName + "{ public " + returnType + FunctionBody + "}";
 			Script<object> script = CSharpScript.Create(FunctionBody, scriptOptions);
 			Compilation compilation = script.GetCompilation();
 			using (MemoryStream ms = new()){
 				if(!compilation.Emit(ms).Success){
 					DialogResult dR;
-					bool Warn = !(Entry.SkipStartUpWarnings && StartUp);
 					if (Recalls < 10) {
 						if (Warn) {
 							dR = MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
