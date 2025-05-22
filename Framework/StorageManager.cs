@@ -1,10 +1,5 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
-using System.Globalization;
-using System.Reflection;
 using System.Text;
-using System.Text.Json;
 static class StorageManager{
 	public static string ApplicationPath{
 		get{

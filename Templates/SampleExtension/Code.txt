@@ -1,6 +1,8 @@
-class Template{
+using System.Windows.Forms;
+using Timer = System.Timers.Timer;
+using System.Timers;
+
 void SetUp(){MessageBox.Show("Extension started.");}
 void Update(){MessageBox.Show("Extension running.");}
 void TimedUpdate(object sender,ElapsedEventArgs eventArgs){MessageBox.Show("Running on time.");}
-void Closing(){}{MessageBox.Show("Ending.");}
-}
+void Closing(){System.Windows.Forms.MessageBox.Show("Ending.");}

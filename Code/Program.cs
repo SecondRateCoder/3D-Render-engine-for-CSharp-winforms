@@ -3,7 +3,6 @@ using System.Timers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text.Json.Serialization;
 using System.Text.Json;
 static class Entry{
     /// <summary>The maximum amount of time that <see cref="Entry.Loop"/> is allowed to delay itself by, 
