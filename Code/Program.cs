@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 static class Entry{
     /// <summary>The maximum amount of time that <see cref="Loop"/> is allowed to delay itself by, 
     /// this is needed because <see cref="Loop"/> regulates itself by delaying itself between each Loop.</summary>
@@ -67,8 +68,8 @@ static class Entry{
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 	[STAThread]
-    public static void Main(){
-        try { ExtensionHandler.PreLoadExtensions(); } catch { if (!SkipStartUpWarnings) { MessageBox.Show("Extensions could not be Pre-Loaded", "ExtensionPre_LoadingException: Extensions could not be loaded.", MessageBoxButtons.OK, MessageBoxIcon.Warning); } }
+    public static async Task Main(){
+        try { await ExtensionHandler.PreLoadExtensions(); } catch { if (!SkipStartUpWarnings) { MessageBox.Show("Extensions could not be Pre-Loaded", "ExtensionPre_LoadingException: Extensions could not be loaded.", MessageBoxButtons.OK, MessageBoxIcon.Warning); } }
         Update += f._Invoke;
         Entry.uiContext = SynchronizationContext.Current;
 		ExternalControl.Initialise();

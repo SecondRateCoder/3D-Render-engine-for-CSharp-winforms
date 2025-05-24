@@ -14,7 +14,7 @@ static class ExtensionHandler{
 	/// <summary>This is simply for the sake of allowng the process to remember the Location of the Extension without passing more Parameters.</summary>
 	static string PathToExtension = "";
 	static string Usings = "";
-	static string Properties = "";
+	static string Properties_Fields = "";
 	static Dictionary<string, object> JsonDeserialised;
 	static CancellationTokenSource cts = new();
 	const int MaxTries = 20;
@@ -33,15 +33,18 @@ static class ExtensionHandler{
 		Workspace = 4
 	}
 	static bool StartUp;
-	static ExtensionHandler() { extensions = []; IndexToName = []; }
-	/// <summary>Convert from a Priority key to an Extension name, mainly for Exception logging.</summary>
-	static Dictionary<int, string> IndexToName;
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    static ExtensionHandler() { extensions = []; IndexToName = []; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    /// <summary>Convert from a Priority key to an Extension name, mainly for Exception logging.</summary>
+    static Dictionary<int, string> IndexToName;
 	/// <summary>Stores all the data needed for the system to interface with the method and understand it for what it needs to do.</summary>
 	static Dictionary<int, (int ErrorCalls, MethodType type, MethodInfo method)> extensions;
 	/// <summary>Loads extensions from the Cache\Saves\Extensions.txt cache, allowing extensions to be automatically loaded from start-up.</summary>
+	///<returns>A list of booleans that correspond to an extension's line in Extensions.txt, t</returns>
 	public static async Task<bool[]> PreLoadExtensions(){
 		StartUp = true;
-		return Task.Run(() => {
+		return await Task.Run(() => {
 			bool[] result = [];
 			string[] ExtensionFilePaths = File.ReadAllLines(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt"));
 			result = new bool[ExtensionFilePaths.Length];
@@ -50,12 +53,12 @@ static class ExtensionHandler{
 			foreach(string s in ExtensionFilePaths){
 				PathToExtension = Directory.Exists(s)? s: (File.Exists(s)? StorageManager.GetParentDirectory(s): "");
 				if(PathToExtension == ""){return [false];}
-				if (await BuildJsonObject()){
+				if (BuildJsonObject().Result){
 					validPaths.Add(s);
 					result[cc] = true;
 				}else{
 					result[cc] = false;
-					ErrorQueue.Add((s, "File was not in the same Format as expected of a Json extension"));
+					ErrorQueue.Add(s, "File was not in the same Format as expected of a Json extension");
 				}
 				cc++;
 			}
@@ -92,10 +95,10 @@ static class ExtensionHandler{
 	/// <summary>Begins the process of attaching an extension, doing it's logic checks and validation locally.</summary>
 	/// <remarks>Open a <see cref="OpenFileDialog"/> and use it to select a folder containing a Metadata.json file.</remarks>
 	/// <returns>Was the folder containing viable data for an extension attaching.</returns>
-	public static async Task<bool> AttachExtension(){
-		bool Suceeded = true;
-		lock(extensions){
-			await Task.Run(() => {
+	public static bool AttachExtension(){
+		bool function(bool func){
+			bool Suceeded = true;
+			lock(extensions){
 				using(OpenFileDialog fD = new()){
 						fD.Title = "Open Metadata.json";
 						fD.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
@@ -103,14 +106,14 @@ static class ExtensionHandler{
 						fD.CheckFileExists = true;
 						fD.CheckPathExists = true;
 					if(fD.ShowDialog() == DialogResult.OK){
-						Suceeded = await BuildJsonObject();
+						Suceeded = BuildJsonObject().Result;
 					}else{ Suceeded = false; }
 				}
 				if(Suceeded){SaveExtension();}
 				return Suceeded;
-			});
-			return Suceeded;
-		}
+			}
+		};
+		return BackdoorJob<bool, bool>.BackdoorJobHandler.PassJob(function, true, nameof(ExtensionHandler), 1000).Result;
 	}
 	/// <summary>Builds and stores the Json file object, checking if the File contains the right properties.</summary>
 	/// <returns>Was the Json file of the right format?</returns>
@@ -131,6 +134,7 @@ static class ExtensionHandler{
 		_ = priority ?? (!Entry.SkipStartUpWarnings? MessageBox.Show($"The Json at {PathToExtension} does not have a Priority of expected value, changing value of Priority to: {extensions.Count}", null, MessageBoxButtons.OK, MessageBoxIcon.Warning): DialogResult.OK);
 		int Priority = priority is JsonElement je ? Convert.ToInt32(je.ToString()) : throw new Exception("Priority is not a JsonElement");
 		GatherUsings();
+		GatherProperty_Field();
 		bool Start = await LoadToMemory(Priority, Name, MethodType.Start);
 		if(!Start){ return false; }
 		bool Update = await LoadToMemory(Priority, Name, MethodType.Update);
@@ -209,7 +213,7 @@ static class ExtensionHandler{
     /// <returns>Was the function processed successfully.</returns>
     /// <exception cref="Exception">Did the compilation of the function fail? then call the Exception.</exception>
     static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType methodType, int Recalls = 0){
-		return await Task.Run(() => {
+		return await Task.Run(async () => {
 			ScriptOptions scriptOptions = ScriptOptions.Default
 				.WithReferences(typeof(MessageBox).Assembly, typeof(MessageBoxButtons).Assembly, typeof(MessageBoxIcon).Assembly, typeof(Entry).Assembly, typeof(gameObj).Assembly)
 				.WithImports("System");
@@ -220,7 +224,7 @@ static class ExtensionHandler{
 				MethodType.Closing => "void ",
 				_ => "void ",
 			};
-			if(IndexToName.ContainsValue(ClassName) && Warn){
+			if(IndexToName.ContainsValue(ClassName) && ErrorQueue.Warn){
 				MessageBox.Show("The extension has a name that conflicts with extensions with a similar name.\nIt will be assigned a temporary name.", "ExtensionNamingConflict", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
 				ClassName = $"[{IndexToName.Count}]thExtension";
 			}
@@ -231,12 +235,12 @@ static class ExtensionHandler{
 				if(!compilation.Emit(ms).Success){
 					DialogResult dR;
 					if (Recalls < 10) {
-						if (Warn) {
+						if (ErrorQueue.Warn) {
 							dR = MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
 						} else { dR = DialogResult.Ignore; }
 						//!(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error)
 					} else {
-						if (Warn) {
+						if (ErrorQueue.Warn) {
 							dR = MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error);
 						} else { dR = DialogResult.OK; }
 						cts.Cancel();
@@ -373,18 +377,24 @@ static class ExtensionHandler{
 		int counter = 0;
 		StringBuilder usings = new();
 		int Length = CodeTxt.Length;
-		foreach(char _ in CodeTxt){
-			if(counter >= Length){counter = Length - 1;}
-			string temp = ((counter < Length)? CodeTxt[counter].ToString(): "") + ((counter+1 < Length)? CodeTxt[counter+1].ToString(): "") + ((counter+2 < Length)? CodeTxt[counter+2].ToString(): "") + ((counter+3 < Length)? CodeTxt[counter+3].ToString(): "") + ((counter+4 < Length)? CodeTxt[counter+4].ToString(): "");
-			if(temp == "using"){
+		Usings = "";
+		foreach (char _ in CodeTxt)
+		{
+			if (counter >= Length) { counter = Length - 1; }
+			string temp = ((counter < Length) ? CodeTxt[counter].ToString() : "") + ((counter + 1 < Length) ? CodeTxt[counter + 1].ToString() : "") + ((counter + 2 < Length) ? CodeTxt[counter + 2].ToString() : "") + ((counter + 3 < Length) ? CodeTxt[counter + 3].ToString() : "") + ((counter + 4 < Length) ? CodeTxt[counter + 4].ToString() : "");
+			if (temp == "using")
+			{
 				int lineLength;
-				for(int cc_ = counter;cc_ < Length;cc_+=lineLength+1){
-					if(cc_ >= Length){cc_ = Length -1;}
+				for (int cc_ = counter; cc_ < Length; cc_ += lineLength + 1)
+				{
+					if (cc_ >= Length) { cc_ = Length - 1; }
 					lineLength = 0;
-					while(CodeTxt[lineLength + cc_] != ';'){lineLength++;}
-					if(cc_ + lineLength - 1 == Length){lineLength = lineLength - cc_ +1;}
-					Span<char> Line = new Span<char>([.. CodeTxt]).Slice(cc_, lineLength+1);
-					if(CustomFunctions.ToString(Line.ToArray(), false).Contains("using")){usings.AppendLine(CustomFunctions.ToString(Line.ToArray(), false));}else{
+					while (CodeTxt[lineLength + cc_] != ';') { lineLength++; }
+					if (cc_ + lineLength - 1 == Length) { lineLength = lineLength - cc_ + 1; }
+					Span<char> Line = new Span<char>([.. CodeTxt]).Slice(cc_, lineLength + 1);
+					if (CustomFunctions.ToString(Line.ToArray(), false).Contains("using")) { usings.AppendLine(CustomFunctions.ToString(Line.ToArray(), false)); }
+					else
+					{
 						ExtensionHandler.Usings = usings.ToString();
 						return;
 					}
@@ -399,15 +409,14 @@ static class ExtensionHandler{
 		string CodeTxt = File.ReadAllText(PathToExtension + "Code.txt");
 		int counter = 0;
 		int lineLength = 0;
+		Span<char> Line;
+		Properties_Fields = "";
 		foreach(char _ in CodeTxt){
-			lineLength = 0;
-			while(CodeTxt[lineLength + counter] != (';' | '{')){lineLength++;}
-			if(CodeTxt[lineLength + counter + 1] == ';'){
-
-			}
-			Span<char> Line = new Span<char>(CodeTxt.ToArray()).Slice(counter, lineLength+1);
-			//Validate if it's a property or field.
-
+			int lineStart = counter;
+			while(lineStart != '\n'){lineStart++;}
+			lineLength = lineStart;
+			while(CodeTxt[lineLength] != (';' | '}')){lineLength++;}
+			Properties_Fields += CustomFunctions.ToString<char>(new Span<char>(CodeTxt.ToArray()).Slice(lineStart, lineStart - (lineLength + 1)).ToArray(), false);
 			counter++;
 		}
 	}
@@ -447,28 +456,28 @@ static class ExtensionHandler{
 }
 	*/
 	static class ErrorQueue{
-		public bool Warn{get{return !(Entry.SkipStartUpWarnings && StartUp);}}
-		List<(string Message, object[] Data)> ErrorInfo = [];
-		public static Add(string Message, params object[] ExtraInfo){
+		public static bool Warn{get{return !(Entry.SkipStartUpWarnings && StartUp);}}
+		static List<(string Message, object[] Data)> ErrorInfo = [];
+		public static void Add(string Message, params object[] ExtraInfo){
 			if(ErrorInfo == null){ErrorInfo = [(Message, ExtraInfo)];}
 			else{ErrorInfo.Add((Message, ExtraInfo));}
 		}
-		public static Action CallErrorQueue = () => {
-			lock(ErrorInfo);
-			StringBuilder sB = new();
-			foreach((string Message, object[] Data) item in ErrorInfo){
-				sB.AppendLine(item.Message);
-				foreach(object obj in item.Data){
-					if(obj is string s){
-						sB.Append(s + " ");
+		public static Action CallErrorQueue = (() => {
+			lock(ErrorInfo){
+				StringBuilder sB = new();
+				foreach((string Message, object[] Data) item in ErrorInfo){
+					sB.AppendLine(item.Message);
+					foreach(object obj in item.Data){
+						if(obj is string s){
+							sB.Append(s + " ");
+						}
 					}
 				}
+				if(!Warn){
+					MessageBox.Show(sB.ToString(), "Error info");
+					ErrorInfo = [];
+				}
 			}
-			if(!Warn){
-				MessageBox.Show(sB.ToString(), "Error info");
-				ErrorInfo = [];
-			}
-			
-		}
+		});
 	}
 }
