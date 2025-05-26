@@ -715,13 +715,19 @@ class BackdoorJob<T, R> {
             CancellationTokenSource cts = new();
             cts.CancelAfter(timeout);
             int cc = 0;
-            while (!cts.IsCancellationRequested) {
-                if (ReturnResult[cc].GetType() == typeof(Result)) {
-                    return (Result)ReturnResult[cc].data;
-                }
-                cc++;
+            for(int cc =0; cc< ReturnResult.Length; cc++){
+                WaitResult<Result>(cc);
             }
             return default;
+        }
+        ///<summary>Watch a point in <see cref = "ReturnResult"/> until Timeout.</summary>
+        /// <returns>If the expected Result type was found then return true, if Timeout was reached return false.</returns>
+        static bool WaitResult<Result>(int WatchIndex, int timeOut = 20){
+            CancellationTokenSource cts = new();
+            cts.CancelAfter(timeOut);
+            while(!cts.IsCancellationRequested && ReturnResult[cc].GetType() != typeof(Result)){
+                Task.Delay(100);
+            }
         }
 #pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
         static (t, r)? RecoverTrueParameters<t, r>() {
