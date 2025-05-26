@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Threading.Tasks;
 static class Entry{
     /// <summary>The maximum amount of time that <see cref="Loop"/> is allowed to delay itself by, 
     /// this is needed because <see cref="Loop"/> regulates itself by delaying itself between each Loop.</summary>
@@ -31,19 +30,20 @@ static class Entry{
     public static ElapsedEventHandler TUpdate;
     /// <summary>This delegate runs as many times as possible, it self-regulates to prevent a <see cref="StackOverflowException"/> and the termination of the Program;</summary>
     public static event Action Update;
-    /// <summary>The delegate called at <see cref="f"/>'s creation.</summary>
+    /// <summary>The delegate called at the beginning of the Engine's start-up.</summary>
     public static Action Start;
+    public static Action LoadUp;
     public static Form1 f;
     /// <summary>The delay that should be between each <see cref="HandleMemUsage"/> call.</summary>
     static int MemCheckRate;
     /// <summary>An estimation of how much Memory has been assigned to <see cref ="Loop"/>.</summary>
-    static long TotalMemUsage;
+    public static long TotalMemUsage;
     /// <summary>An estimation of how many bytes have been used by <see cref ="Loop"/> overall.</summary>
-    static long PeakMemUsage;
+    public static long PeakMemUsage;
     /// <summary>An estimation of the number of bytes used by <see cref ="Loop"/> at the moment.</summary>
     static long ActualMemUsage;
     /// <summary>The estimation of the Stack depth.</summary>
-    static int stackDepth;
+    public static int stackDepth;
     public static int selfDelay{get; private set;}
     static Process cProc;
     /// <summary>The Buffer to allow GraphicsData from <see cref="BuildWorld"/> and <see cref="BuildSquare"/> to be communicated with <see cref="f"/>'s UI.</summary>
