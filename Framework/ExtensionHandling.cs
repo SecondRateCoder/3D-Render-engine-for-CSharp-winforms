@@ -5,6 +5,9 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using NUnit.Framework;
 
 static class ExtensionHandler{
 	static readonly string Start = "SetUp";
@@ -71,6 +74,7 @@ static class ExtensionHandler{
 			return result;
 		});
 	}
+	/// <summary>Save the extension at <see cref = "ExtensionHandler.PathToExtension"/> to be pre-loaded, producing the appropiate Dialog.</summary>
 	static void SaveExtension(){
 		if (MessageBox.Show("Should the extension be Pre-Loaded on startup of application?", "Pre-load extensions?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.OK){
 			using (FileStream fS = File.OpenWrite(System.IO.Path.Combine(StorageManager.ApplicationPath, @"Cache\Extensions.txt"))){
@@ -376,20 +380,22 @@ static class ExtensionHandler{
 		return;
 	}
 	public static void GatherProperty_Field(){
-		int counter = 0;
-		int lineLength = 0;
-		Span<char> Line;
-		Properties_Fields = "";
-		foreach (char _ in CodeTxt){
-			int lineStart = counter;
-			while (lineStart != '\n') { lineStart++; }
-			lineLength = lineStart;
-			while (CodeTxt[lineLength] != (';' | '}')) { lineLength++; }
-			lineLength++;
-			Properties_Fields += CustomFunctions.ToString<char>(new Span<char>(CodeTxt.ToArray()).Slice(lineStart, lineStart - (lineLength)).ToArray(), false);
-			counter++;
-		}
-	}
+    List<string> result = new List<string>();
+    SyntaxNode root = CSharpSyntaxTree.ParseText(CodeTxt).GetRoot();
+    // Find all class declarations in the code
+    var classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+    foreach (var classNode in classNodes){
+        // Get all field declarations
+        IEnumerable<FieldDeclarationSyntax> fields = classNode.DescendantNodes()
+            .OfType<FieldDeclarationSyntax>();
+        foreach (FieldDeclarationSyntax field in fields){result.Add(field.ToFullString().Trim());}
+        // Get all property declarations
+        IEnumerable<PropertyDeclarationSyntax> properties = classNode.DescendantNodes()
+            .OfType<PropertyDeclarationSyntax>();
+        foreach (PropertyDeclarationSyntax prop in properties){result.Add(prop.ToFullString().Trim());}
+    }
+	Properties_Fields = CustomFunctions.ToString(result);
+}
 
 	static class ErrorQueue{
 		enum SuccessState{
@@ -422,12 +428,18 @@ namespace ExtensionInterface{
 	}
 	static class Services{
 		static Dictionary<string, Dictionary<Type, object>> DataStoreService;
-		public static bool Poll(string myName, long DataSize){
+		/// <summary>Give the Extension more memory from <see cref="Services.DataStoreService"/>, if Memory is available to store it.</summary>
+		/// <param name="t">The calling Type</param>
+		/// <param name="DataSize">The size of data that should be given.</param>
+		/// <returns></returns>
+		/// <exception cref="ArgumentNullException"></exception>
+		public static bool Poll(Type t, long DataSize){
 			if((Entry.TotalMemUsage - Entry.PeakMemUsage) < DataSize){
 				return false;
 			}else{
-				bool Exists = DataStoreService.TryGetValue(myName, out Dictionary<Type, object>? Store);
+				bool Exists = DataStoreService.TryGetValue(t.FullName ?? throw new ArgumentNullException(), out Dictionary<Type, object>? Store);
 				if(!Exists | Store == null){return false;}
+				if(Store == null){Store = [];}
 				for(int cc =0; cc < DataSize; cc++){
 					Store.Add(typeof(bool), 0);
 				}
