@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Timers;
+using SharpDX;
 
 class TextureStyles{
     /// <summary>Stretches a TextureDatabase to fit the inputted Polygon.</summary>
@@ -649,99 +651,100 @@ class BackdoorJob<T, R> {
     /// a <see cref="System.Collections.IEnumerable"/> that stores job parametwers locally.
     /// </summary>
     public static class BackdoorJobHandler {
-        /// <summary>
-        /// An offset that is decrimented and incremented with the Queuing and Dequeuing of the handler list.
-        /// </summary>
-        /// <remarks>If applying this number to any retained ProcessID results in a negative number, it means the process has probably already been completed.</remarks>
-        public static int Shifts;
-        /// <summary>
-        /// The queue of jobs to be processed.
-        /// </summary>
-        /// <remarks>Thread safe.</remarks>
-        static readonly ConcurrentQueue<BackdoorJob<T, R>> jobs = new();
-        static List<((Type paramType, Type returnType) Types, object data)> parameterData = [];
-#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-        /// <summary>
-        /// Adds a job to the running queue, as well as it's parameters.
-        /// </summary>
-        /// <param name="job">The job.to be run.</param>
-        /// <param name="parameters">The input parameters of the LockJob.</param>
-        /// <param name="sender">The function where the job originated from.</param>
-        /// <param name="timeout">How long the job should last</param>
-        /// <returns>An integer holding the ProcessID of this job</returns>
-        static int AddJob(BackdoorDelegate<T, R> job, T parameters, object? sender = null, int timeout = 1000) {
-            Shifts++;
-            jobs.Enqueue(new BackdoorJob<T, R>(jobs.Count, timeout, new BackdoorDelegate<T, R>(job), null, null, sender));
-            parameterData.Add(((typeof(T), typeof(R)), parameters));
-            return jobs.Count - 1;
-        }
-#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-        public static async Task<R> PassJob(BackdoorDelegate<T, R> job, T parameter, object? sender = null, int timeout = 1000) {
-            return await Task.Run(() => {
-                AddJob(job, parameter, sender, timeout);
-                R? result = default;
-                do {
-                    result = GetMyResult<R>();
-                } while (result == null);
-                return result;
-            });
-        }
+        //         /// <summary>
+        //         /// An offset that is decrimented and incremented with the Queuing and Dequeuing of the handler list.
+        //         /// </summary>
+        //         /// <remarks>If applying this number to any retained ProcessID results in a negative number, 
+        //         /// it means the process has probably already been completed and a function should look in <see cref="ReturnResult"/> for more data.</remarks>
+        //         public static int Shifts;
+        //         /// <summary>
+        //         /// The queue of jobs to be processed.
+        //         /// </summary>
+        //         /// <remarks>Thread safe.</remarks>
+        //         static readonly ConcurrentQueue<(Type t, Type r, object BackdoorJob)> jobs = new();
+        //         static List<((Type paramType, Type returnType) Types, object data)> parameterData = [];
+        //         public static void Enqueue<_T, _R>(BackdoorJob<_T, _R> job){
+        //             jobs.Enqueue((typeof(_T), typeof(_R), job));
+        //         }
+        //         public static void ProcessJob(ElapsedEventArgs args, object sender){
 
-
-        static int ProcessCounter = 0;
-        /// <summary>
-        /// Runs a job, retrieving it's parameters automaically.
-        /// </summary>
-        /// <returns>The return of the original Job.</returns>
-#pragma warning disable CS8603 // Possible null reference return.
-        static async void ProcessJob() {
-            R? result = await Task.Run(() => {
-                if (jobs.TryDequeue(out BackdoorJob<T, R>? job)) {
-                    Shifts--;
-                    ProcessCounter++;
-                    Type t = job.paramType;
-                    Type r = job.returnType;
-                    (T, R)? item = RecoverTrueParameters<T, R>();
-                    if (item == null) { throw new Exception(); }
-                    return job.Start(item.Value.Item1);
-                } else {
-                    return default;
-                }
-            });
-            if (result != null) {
-                AddNextResult(typeof(R), result);
-            }
+        //         }
+        // #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+        //         /// <summary>
+        //         /// Adds a job to the running queue, as well as it's parameters.
+        //         /// </summary>
+        //         /// <param name="job">The job.to be run.</param>
+        //         /// <param name="parameters">The input parameters of the LockJob.</param>
+        //         /// <param name="sender">The function where the job originated from.</param>
+        //         /// <param name="timeout">How long the job should last</param>
+        //         /// <returns>An integer holding the ProcessID of this job</returns>
+        //         static int AddJob(BackdoorDelegate<T, R> job, T parameters, object? sender = null, int timeout = 1000) {
+        //             Shifts++;
+        //             Enqueue(new BackdoorJob<T, R>(jobs.Count, timeout, new BackdoorDelegate<T, R>(job), null, null, sender));
+        //             parameterData.Add(((typeof(T), typeof(R)), parameters));
+        //             return jobs.Count - 1;
+        //         }
+        // #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+        //         public static async Task<R> PassJob(BackdoorDelegate<T, R> job, T parameter, object? sender = null, int timeout = 1000) {
+        //             return await Task.Run(() => {
+        //                 AddJob(job, parameter, sender, timeout);
+        //                 R? result = default;
+        //                 do {
+        //                     result = GetMyResult<R>();
+        //                 } while (result == null);
+        //                 return result;
+        //             });
+        //         }
+        static (Type ParamType, Type ReturnType, object Job)?[] jobs;
+        static (Type t, object Data)[] Parameters;
+        static int Point;
+        static int AddJob<_T, _R>(BackdoorJob<_T, _R> job, _T parameters){
+            if(!jobs.Any()){jobs = new (Type PramType, Type ReturnType, object Job)?[20];}
+            Point++;
+            if (Point >= 20){Point = 0;}
+            lock(jobs){jobs[Point] = (typeof(_T), typeof(_R), job);}
+            return jobs.Length- 1;
+        }
+        public static void ProcessJob(ElapsedEventArgs args, object sender){
+            int cc = 0;
+            while(jobs[cc] == null){cc++;}
+            Type t = jobs[cc].Value.ParamType.GetType();
+            Type r = jobs[cc].Value.ReturnType.GetType();
+            Convert
         }
         static (Type r, object data)[] ReturnResult = new (Type r, object data)[20];
         static int Pointer;
         static void AddNextResult(Type t, object data) {
             Pointer++;
             if (Pointer >= 20) { Pointer = 0; }
-            ReturnResult[Pointer] = (t, data);
+            lock(ReturnResult){ReturnResult[Pointer] = (t, data);}
         }
         static Result? GetMyResult<Result>(int timeout = 1000) {
             CancellationTokenSource cts = new();
             cts.CancelAfter(timeout);
-            int cc = 0;
             for(int cc =0; cc< ReturnResult.Length; cc++){
                 WaitResult<Result>(cc);
             }
             return default;
         }
-        ///<summary>Watch a point in <see cref = "ReturnResult"/> until Timeout.</summary>
+        /// <summary>Watch a point in <see cref = "ReturnResult"/> until Timeout.</summary>
+        /// <typeparam name="Result">The type that should be watched for.</typeparam>
+        /// <param name="WatchIndex">The index of <see cref="ReturnResult"/> that the type should be looked for in.</param>
+        /// <param name="timeOut">How long should the function wait for, looking at the specified index of <see cref="ReturnResult"/>.</param>
         /// <returns>If the expected Result type was found then return true, if Timeout was reached return false.</returns>
         static bool WaitResult<Result>(int WatchIndex, int timeOut = 20){
             CancellationTokenSource cts = new();
             cts.CancelAfter(timeOut);
-            while(!cts.IsCancellationRequested && ReturnResult[cc].GetType() != typeof(Result)){
+            while(!cts.IsCancellationRequested && ReturnResult[WatchIndex].GetType() != typeof(Result)){
                 Task.Delay(100);
             }
+            return !cts.IsCancellationRequested && ReturnResult[WatchIndex].GetType() == typeof(Result);
         }
 #pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
-        static (t, r)? RecoverTrueParameters<t, r>() {
+        static t? RecoverTrueParameters<t, r>() {
             int iD = RecoverParameterIndex(typeof(t), typeof(r));
-            if (iD == -1) { return null; }
-            return ((t, r))parameterData[iD].data;
+            if (iD == -1) { return default(t); }
+            return (t)parameterData[iD].data;
         }
 #pragma warning restore CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
         static int RecoverParameterIndex(Type T, Type R) {
