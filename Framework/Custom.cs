@@ -463,6 +463,14 @@ static class CustomFunctions{
         }
         return array;
     }
+    public static bool AnyAt<T>(T[] array, int index){
+        try{
+            _ = array[index];
+            return true;
+        }catch(IndexOutOfRangeException){
+            return false;
+        }
+    }
 }
 [Serializable]
 class InconsistentDimensionException : Exception{

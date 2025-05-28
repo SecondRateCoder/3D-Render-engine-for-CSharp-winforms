@@ -7,7 +7,6 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using NUnit.Framework;
 
 static class ExtensionHandler{
 	static readonly string Start = "SetUp";
@@ -16,8 +15,6 @@ static class ExtensionHandler{
 	static readonly string Closing = "Closing";
 	/// <summary>This is simply for the sake of allowng the process to remember the Location of the Extension without passing more Parameters.</summary>
 	static string PathToExtension = "";
-	static string Usings = "";
-	static string Properties_Fields = "";
 	static string CodeTxt;
 	static Dictionary<string, object> JsonDeserialised;
 	static CancellationTokenSource cts = new();
@@ -211,82 +208,92 @@ static class ExtensionHandler{
 	/// <param name="mT">The type of extension function it is, selected from <see cref="MethodType"/></param>
 	/// <returns>Was the function processed successfully.</returns>
 	/// <exception cref="Exception">Did the compilation of the function fail? then call the Exception.</exception>
-	static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType mT, int Recalls = 0){
-		return await Task.Run(async () =>{
+	static async Task<ErrorQueue.SuccessState> LoadToMemory(int Priority, (MethodType mT, int Priority)[] Functions){
+		 await Task<ErrorQueue.SuccessState>.Run(() => {
 			ScriptOptions scriptOptions = ScriptOptions.Default
-				.WithReferences(typeof(MessageBox).Assembly, typeof(MessageBoxButtons).Assembly, typeof(MessageBoxIcon).Assembly, typeof(Entry).Assembly, typeof(gameObj).Assembly)
-				.WithImports("System");
-			string returnType = mT switch{
-				MethodType.Start => "void ",
-				MethodType.Update => "void ",
-				MethodType.TimedUpdate => "void ",
-				MethodType.Closing => "void ",
-				_ => "void ",
-			};
-			if (CallStack[mT].Contains(Priority) && ErrorQueue.Warn){
-				MessageBox.Show("The extension has a name that conflicts with extensions with a similar name.\nIt will be assigned a temporary name.", "ExtensionNamingConflict", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-				ClassName = $"[{CallStack.Count}]thExtension";
+ 				.WithReferences(typeof(MessageBox).Assembly, typeof(MessageBoxButtons).Assembly, typeof(ErrorQueue).Assembly/*, typeof(ExtensionInterface).Assembly*/)
+ 				.WithImports("System");
+			foreach((MethodType mT, int Priority) item in Functions){
+				if(CallStack[item.mT].A)
 			}
-			FunctionBody = Usings + "partial class " + ClassName + "{ public " + returnType + FunctionBody + "}";
-			Script<object> script = CSharpScript.Create(FunctionBody, scriptOptions);
-			Compilation compilation = script.GetCompilation();
-			using (MemoryStream ms = new()){
-				if (!compilation.Emit(ms).Success){
-					DialogResult dR;
-					if (Recalls < 10){
-						if (ErrorQueue.Warn)
-						{
-							dR = MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
-						}
-						else { dR = DialogResult.Ignore; }
-						//!(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error)
-					}else{
-						if (ErrorQueue.Warn){
-							dR = MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error);
-						}
-						else { dR = DialogResult.OK; }
-						cts.Cancel();
-					}
-					if (dR == DialogResult.Retry && Recalls < 10){
-						return await LoadToMemory(Priority, ClassName, functionName, FunctionBody, mT, Recalls + 1);
-					}else if (dR == DialogResult.Abort && Recalls < 10){
-						cts.Cancel();
-						return false;
-					}else if (dR == DialogResult.Ignore){
-						return await LoadToMemory(Priority, ClassName, functionName, FunctionBody, mT, 10);
-					}
-					else if (dR == DialogResult.OK) { return false; }
-				}
-				ms.Seek(0, SeekOrigin.Begin);
-				Assembly assembly = Assembly.Load(ms.ToArray());
-				try{
-					Type type = assembly.GetType(ClassName) ?? throw new ArgumentNullException("");
-					object instance = Activator.CreateInstance(type) ?? throw new ArgumentNullException();
-					ExtensionMethods.Add((mT, 0, type.GetMethod(functionName) ?? throw new ArgumentNullException()));
-#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-					int myPosition = ExtensionMethods.IndexOf((mT, 0, type.GetMethod(functionName)));
-#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-					bool Conflict = false;
-					try { _ = CallStack[mT][Priority]; Conflict = false; } catch (ArgumentOutOfRangeException) { Conflict = true; }
-					//If there's a Priority conflict.
-					if (Conflict){
-						DialogResult dR = !(Entry.SkipStartUpWarnings && StartUp) ? MessageBox.Show(
-							"Should all other Priorities be shifted upwards to accomodate this extension(CONTINUE)?\nShould this extension be given the last Priority allotment(TRY)?\n\t(THIS MAY AFFECT HOW THE EXTENSION INTERACTS WITH THE APPLICATION AND IT MAY CRASH!)\n\nShould the extension not be added(CANCEL)?", $"ExtensionPriorityConflictionException: There are already an extension with Priority {Priority}",
-							MessageBoxButtons.CancelTryContinue, MessageBoxIcon.Warning) : Entry.DefaultPriorityConflictBehaviour;
-						if (dR == DialogResult.Continue){
-							CallStack[mT].Insert(Priority >= CallStack[mT].Count ? CallStack[mT].Count - 1 : Priority, myPosition);
-						}
-						else if (dR == DialogResult.TryAgain) { _ = CallStack[mT].Append(myPosition); } else { return false; }
-					}
-					ms.Dispose();
-				}catch (ArgumentNullException){
-					ms.Dispose();
-					return false;
-				}
-			}
-			return true;
 		});
 	}
+// 	static async Task<bool> LoadToMemory(int Priority, string ClassName, string functionName, string FunctionBody, MethodType mT, int Recalls = 0){
+// 		return await Task.Run(async () =>{
+// 			ScriptOptions scriptOptions = ScriptOptions.Default
+// 				.WithReferences(typeof(MessageBox).Assembly, typeof(MessageBoxButtons).Assembly, typeof(MessageBoxIcon).Assembly, typeof(Entry).Assembly, typeof(gameObj).Assembly)
+// 				.WithImports("System");
+// 			string returnType = mT switch{
+// 				MethodType.Start => "void ",
+// 				MethodType.Update => "void ",
+// 				MethodType.TimedUpdate => "void ",
+// 				MethodType.Closing => "void ",
+// 				_ => "void ",
+// 			};
+// 			if (CallStack[mT].Contains(Priority) && ErrorQueue.Warn){
+// 				MessageBox.Show("The extension has a name that conflicts with extensions with a similar name.\nIt will be assigned a temporary name.", "ExtensionNamingConflict", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+// 				ClassName = $"[{CallStack.Count}]thExtension";
+// 			}
+// 			FunctionBody = Usings + "partial class " + ClassName + "{ public " + returnType + FunctionBody + "}" + (mT == MethodType.Start? Properties_Fields: "");
+// 			Script<object> script = CSharpScript.Create(FunctionBody, scriptOptions);
+// 			Compilation compilation = script.GetCompilation();
+// 			using (MemoryStream ms = new()){
+// 				if (!compilation.Emit(ms).Success){
+// 					DialogResult dR;
+// 					if (Recalls < 10){
+// 						if (ErrorQueue.Warn)
+// 						{
+// 							dR = MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
+// 						}
+// 						else { dR = DialogResult.Ignore; }
+// 						//!(Entry.SkipStartUpWarnings && StartUp)? MessageBox.Show("Compilation of the Extension at:" + PathToExtension + $" failed.\nThe Extension has been re-compiled {Recalls} times", "Extenson failed to load.", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error)
+// 					}else{
+// 						if (ErrorQueue.Warn){
+// 							dR = MessageBox.Show("The extension at:" + PathToExtension + "failed to be compiled\nThere have been too many re-tries to compile the Extension\nCompilation has been cancelled.", "CompilationTimeoutException", MessageBoxButtons.OK, MessageBoxIcon.Error);
+// 						}
+// 						else { dR = DialogResult.OK; }
+// 						cts.Cancel();
+// 					}
+// 					if (dR == DialogResult.Retry && Recalls < 10){
+// 						return await LoadToMemory(Priority, ClassName, functionName, FunctionBody, mT, Recalls + 1);
+// 					}else if (dR == DialogResult.Abort && Recalls < 10){
+// 						cts.Cancel();
+// 						return false;
+// 					}else if (dR == DialogResult.Ignore){
+// 						return await LoadToMemory(Priority, ClassName, functionName, FunctionBody, mT, 10);
+// 					}
+// 					else if (dR == DialogResult.OK) { return false; }
+// 				}
+// 				ms.Seek(0, SeekOrigin.Begin);
+// 				Assembly assembly = Assembly.Load(ms.ToArray());
+// 				try{
+// 					Type type = assembly.GetType(ClassName) ?? throw new ArgumentNullException("");
+// 					object instance = Activator.CreateInstance(type) ?? throw new ArgumentNullException();
+// 					ExtensionMethods.Add((mT, 0, type.GetMethod(functionName) ?? throw new ArgumentNullException()));
+// #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+// 					int myPosition = ExtensionMethods.IndexOf((mT, 0, type.GetMethod(functionName)));
+// #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+// 					bool Conflict = false;
+// 					try { _ = CallStack[mT][Priority]; Conflict = false; } catch (ArgumentOutOfRangeException) { Conflict = true; }
+// 					//If there's a Priority conflict.
+// 					if (Conflict){
+// 						DialogResult dR = !(Entry.SkipStartUpWarnings && StartUp) ? MessageBox.Show(
+// 							"Should all other Priorities be shifted upwards to accomodate this extension(CONTINUE)?\nShould this extension be given the last Priority allotment(TRY)?\n\t(THIS MAY AFFECT HOW THE EXTENSION INTERACTS WITH THE APPLICATION AND IT MAY CRASH!)\n\nShould the extension not be added(CANCEL)?", $"ExtensionPriorityConflictionException: There are already an extension with Priority {Priority}",
+// 							MessageBoxButtons.CancelTryContinue, MessageBoxIcon.Warning) : Entry.DefaultPriorityConflictBehaviour;
+// 						if (dR == DialogResult.Continue){
+// 							CallStack[mT].Insert(Priority >= CallStack[mT].Count ? CallStack[mT].Count - 1 : Priority, myPosition);
+// 						}
+// 						else if (dR == DialogResult.TryAgain) { _ = CallStack[mT].Append(myPosition); } else { return false; }
+// 					}
+// 					ms.Dispose();
+// 				}catch (ArgumentNullException){
+// 					ms.Dispose();
+// 					return false;
+// 				}
+// 			}
+// 			return true;
+// 		});
+// 	}
 	/// <summary>Returns the Method body of a function from a Json.</summary>
 	/// <param name="functionName">The name of the function.</param>
 	/// <returns>A string containing the function body</returns>
@@ -398,10 +405,14 @@ static class ExtensionHandler{
 }
 
 	static class ErrorQueue{
-		enum SuccessState{
+		public enum SuccessState{
+			/// <summary>There were no problems with the execution of the calling function.</summary>
 			RawSuccess = 0,
+			/// <summary>Not all of the calling function's execution was problematic but not all of it successful.</summary>
 			SoftSuccess = 1,
+			/// <summary>No part of the calling function executed properly.</summary>
 			RawFail = 2,
+			/// <summary>Calling function's execution was problematic enough to call an error</summary>
 			WarnableState = -1
 		}
 		public static bool Warn { get { return !(Entry.SkipStartUpWarnings && StartUp); } }
@@ -419,32 +430,32 @@ static class ExtensionHandler{
 		}
 	}
 }
-namespace ExtensionInterface{
-	public enum ApplicationServices{
-		InputService = 0,
-		EventService = 1,
-		GrapchicsService = 2,
-		AllServices = 3
-	}
-	static class Services{
-		static Dictionary<string, Dictionary<Type, object>> DataStoreService;
-		/// <summary>Give the Extension more memory from <see cref="Services.DataStoreService"/>, if Memory is available to store it.</summary>
-		/// <param name="t">The calling Type</param>
-		/// <param name="DataSize">The size of data that should be given.</param>
-		/// <returns></returns>
-		/// <exception cref="ArgumentNullException"></exception>
-		public static bool Poll(Type t, long DataSize){
-			if((Entry.TotalMemUsage - Entry.PeakMemUsage) < DataSize){
-				return false;
-			}else{
-				bool Exists = DataStoreService.TryGetValue(t.FullName ?? throw new ArgumentNullException(), out Dictionary<Type, object>? Store);
-				if(!Exists | Store == null){return false;}
-				if(Store == null){Store = [];}
-				for(int cc =0; cc < DataSize; cc++){
-					Store.Add(typeof(bool), 0);
-				}
-				return true;
-			}
-		}
-	}
-}
+// namespace ExtensionInterface{
+// 	public enum ApplicationServices{
+// 		InputService = 0,
+// 		EventService = 1,
+// 		GrapchicsService = 2,
+// 		AllServices = 3
+// 	}
+// 	static class Services{
+// 		static Dictionary<string, Dictionary<Type, object>> DataStoreService;
+// 		/// <summary>Give the Extension more memory from <see cref="Services.DataStoreService"/>, if Memory is available to store it.</summary>
+// 		/// <param name="t">The calling Type</param>
+// 		/// <param name="DataSize">The size of data that should be given.</param>
+// 		/// <returns>Was there space to be acquired.</returns>
+// 		/// <exception cref="ArgumentNullException"></exception>
+// 		public static bool Poll(Type t, long DataSize){
+// 			if((Entry.TotalMemUsage - Entry.PeakMemUsage) < DataSize){
+// 				return false;
+// 			}else{
+// 				bool Exists = DataStoreService.TryGetValue(t.FullName ?? throw new ArgumentNullException(), out Dictionary<Type, object>? Store);
+// 				if(!Exists | Store == null){return false;}
+// 				if(Store == null){Store = [];}
+// 				for(int cc =0; cc < DataSize; cc++){
+// 					Store.Add(typeof(bool), 0);
+// 				}
+// 				return true;
+// 			}
+// 		}
+// 	}
+// }
