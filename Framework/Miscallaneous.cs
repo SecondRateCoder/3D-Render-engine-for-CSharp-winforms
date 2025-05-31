@@ -677,7 +677,7 @@ class BackdoorJob<T, R> {
     CancellationTokenSource cts;
 
 
-    BackdoorJob(int ID, int Timeout, BackdoorDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null) {
+    BackdoorJob(int Timeout, BackdoorDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null) {
         this.paramType = typeof(T);
         this.returnType = typeof(R);
         if(OnFinish == null){
@@ -692,7 +692,6 @@ class BackdoorJob<T, R> {
             this.OnTimeExceed = OnTimeout;
             this.OnTimeExceed += TrueTimeout;
         }
-        this._ID = ID;
         this.Job = job;
         this.Timeout = Timeout;
         this.cts = new CancellationTokenSource();
@@ -742,27 +741,61 @@ class BackdoorJob<T, R> {
         }
         return false;
     }
-
+    void ChandeID(int ID){this._ID = ID;}
 
     public static bool operator ==(BackdoorJob<T, R> l1, BackdoorJob<T, R> l2) { return l1.Equals(l2); }
     public static bool operator !=(BackdoorJob<T, R> l1, BackdoorJob<T, R> l2) { return !(l1 == l2); }
     public override int GetHashCode() { return HashCode.Combine(_ID); }
 
     /// <summary>
-    /// A static class that controls how BackdoorJobs are handled, it does this through a <see cref="System.Collections.Concurrent"/> that stores the jobs and 
+    /// A static class that controls how BackdoorJobs are handled, it does this through a <see cref="System.Collections.IEnumerable"/> that stores the jobs and 
     /// a <see cref="System.Collections.IEnumerable"/> that stores job parametwers locally.
     /// </summary>
     public static class BackdoorJobHandler{
-        static enum ReturnProtocol{
-            StoreToArray = 0,
-            DirectReturn = 1
-        }
-        static (Type ParamType, Type ReturnType, object Job, int jobID)?[] jobs;
-        static (Type t, object Data)[] Parameters;
-        static int Point;
-        ///<summary>Store a job into</summary>
-        public static int QueueJob()
+        static enum JobProtocol{
+            ///<summary>The job will be cached with it's parameters (and return value when it has been run), allowing it to be run at anytime.</summary>
+            /// <remarks>For jobs that are run frequently.</remarks>
+            FullCache = 0,
+            ///<summary>The job will be cached with it's parameters, but not the return value.</summary>
+            /// <remarks>This is for jobs that do not return a value but require parameters, such as those that only change states or values according to what is passed to them.</remarks>
+            CacheParam = 1,
+            ///<summary>The job will be cached with it's return value, but not the parameters.</summary>
+            /// <remarks>This is for jobs that return a value, but do not require parameters.</remarks>
+            CacheReturn = 2,
+            ///<summary>The job will not be cached, it will be run immediately and then will be erased, as well as it's return value.</summary>
+            /// <remarks>This is for jobs that do not require caching, such as those that only change states or values.</remarks>
+            RunErase = 3,
+            ///<summary>The job will not be cached, it will be run immediately and then will be erased, but the return value will be returned.</summary>
+            /// <remarks>This is for jobs that do not require caching, but do return a value.</remarks>
+            InstantRunReturn = 4,
 
+        }
+        static List<(JobPotocol jP, Type ParamType, Type ReturnType, object Job)>? jobs;
+        static List<(Type t, object Data)> Parameters;
+        ///<summary>Store a job in <see cref="jobs"/>, optionally including it's parameters and how the return type should be regarded, maybe the process sho.</summary>
+        public static _R? QueueJob<_T, _R>(BackdoorJob<_T, _R> job, JobPotocol jP, _T? params)where _R : Nullable{
+            switch(jP){
+                case JobProtocol.FullCache | JobProtocol.CacheParam | JobProtocol.CacheReturn:
+                    if(params == null){
+                        throw new ArgumentNullException(nameof(params), $"Parameters cannot be null for {Enum.GetName(jP)} jobs.");
+                    }else{
+                        jobs.Add(jP, _T, _R, job);
+                        Parameters.Add(params);
+                    }
+                    return null;
+                case RunErase:
+                    _ = job.Start(params);
+                    return null;
+                case InstantRunReturn:
+                    return job._Start(params);
+            }
+        }
+        int Pointer= 0;
+        public static void ProcessJob(ElapsedEventArgs args, object sender){
+            if (jobs == null || jobs.Count == 0) { return default; }
+            if (Pointer >= jobs.Count) { Pointer = 0; }
+            
+        }
 
 
 
