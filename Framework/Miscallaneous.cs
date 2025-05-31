@@ -617,14 +617,13 @@ public class JsonFormatexception : Exception{
     }
 }
 
-
 /// <summary>
 /// Represents a job that runs within a lock to prevent deadlocks.
 /// This works by running the job and then calling the OnFinish delegate to complete the job.
 /// However if the job takes too long, the OnTimeout delegate is called.
 /// </summary>
 /// 
-class BackdoorJob<T, R> {
+class BackdoorJob<T, R>{
     Type paramType { get; set; }
     Type returnType { get; set; }
     /// <summary>
@@ -699,15 +698,11 @@ class BackdoorJob<T, R> {
         this.sender = sender ?? this.GetType();
         this.cts.Token.Register(() => { this.OnTimeExceed(this.sender ?? new object()); });
     }
-    R? Start(T param) {
-        R? result = Task.Run(() => this._Start(param)).Result;
-        this.OnFinish();
-        return result;
-    }
     private R? _Start(T param) {
         this.running = true;
         cts.CancelAfter(Timeout * 1000);
         R? result = this.Job(param);
+        this.OnFinish();
         return result;
     }
     void TrueFinish() {
@@ -771,6 +766,7 @@ class BackdoorJob<T, R> {
 
         }
         static List<(JobPotocol jP, Type ParamType, Type ReturnType, object Job)>? jobs;
+        static List<(JobProtocol jP, object sender, int timeout, int ID, MethodInfo[] methods)> jobs_;
         static List<(Type t, object Data)> Parameters;
         ///<summary>Store a job in <see cref="jobs"/>, optionally including it's parameters and how the return type should be regarded, maybe the process sho.</summary>
         public static _R? QueueJob<_T, _R>(BackdoorJob<_T, _R> job, JobPotocol jP, _T? params)where _R : Nullable{
