@@ -650,68 +650,10 @@ class BackdoorJob<T, R> {
     /// A static class that controls how BackdoorJobs are handled, it does this through a <see cref="System.Collections.Concurrent"/> that stores the jobs and 
     /// a <see cref="System.Collections.IEnumerable"/> that stores job parametwers locally.
     /// </summary>
-    public static class BackdoorJobHandler {
-        //         /// <summary>
-        //         /// An offset that is decrimented and incremented with the Queuing and Dequeuing of the handler list.
-        //         /// </summary>
-        //         /// <remarks>If applying this number to any retained ProcessID results in a negative number, 
-        //         /// it means the process has probably already been completed and a function should look in <see cref="ReturnResult"/> for more data.</remarks>
-        //         public static int Shifts;
-        //         /// <summary>
-        //         /// The queue of jobs to be processed.
-        //         /// </summary>
-        //         /// <remarks>Thread safe.</remarks>
-        //         static readonly ConcurrentQueue<(Type t, Type r, object BackdoorJob)> jobs = new();
-        //         static List<((Type paramType, Type returnType) Types, object data)> parameterData = [];
-        //         public static void Enqueue<_T, _R>(BackdoorJob<_T, _R> job){
-        //             jobs.Enqueue((typeof(_T), typeof(_R), job));
-        //         }
-        //         public static void ProcessJob(ElapsedEventArgs args, object sender){
-
-        //         }
-        // #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-        //         /// <summary>
-        //         /// Adds a job to the running queue, as well as it's parameters.
-        //         /// </summary>
-        //         /// <param name="job">The job.to be run.</param>
-        //         /// <param name="parameters">The input parameters of the LockJob.</param>
-        //         /// <param name="sender">The function where the job originated from.</param>
-        //         /// <param name="timeout">How long the job should last</param>
-        //         /// <returns>An integer holding the ProcessID of this job</returns>
-        //         static int AddJob(BackdoorDelegate<T, R> job, T parameters, object? sender = null, int timeout = 1000) {
-        //             Shifts++;
-        //             Enqueue(new BackdoorJob<T, R>(jobs.Count, timeout, new BackdoorDelegate<T, R>(job), null, null, sender));
-        //             parameterData.Add(((typeof(T), typeof(R)), parameters));
-        //             return jobs.Count - 1;
-        //         }
-        // #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-        //         public static async Task<R> PassJob(BackdoorDelegate<T, R> job, T parameter, object? sender = null, int timeout = 1000) {
-        //             return await Task.Run(() => {
-        //                 AddJob(job, parameter, sender, timeout);
-        //                 R? result = default;
-        //                 do {
-        //                     result = GetMyResult<R>();
-        //                 } while (result == null);
-        //                 return result;
-        //             });
-        //         }
-        static (Type ParamType, Type ReturnType, object Job)?[] jobs;
+    public static class BackdoorJobHandler<_T, _R>{
+        static (Type ParamType, Type ReturnType, object Job, int jobID)?[] jobs;
         static (Type t, object Data)[] Parameters;
         static int Point;
-        static int AddJob<_T, _R>(BackdoorJob<_T, _R> job, _T parameters){
-            if(!jobs.Any()){jobs = new (Type PramType, Type ReturnType, object Job)?[20];}
-            Point++;
-            if (Point >= 20){Point = 0;}
-            lock(jobs){jobs[Point] = (typeof(_T), typeof(_R), job);}
-            return jobs.Length- 1;
-        }
-        public static void ProcessJob(ElapsedEventArgs args, object sender){
-            int cc = 0;
-            while(jobs[cc] == null){cc++;}
-            Type t = jobs[cc].Value.ParamType.GetType();
-            Type r = jobs[cc].Value.ReturnType.GetType();
-            Convert
-        }
         static (Type r, object data)[] ReturnResult = new (Type r, object data)[20];
         static int Pointer;
         static void AddNextResult(Type t, object data) {
