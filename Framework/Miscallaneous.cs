@@ -752,10 +752,20 @@ class BackdoorJob<T, R> {
     /// A static class that controls how BackdoorJobs are handled, it does this through a <see cref="System.Collections.Concurrent"/> that stores the jobs and 
     /// a <see cref="System.Collections.IEnumerable"/> that stores job parametwers locally.
     /// </summary>
-    public static class BackdoorJobHandler<_T, _R>{
+    public static class BackdoorJobHandler{
+        static enum ReturnProtocol{
+            StoreToArray = 0,
+            DirectReturn = 1
+        }
         static (Type ParamType, Type ReturnType, object Job, int jobID)?[] jobs;
         static (Type t, object Data)[] Parameters;
         static int Point;
+        ///<summary>Store a job into</summary>
+        public static int QueueJob()
+
+
+
+
         static (Type r, object data)[] ReturnResult = new (Type r, object data)[20];
         static int Pointer;
         static void AddNextResult(Type t, object data) {
@@ -763,7 +773,7 @@ class BackdoorJob<T, R> {
             if (Pointer >= 20) { Pointer = 0; }
             lock(ReturnResult){ReturnResult[Pointer] = (t, data);}
         }
-        static Result? GetMyResult<Result>(int timeout = 1000) {
+        static Result? GetMyResult<Result>(int timeout = 1000){
             CancellationTokenSource cts = new();
             cts.CancelAfter(timeout);
             for(int cc =0; cc< ReturnResult.Length; cc++){
