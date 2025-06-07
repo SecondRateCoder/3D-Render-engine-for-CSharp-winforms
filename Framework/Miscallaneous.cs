@@ -575,6 +575,18 @@ static class CustomFunctions{
             return false;
         }
     }
+    public static string IsolateWord(string str, int StartFrom = 0){
+        StringBuilder sB = new();
+        for(int cc =StartFrom; cc < str.Length;cc++){
+            if(str[cc] != ' '){
+                while(str[cc] != ' '){
+                    sB.Append(str[cc]);
+                    cc++;
+                }
+                return sB.ToString();
+            }
+        }
+    }
 }
 [Serializable]
 class InconsistentDimensionException : Exception{
@@ -622,7 +634,7 @@ public class JsonFormatexception : Exception{
 /// This works by running the job and then calling the OnFinish delegate to complete the job.
 /// However if the job takes too long, the OnTimeout delegate is called.
 /// </summary>
-/// 
+/// <remarks>THIS CLASS MAY BE REWORKED.</remarks>
 class BackdoorJob<T, R>{
     Type paramType { get; set; }
     Type returnType { get; set; }
@@ -729,7 +741,6 @@ class BackdoorJob<T, R>{
         GC.SuppressFinalize(this);
     }
 
-
     public override bool Equals([NotNullWhen(true)] object? obj) {
         if (obj is BackdoorJob<T, R> other) {
             return _ID == other._ID;
@@ -766,6 +777,15 @@ class BackdoorJob<T, R>{
 
         }
         static List<(JobPotocol jP, Type ParamType, Type ReturnType, object Job)>? jobs;
+        ///<summary>
+        /// Stores a dismantled BackDoorJob.
+        /// Stors it with the relevant info needed to regenerate it.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="jobs_"/>.methods[0] = _Start,
+        /// <see cref="jobs_"/>.methods[0] = OnFinish,
+        /// <see cref="jobs_"/>.methods[0] = ,
+        /// </remarks>
         static List<(JobProtocol jP, object sender, int timeout, int ID, MethodInfo[] methods)> jobs_;
         static List<(Type t, object Data)> Parameters;
         ///<summary>Store a job in <see cref="jobs"/>, optionally including it's parameters and how the return type should be regarded, maybe the process sho.</summary>
@@ -904,22 +924,32 @@ public class EncryptionKey{
     public EncryptionKey(int[] key, byte[] scrambleCode){
         if(scrambleCode.Length % key.Length != 0){throw new ArgumentOutOfRangeException(nameof(scrambleCode), "The scramble array must be divisible by the key length.");}
         int ScramblePerIncrement = scrambleCode.Length/key.Length;
-        int i_ = 1;
         int buffer =0;
-        for(int i = 0; i < key.Length; i++, i_+= ScramblePerIncrement){
+        int i = 0;
+        for(int i_ = 1; i_ < key.Length;i++, i_+= ScramblePerIncrement){
             for (int cc = i_; cc < (ScramblePerIncrement + i_ > scrambleCode.Length? scrambleCode.Length: ScramblePerIncrement + i_); cc++){
                 if (scrambleCode[cc] > scrambleCode[0]){
                     //Bit Shift Right.
-                    buffer -= (key[i] - buffer) >> Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
+                    buffer += (key[i] - buffer) >> Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
                 }else{
                     //Bit Shift Left.
-                    buffer += (key[i] + buffer) << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
+                    buffer -= (key[i] + buffer) << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
                 }
             }
+            i++;
         }
         this.ScramblePerDigit = ScramblePerIncrement;
         this.scrambleCode = scrambleCode;
         this.key_ = buffer;
+    }
+    public static int ScrambleValue(int value, byte scramble){
+        // XOR then rotate left by scramble bits
+        return (value ^ scramble) << (scramble % 32) | (value ^ scramble) >> (32 - (scramble % 32));
+    }
+    public static int DescrambleValue(int encoded, byte scramble){
+        // Reverse the rotation, then XOR
+        int rotated = (encoded >> (scramble % 32)) | (encoded << (32 - (scramble % 32)));
+        return rotated ^ scramble;
     }
     /// <summary>Creates an encoded key from a key object.</summary>
     /// <param name="key">The key to have it's data decoded.</param>
@@ -948,10 +978,10 @@ public class EncryptionKey{
                     // key[i] = ??
                     // (key << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue)) + key -= key[i]
                     // key[i] += (key << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue)) + key
-                    TrueKey[i] += (key << Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) + key;
+                    TrueKey[i] -= (key << Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) + key;
                 }else{
                     // Force Bit Shift Left
-                    TrueKey[i] -= (key >> Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) - key;
+                    TrueKey[i] += (key >> Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) - key;
                 }
             }
         }
