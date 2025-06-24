@@ -55,7 +55,7 @@ class TextureDatabase : IEnumerable{
         }
         return BackdoorJob<(int Start, float UVArea), bool>.
             BackdoorJobHandler.
-                PassJob(function, (Start, UVArea), nameof(TextureDatabase), 1000).Result;
+                QueueJob<(int, float), bool>((object)function, (Start, UVArea), 1000);
     }
     public bool AttachSectionBounds((int a, int b) item){
         bool function((int a, int b) item_){
@@ -67,7 +67,7 @@ class TextureDatabase : IEnumerable{
             }
         }
         return BackdoorJob<(int a, int b), bool>.
-            BackdoorJobHandler.PassJob(function, item).Result;
+            BackdoorJobHandler.QueueJob<(int, int), bool>((object)function, item, BackdoorJob<(int a, int b), bool>.BackdoorJobHandler.JobProtocol.InstantRunReturn);
     }
     /// <summary>
     /// Re-define the bounds of a singular Section's TextureData within this TextureDatabase.
@@ -88,7 +88,7 @@ class TextureDatabase : IEnumerable{
         }
         return BackdoorJob<(int Start, float UVArea), bool>.
             BackdoorJobHandler.
-                PassJob((BackdoorJob<(int Start, float UVArea), bool>.BackdoorDelegate<(int, float), bool>)function, (Start, UVArea), nameof(TextureDatabase), 1000).Result;
+                QueueJob<(int, float), bool>(function, (Start, UVArea), 1000);
 
     }
     public TextureDatabase(){this.td = [];}

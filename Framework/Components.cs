@@ -169,8 +169,10 @@ class Texturer : Rndrcomponent{
                 return result;
             }
             CancellationTokenSource cts = new(100000);
+#pragma warning disable CS8603
             return BackdoorJob<(List<PointF[]>, Mesh, bool), TextureDatabase>.
-                BackdoorJobHandler.PassJob(function, (UVpoints, m, Append), nameof(Texturer)).Result;
+                BackdoorJobHandler.QueueJob<(List<PointF[]> points, Mesh m, bool Append), TextureDatabase>((object)function, (UVpoints, m, Append));
+#pragma warning restore CS8603
         }
     }
     public static float Max(float[] numbers){

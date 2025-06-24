@@ -55,7 +55,7 @@ struct Polygon{
                 }
             }
 
-            return BackdoorJob<bool, float>.BackdoorJobHandler.PassJob(function, true, nameof(Polygon), 1000).Result; 
+            return BackdoorJob<bool, float>.BackdoorJobHandler.QueueJob<bool, float>((object)function, true, 100); 
         }
     }
     public void UpdateTexture(PointF[] uv){uPoints = [uv[0], uv[1], uv[2]];}

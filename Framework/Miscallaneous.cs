@@ -780,7 +780,10 @@ class BackdoorJob<T, R>{
 
         }
         static List<(JobProtocol jP, Type ParamType, Type ReturnType, object Job)>? jobs;
-		public static _R? QueueJob<_T, _R>(object job, JobProtocol jP, _T? Params, int Timeout_InMilli = 1000, params Action?[]? Extras) {
+        public static _R? QueueJob<_T, _R>(object job, _T? Params, int Timeout_InMilli = 1000, params Action?[]? Extras){
+            return QueueJob<_T, _R>(job, Params, JobProtocol.InstantRunReturn, Timeout_InMilli);
+        }
+		public static _R? QueueJob<_T, _R>(object job, _T? Params, JobProtocol jP, int Timeout_InMilli = 1000, params Action?[]? Extras) {
 			return QueueJob(new BackdoorJob<_T, _R>(Timeout_InMilli, (BackdoorJob<_T, _R>.BackdoorDelegate<_T, _R>)job, null, null, Extras), jP, Params);
 		}
         ///<summary>Store a job in <see cref="jobs"/>, optionally including it's parameters and how the return type should be regarded, maybe the process sho.</summary>
