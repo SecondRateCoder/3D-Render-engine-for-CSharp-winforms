@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "qZ8sAIA4I8A=",
+  "dgSpecHash": "4qfmnYyBHU8=",
   "success": true,
   "projectFilePath": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
   "expectedPackageFiles": [
@@ -101,8 +101,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
-      "warningLevel": 1,
       "message": "Package 'NUnit 2.5.7.10213' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0-windows7.0'. This package may not be fully compatible with your project.",
+      "projectPath": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
+      "warningLevel": 1,
+      "filePath": "C:\\Users\\olusa\\OneDrive\\Documents\\GitHub\\3D-Render-engine-for-CSharp-winforms\\MapGameWinforms.csproj",
       "libraryId": "NUnit",
       "targetGraphs": [
         "net8.0-windows7.0"

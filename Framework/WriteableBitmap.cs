@@ -64,7 +64,7 @@ class WriteableBitmap{
         }
 
         _ = BackdoorJob<(byte a, byte r, byte g, byte b, float x, float y), bool>.
-            BackdoorJobHandler.PassJob(function, (a, r, g, b, x, y), nameof(WriteableBitmap), 1000);
+            BackdoorJobHandler.QueueJob<(byte, byte, byte, byte, float, float), bool>(function, BackdoorJob<(byte a, byte r, byte g, byte b, float x, float y), bool>.BackdoorJobHandler.JobProtocol.InstantRunReturn, (a, r, g, b, x, y), 1000, null);
         /*
         Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));
             BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);

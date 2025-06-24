@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text;
 using System.Timers;
+using Accessibility;
 using SharpDX;
 
 
@@ -586,6 +588,7 @@ static class CustomFunctions{
                 return sB.ToString();
             }
         }
+        return "";
     }
 }
 [Serializable]
@@ -673,7 +676,7 @@ class BackdoorJob<T, R>{
     /// <summary>
     /// The job that is being run.
     /// </summary>
-	BackdoorDelegate<T, R> Job;
+	BackdoorDelegate<T?, R> Job;
     /// <summary>
     /// The delegate run when the job is completed.
     /// </summary>
@@ -688,19 +691,19 @@ class BackdoorJob<T, R>{
     CancellationTokenSource cts;
 
 
-    BackdoorJob(int Timeout, BackdoorDelegate<T, R> job, Action? OnFinish = null, OnTimeout? @OnTimeout = null, object? sender = null) {
+    BackdoorJob(int Timeout, BackdoorDelegate<T, R> job, OnTimeout? ontimeout, object? sender = null, params Action?[]? Params) {
         this.paramType = typeof(T);
         this.returnType = typeof(R);
-        if(OnFinish == null){
+        if((Params.Length > 1 || Params == null? Params[0]: null) == null){
             this.OnFinish = TrueFinish;
         }else{
-            this.OnFinish = OnFinish;
+            this.OnFinish = Params[0];
             this.OnFinish += TrueFinish;
         }
-        if (OnTimeout == null){
+        if (ontimeout == null){
             this.OnTimeExceed = TrueTimeout;
         }else{
-            this.OnTimeExceed = OnTimeout;
+            this.OnTimeExceed = ontimeout;
             this.OnTimeExceed += TrueTimeout;
         }
         this.Job = job;
@@ -710,7 +713,7 @@ class BackdoorJob<T, R>{
         this.sender = sender ?? this.GetType();
         this.cts.Token.Register(() => { this.OnTimeExceed(this.sender ?? new object()); });
     }
-    private R? _Start(T param) {
+    private R? _Start(T? param) {
         this.running = true;
         cts.CancelAfter(Timeout * 1000);
         R? result = this.Job(param);
@@ -757,8 +760,8 @@ class BackdoorJob<T, R>{
     /// A static class that controls how BackdoorJobs are handled, it does this through a <see cref="System.Collections.IEnumerable"/> that stores the jobs and 
     /// a <see cref="System.Collections.IEnumerable"/> that stores job parametwers locally.
     /// </summary>
-    public static class BackdoorJobHandler{
-        static enum JobProtocol{
+    public static class BackdoorJobHandler {
+        public enum JobProtocol {
             ///<summary>The job will be cached with it's parameters (and return value when it has been run), allowing it to be run at anytime.</summary>
             /// <remarks>For jobs that are run frequently.</remarks>
             FullCache = 0,
@@ -768,65 +771,73 @@ class BackdoorJob<T, R>{
             ///<summary>The job will be cached with it's return value, but not the parameters.</summary>
             /// <remarks>This is for jobs that return a value, but do not require parameters.</remarks>
             CacheReturn = 2,
-            ///<summary>The job will not be cached, it will be run immediately and then will be erased, as well as it's return value.</summary>
-            /// <remarks>This is for jobs that do not require caching, such as those that only change states or values.</remarks>
-            RunErase = 3,
             ///<summary>The job will not be cached, it will be run immediately and then will be erased, but the return value will be returned.</summary>
             /// <remarks>This is for jobs that do not require caching, but do return a value.</remarks>
             InstantRunReturn = 4,
+            ///<summary>The job will not be cached, it will be run immediately and then will be erased, as well as it's return value.</summary>
+            /// <remarks>This is for jobs that do not require caching, such as those that only change states or values.</remarks>
+            RunErase = 5,
 
         }
-        static List<(JobPotocol jP, Type ParamType, Type ReturnType, object Job)>? jobs;
-        ///<summary>
-        /// Stores a dismantled BackDoorJob.
-        /// Stors it with the relevant info needed to regenerate it.
-        /// </summary>
-        /// <remarks>
-        /// <see cref="jobs_"/>.methods[0] = _Start,
-        /// <see cref="jobs_"/>.methods[0] = OnFinish,
-        /// <see cref="jobs_"/>.methods[0] = ,
-        /// </remarks>
-        static List<(JobProtocol jP, object sender, int timeout, int ID, MethodInfo[] methods)> jobs_;
-        static List<(Type t, object Data)> Parameters;
+        static List<(JobProtocol jP, Type ParamType, Type ReturnType, object Job)>? jobs;
+		public static _R? QueueJob<_T, _R>(object job, JobProtocol jP, _T? Params, int Timeout_InMilli = 1000, params Action?[]? Extras) {
+			return QueueJob(new BackdoorJob<_T, _R>(Timeout_InMilli, (BackdoorJob<_T, _R>.BackdoorDelegate<_T, _R>)job, null, null, Extras), jP, Params);
+		}
         ///<summary>Store a job in <see cref="jobs"/>, optionally including it's parameters and how the return type should be regarded, maybe the process sho.</summary>
-        public static _R? QueueJob<_T, _R>(BackdoorJob<_T, _R> job, JobPotocol jP, _T? params)where _R : Nullable{
-            switch(jP){
+        public static _R? QueueJob<_T, _R>(BackdoorJob<_T, _R> job, JobProtocol jP, _T? Params){
+            switch (jP){
                 case JobProtocol.FullCache | JobProtocol.CacheParam | JobProtocol.CacheReturn:
-                    if(params == null){
-                        throw new ArgumentNullException(nameof(params), $"Parameters cannot be null for {Enum.GetName(jP)} jobs.");
-                    }else{
-                        jobs.Add(jP, _T, _R, job);
-                        Parameters.Add(params);
+                    if (Params == null) {
+                        throw new ArgumentNullException(nameof(Params), $"Parameters cannot be null for {Enum.GetName(jP)} jobs.");
+                    } else {
+                        jPointer++;
+                        if (jobs == null || jobs.Count == 0) { return default; }
+                        if (jPointer >= jobs.Count) { jPointer = 0; }
+                        jobs[jPointer] = (jP, typeof(_T), typeof(_R), job);
+                        AddParam<_T>(Params);
                     }
-                    return null;
-                case RunErase:
-                    _ = job.Start(params);
-                    return null;
-                case InstantRunReturn:
-                    return job._Start(params);
+                    return default;
+
+                case JobProtocol.RunErase:
+                    _ = job._Start(Params);
+                    return default;
+
+                case JobProtocol.InstantRunReturn:
+                    return job._Start(Params);
+                    
+                default:
+                    return default;
             }
         }
-        int Pointer= 0;
-        public static void ProcessJob(ElapsedEventArgs args, object sender){
-            if (jobs == null || jobs.Count == 0) { return default; }
-            if (Pointer >= jobs.Count) { Pointer = 0; }
-            
+        static int jPointer = 0;
+        public static object? ProcessJob(ElapsedEventArgs args, object sender) {
+            jPointer++;
+            if (jobs == null || jobs.Count == 0) { return null; }
+            if (jPointer >= jobs.Count) { jPointer = 0; }
+            Type _t = jobs[jPointer].ParamType.GetType();
+            Type _r = jobs[jPointer].ReturnType.GetType();
+            return ProcessJob_<_t, _r>(jobs[jPointer].Job);
         }
-
+        static _R? ProcessJob_<_T, _R>(object Job) {
+            BackdoorJob<_T, _R> Job_ = (BackdoorJob<_T, _R>)Job;
+            return Job_._Start(RecoverTrueParameters<_T>());
+        }
 
 
         static (Type r, object data)[] ReturnResult = new (Type r, object data)[20];
-        static int Pointer;
+        static int rPointer;
         static void AddNextResult(Type t, object data) {
-            Pointer++;
-            if (Pointer >= 20) { Pointer = 0; }
-            lock(ReturnResult){ReturnResult[Pointer] = (t, data);}
+            rPointer++;
+            if (rPointer >= 20) { rPointer = 0; }
+            lock(ReturnResult){ReturnResult[rPointer] = (t, data);}
         }
         static Result? GetMyResult<Result>(int timeout = 1000){
             CancellationTokenSource cts = new();
             cts.CancelAfter(timeout);
             for(int cc =0; cc< ReturnResult.Length; cc++){
-                WaitResult<Result>(cc);
+                if (WaitResult<Result>(cc) == true){
+                    return (Result)ReturnResult[cc].data;
+                }
             }
             return default;
         }
@@ -843,95 +854,105 @@ class BackdoorJob<T, R>{
             }
             return !cts.IsCancellationRequested && ReturnResult[WatchIndex].GetType() == typeof(Result);
         }
+
+
+
+        static (Type t, object data)[] parameterData = new (Type t, object data)[20];
 #pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
-        static t? RecoverTrueParameters<t, r>() {
-            int iD = RecoverParameterIndex(typeof(t), typeof(r));
-            if (iD == -1) { return default(t); }
-            return (t)parameterData[iD].data;
+        static _t? RecoverTrueParameters<_t>() {
+            int iD = RecoverParameterIndex(typeof(_t));
+            if (iD == -1) { return default(_t); }
+            return (_t)parameterData[iD].data;
         }
 #pragma warning restore CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
-        static int RecoverParameterIndex(Type T, Type R) {
+        static int RecoverParameterIndex(Type T){
             int cc = 0;
-            foreach (((Type paramType, Type returnType) Types, object data) item in parameterData) {
-                if (item.Types.paramType == T && item.Types.returnType == R) { return cc; }
+            foreach((Type T, object data) item in parameterData){
+                if (item.T == T) { return cc; }
                 Task.Delay(100);
                 cc++;
             }
             return -1;
         }
+        static int pPointer;
+        static void AddParam<_T>(object data){
+            if(pPointer > 20){pPointer = 0;}
+            parameterData[pPointer] = (typeof(_T), data);
+        }
     }
 }
 
-public class EncryptionKey{
+
+public class EncryptionKey {
     public static EncryptionKey Empty = new();
-    static EncryptionKey(){
+    static EncryptionKey() {
         _masterKey = new EncryptionKey(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
     }
-/// <summary>The master key for this application.</summary>
-    public static EncryptionKey masterKey{get{
-        if(_masterKey == null){
-            _masterKey = new EncryptionKey(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
-        }
-        return _masterKey;
-    }}
+    /// <summary>The master key for this application.</summary>
+    public static EncryptionKey masterKey { get {
+            if (_masterKey == null) {
+                _masterKey = new EncryptionKey(AppDomain.CurrentDomain.BaseDirectory + "Cache/KeyData");
+            }
+            return _masterKey;
+        } }
     static EncryptionKey? _masterKey;
-    public int key_{get; private set;}
+    public int key_ { get; private set; }
     byte[] scrambleCode;
     int ScramblePerDigit;
-    EncryptionKey(){ this.key_ = 0; this.ScramblePerDigit = 0; this.scrambleCode = []; }
-/// <summary>
-/// Constructs a key from a Key.key and Key.mtf file.
-/// </summary>
-/// <param name="keysPath">The Directory where the Keys are stored.</param>
-/// <exception cref="TypeInitializationException">If the Key.key or Key.mtf were not found.</exception>
-    public EncryptionKey(string keysPath){
-        if(Directory.Exists(keysPath)){
+    EncryptionKey() { this.key_ = 0; this.ScramblePerDigit = 0; this.scrambleCode = []; }
+    /// <summary>
+    /// Constructs a key from a Key.key and Key.mtf file.
+    /// </summary>
+    /// <param name="keysPath">The Directory where the Keys are stored.</param>
+    /// <exception cref="TypeInitializationException">If the Key.key or Key.mtf were not found.</exception>
+    public EncryptionKey(string keysPath) {
+        if (Directory.Exists(keysPath)) {
             DirectoryInfo di = new DirectoryInfo(keysPath);
             FileInfo[] finfo = [new(System.IO.Path.Combine(keysPath, "Key.key")), new(System.IO.Path.Combine(keysPath, "Key.mtf"))];
-            if(!finfo[0].Exists){throw new TypeInitializationException(nameof(EncryptionKey), new FileNotFoundException($"The file Key.key was not found at {keysPath}"));}
-            if(!finfo[0].Exists){throw new TypeInitializationException(nameof(EncryptionKey), new FileNotFoundException($"The file Key.mtf was not found at {keysPath}"));}
+            if (!finfo[0].Exists) { throw new TypeInitializationException(nameof(EncryptionKey), new FileNotFoundException($"The file Key.key was not found at {keysPath}")); }
+            if (!finfo[0].Exists) { throw new TypeInitializationException(nameof(EncryptionKey), new FileNotFoundException($"The file Key.mtf was not found at {keysPath}")); }
             int[] keyBytes = new int[finfo[0].Length];
             byte[] keyScrambler = new byte[finfo[1].Length];
             int ScramblePerIncrement;
-            if(finfo[1].Length % finfo[0].Length == 0){
+            if (finfo[1].Length % finfo[0].Length == 0) {
                 ScramblePerIncrement = (int)(finfo[1].Length / finfo[0].Length);
-            }else{throw new TypeInitializationException(nameof(EncryptionKey), new ArgumentOutOfRangeException(System.Reflection.ConstructorInfo.ConstructorName));}
-            using(BinaryReader keyStream = new BinaryReader(File.OpenRead(System.IO.Path.Combine(keysPath, "Key.key")))){
-                for(int i =0; i < finfo[0].Length; i++){keyBytes[i] = keyStream.ReadByte();}
-                for(int i =0; i < finfo[1].Length; i++){keyScrambler[i] = keyStream.ReadByte();}
+            } else { throw new TypeInitializationException(nameof(EncryptionKey), new ArgumentOutOfRangeException(System.Reflection.ConstructorInfo.ConstructorName)); }
+            using (BinaryReader keyStream = new BinaryReader(File.OpenRead(System.IO.Path.Combine(keysPath, "Key.key")))) {
+                for (int i = 0; i < finfo[0].Length; i++) { keyBytes[i] = keyStream.ReadByte(); }
+                for (int i = 0; i < finfo[1].Length; i++) { keyScrambler[i] = keyStream.ReadByte(); }
                 keyStream.Dispose();
             }
             int i_ = 1;
-            int buffer =0;
-            for(int i = 0; i < finfo[0].Length; i++, i_+= ScramblePerIncrement){
-                if(keyScrambler[i_] > keyScrambler[0]){
+            int buffer = 0;
+            for (int i = 0; i < finfo[0].Length; i++, i_ += ScramblePerIncrement) {
+                if (keyScrambler[i_] > keyScrambler[0]) {
                     //Bit Shift Right.
-                    for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(keyBytes[i] + buffer)) >> keyScrambler[cc];}
-                }else{
+                    for (int cc = i_; cc < ScramblePerIncrement; cc++) { buffer = (Math.Abs(keyBytes[i] + buffer)) >> keyScrambler[cc]; }
+                } else {
                     //Bit Shift Left.
-                    for(int cc = i_; cc < ScramblePerIncrement; cc++){buffer = (Math.Abs(keyBytes[i] - buffer)) << keyScrambler[cc];}
+                    for (int cc = i_; cc < ScramblePerIncrement; cc++) { buffer = (Math.Abs(keyBytes[i] - buffer)) << keyScrambler[cc]; }
                 }
             }
             this.ScramblePerDigit = ScramblePerIncrement;
             this.scrambleCode = keyScrambler;
             this.key_ = buffer;
-        }else{
+        } else {
             this.key_ = int.MinValue;
             this.scrambleCode = [];
             this.ScramblePerDigit = 0;
         }
     }
-    public EncryptionKey(int[] key, byte[] scrambleCode){
-        if(scrambleCode.Length % key.Length != 0){throw new ArgumentOutOfRangeException(nameof(scrambleCode), "The scramble array must be divisible by the key length.");}
-        int ScramblePerIncrement = scrambleCode.Length/key.Length;
-        int buffer =0;
+    public EncryptionKey(int[] key, byte[] scrambleCode) {
+        if (scrambleCode.Length % key.Length != 0) { throw new ArgumentOutOfRangeException(nameof(scrambleCode), "The scramble array must be divisible by the key length."); }
+        int ScramblePerIncrement = scrambleCode.Length / key.Length;
+        int buffer = 0;
         int i = 0;
-        for(int i_ = 1; i_ < key.Length;i++, i_+= ScramblePerIncrement){
-            for (int cc = i_; cc < (ScramblePerIncrement + i_ > scrambleCode.Length? scrambleCode.Length: ScramblePerIncrement + i_); cc++){
-                if (scrambleCode[cc] > scrambleCode[0]){
+        for (int i_ = 1; i_ < key.Length; i++, i_ += ScramblePerIncrement) {
+            for (int cc = i_; cc < (ScramblePerIncrement + i_ > scrambleCode.Length ? scrambleCode.Length : ScramblePerIncrement + i_); cc++) {
+                if (scrambleCode[cc] > scrambleCode[0]) {
                     //Bit Shift Right.
                     buffer += (key[i] - buffer) >> Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
-                }else{
+                } else {
                     //Bit Shift Left.
                     buffer -= (key[i] + buffer) << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
                 }
@@ -942,11 +963,11 @@ public class EncryptionKey{
         this.scrambleCode = scrambleCode;
         this.key_ = buffer;
     }
-    public static int ScrambleValue(int value, byte scramble){
+    public static int ScrambleValue(int value, byte scramble) {
         // XOR then rotate left by scramble bits
         return (value ^ scramble) << (scramble % 32) | (value ^ scramble) >> (32 - (scramble % 32));
     }
-    public static int DescrambleValue(int encoded, byte scramble){
+    public static int DescrambleValue(int encoded, byte scramble) {
         // Reverse the rotation, then XOR
         int rotated = (encoded >> (scramble % 32)) | (encoded << (32 - (scramble % 32)));
         return rotated ^ scramble;
@@ -955,31 +976,31 @@ public class EncryptionKey{
     /// <param name="key">The key to have it's data decoded.</param>
     /// <returns>A decoded Key object.</returns>
     public static int[] DecodeKey(EncryptionKey key) => DecodeKey(key.key_, key.scrambleCode, key.ScramblePerDigit);
-/// <summary>Creates an encoded key from a key and a scramble array.</summary>
-/// <param name="key">The key to be encoded.</param>
-/// <param name="scrambleArray">The encoding array that the key is encoded by.</param>
-/// <param name="ScrambleCode">The integer that helps the algorithm decide whether to Bit shift forward or Backward.</param>
-/// <param name="ScramblePerDigit">the amount of scrambling that will occur per digit.</param>
-/// <returns>An integer array that encodes the key.</returns>
-/// <exception cref="ArgumentOutOfRangeException">If the ScramblePerDigit and the ScrambleArray are not compatible.</exception>
-/// <remarks>The ScrambleArray and the <see cref="return"/> must be retained for the original key to be restored.</remarks> 
-    public static int[] DecodeKey(int key, byte[] scrambleArray, int ScramblePerDigit = 4){
+    /// <summary>Creates an encoded key from a key and a scramble array.</summary>
+    /// <param name="key">The key to be encoded.</param>
+    /// <param name="scrambleArray">The encoding array that the key is encoded by.</param>
+    /// <param name="ScrambleCode">The integer that helps the algorithm decide whether to Bit shift forward or Backward.</param>
+    /// <param name="ScramblePerDigit">the amount of scrambling that will occur per digit.</param>
+    /// <returns>An integer array that encodes the key.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">If the ScramblePerDigit and the ScrambleArray are not compatible.</exception>
+    /// <remarks>The ScrambleArray and the <see cref="return"/> must be retained for the original key to be restored.</remarks> 
+    public static int[] DecodeKey(int key, byte[] scrambleArray, int ScramblePerDigit = 4) {
         int ScrambleCode = scrambleArray[0];
         if (scrambleArray.Length % ScramblePerDigit != 0) { throw new ArgumentOutOfRangeException(nameof(scrambleArray), "The scramble array must be divisible by the ScramblePerDigit."); }
-        int[] TrueKey = new int[scrambleArray.Length/ScramblePerDigit];
-        if(!(ScrambleCode <= 0 | ScrambleCode > byte.MaxValue))ScrambleCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, byte.MaxValue);
+        int[] TrueKey = new int[scrambleArray.Length / ScramblePerDigit];
+        if (!(ScrambleCode <= 0 | ScrambleCode > byte.MaxValue)) ScrambleCode = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, byte.MaxValue);
 
         int i_ = scrambleArray.Length;
-        for(int i = TrueKey.Length - 1; i >= 0; i--, i_ -= ScramblePerDigit){
-            for(int cc = i + ScramblePerDigit; cc > i; cc--){
-                if (scrambleArray[cc] > ScrambleCode){
+        for (int i = TrueKey.Length - 1; i >= 0; i--, i_ -= ScramblePerDigit) {
+            for (int cc = i + ScramblePerDigit; cc > i; cc--) {
+                if (scrambleArray[cc] > ScrambleCode) {
                     // Force Bit Shift Right#
                     // key -= (key[i] - key) >> Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue);
                     // key[i] = ??
                     // (key << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue)) + key -= key[i]
                     // key[i] += (key << Math.Clamp(scrambleCode[cc], byte.MinValue, byte.MaxValue)) + key
                     TrueKey[i] -= (key << Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) + key;
-                }else{
+                } else {
                     // Force Bit Shift Left
                     TrueKey[i] += (key >> Math.Clamp(scrambleArray[cc], byte.MinValue, byte.MaxValue)) - key;
                 }
@@ -987,13 +1008,13 @@ public class EncryptionKey{
         }
         return TrueKey;
     }
-    public override bool Equals(object? obj){
+    public override bool Equals(object? obj) {
         EncryptionKey? k = obj as EncryptionKey;
-        if (k is not null){
+        if (k is not null) {
             return this.GetHashCode() == k.GetHashCode();
-        }else{ return false; }
+        } else { return false; }
     }
     public override int GetHashCode() { return HashCode.Combine(this.GetType(), CustomFunctions.ToString(this.scrambleCode), this.key_ + this.ScramblePerDigit); }
-    public static unsafe bool operator ==(EncryptionKey? k1, EncryptionKey? k2){if((object?)k1 != null){return k1.Equals(k2);}else if((object?)k1 == null && (object?)k2 != null){ return false; }else{ return true; }}
-    public static bool operator !=(EncryptionKey k1, EncryptionKey k2){return !(k1.key_ == k2.key_);}
+    public static unsafe bool operator ==(EncryptionKey? k1, EncryptionKey? k2) { if ((object?)k1 != null) { return k1.Equals(k2); } else if ((object?)k1 == null && (object?)k2 != null) { return false; } else { return true; } }
+    public static bool operator !=(EncryptionKey k1, EncryptionKey k2) { return !(k1.key_ == k2.key_); }
 }
