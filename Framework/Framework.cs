@@ -422,9 +422,19 @@ class gameObj{
         }
     }
 
-
+    public void AddComponent(IEnumerable<Polygon> polygons, bool Override = false){
+        if(this.HasComponent<Mesh>()){
+            if(Override){this.GetComponent<Mesh>().ReplaceMesh([.. polygons]);
+            }else{this.GetComponent<Mesh>().AddRange(polygons);}
+        }else{
+            this.AddComponent<Mesh>((Mesh)polygons);
+        }
+    }
     public void AddComponent<RComponent>(RComponent? rC = null) where RComponent : Rndrcomponent, new(){
         _ = rC ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException());
+        if(typeof(RComponent) == typeof(Mesh) && rC is Mesh m){
+            this.AddComponent((Polygon[])m);
+        }
         if(this.components == null){
             this.components = [(typeof(RComponent), rC)];
         }else{this.components.Add((typeof(RComponent), rC));}
@@ -488,14 +498,14 @@ class gameObj{
         return (scope, Dis <= LowerBd && Dis > 0? true: false);
     }
 
-    public static gameObj Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null
+    public static gameObj Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
         World.Add(new gameObj(position, rotation, false, children, Mycomponents, name));
         return World.worldData[World.worldData.Count -1];
     }
     public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type t, Rndrcomponent rC)>? Mycomponents = null, string? name = null){
         this.Position = position;
         if(Mycomponents != null){this.components = Mycomponents;}else{ this.components = []; }
-        if(children != null){this.AddComponent<Mesh>([.. children]);}
+        if(children != null){this.AddComponent(children);}
         if(Mycomponents == null){this.components = [];}
         else{this.components = Mycomponents;}
         this.Rotation = rotation;

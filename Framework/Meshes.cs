@@ -225,12 +225,16 @@ class Mesh : Rndrcomponent, IEnumerable{
     public Vector3 Rotation{get; private set;}
     List<Polygon> mesh;
     public int Count{get{return this.mesh.Count;}}
-    public Polygon[] Get(){return [.. this.mesh]; }
 	public void Add(Polygon poly){mesh.Add(poly);}
 	public void AddRange(IEnumerable<Polygon> polygons){mesh.AddRange(polygons);}
 	public void RemoveAt(int index){this.mesh.RemoveAt(index);}
     public void Remove(Polygon p){this.mesh.Remove(p);}
 	public List<Polygon> ToList(){return this.mesh;}
+    public Polygon[] Get(){return [.. this.mesh]; }
+    public Polygon this[int index]{
+        get{return mesh[index];}
+        set{mesh[index] = value;}
+    }
     public Mesh(){
         this.mesh = [];
     }
@@ -266,11 +270,8 @@ class Mesh : Rndrcomponent, IEnumerable{
         }
         return m;
     }
-    public Polygon this[int index]{
-        get{return mesh[index];}
-        set{mesh[index] = value;}
-    }
-
+    public void ReplaceMesh(Polygon[] polygons){this.mesh = [.. polygons];}
+    
     /*
     ! IEnumerable overrides.
     */
@@ -367,7 +368,8 @@ class Mesh : Rndrcomponent, IEnumerable{
 	/// <returns>A boolean value.</returns>
 	/// <remarks>Both meshes must be same-sized.</remarks>
 	public static bool operator !=(Mesh? m, Mesh? m2){return !(m == m2);}
-    public static explicit operator Mesh(Polygon[] polygons){return new Mesh(polygons);}
+    public static explicit operator Mesh(List<Polygon> polygons){Mesh n = new(); n.AddRange(polygons);  return n; }
+    public static explicit operator Mesh(Polygon[] polygons){Mesh n = new(); n.AddRange(polygons);  return n; }
     public static explicit operator Polygon[](Mesh mesh){return mesh.Get();}
 
     ///<summary>Translates this mesh by the Vector3 v.</summary>

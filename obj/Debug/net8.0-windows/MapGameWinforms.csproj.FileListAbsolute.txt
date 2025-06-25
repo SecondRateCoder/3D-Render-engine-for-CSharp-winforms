@@ -18,3 +18,11 @@
 /workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.pdb
 /workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/MapGameWinforms.genruntimeconfig.cache
 /workspaces/3D-Render-engine-for-CSharp-winforms/obj/Debug/net8.0-windows/ref/MapGameWinforms.dll
+c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\MapGameWinforms.exe
+c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\MapGameWinforms.dll
+c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\MapGameWinforms.pdb
+c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\System.Collections.Immutable.dll
+c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\System.IO.Pipelines.dll
+c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\System.Reflection.Metadata.dll
+c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\System.Text.Encodings.Web.dll
+c:\Users\olusa\OneDrive\Documents\GitHub\3D-Render-engine-for-CSharp-winforms\bin\Debug\net8.0-windows\System.Text.Json.dll
