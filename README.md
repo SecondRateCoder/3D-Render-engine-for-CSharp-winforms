@@ -40,14 +40,14 @@ An incomplete project attempting to simulate 3D in a winforms application, I pla
 
 ## <ins>Has this feature been tested?</ins>
 * **[Head back?](#contents)**
-* [N] **[3-Dimensional meshes rendering](#rendering-of-3-dimensional-meshes).**
+- [ ] **[3-Dimensional meshes rendering](#rendering-of-3-dimensional-meshes).**
 
-* [N] **[Key pressing events](#key-press-event-subscribing).**
+- [ ] **[Key pressing events](#key-press-event-subscribing).**
 
-* [N] **[Key pressing events/Joystick support](#joystick-support).**
+- [ ] **[Key pressing events/Joystick support](#joystick-support).**
 
-* [N] **[Texture Loading](#texture-loading).**
+- [ ] **[Texture Loading](#texture-loading).**
 
-* [Y] **[Components](#components).**
+- [X] **[Components](#components).**
 
-* [Y] **[Deadlock prevention](#deadlock-prevention).**
+- [X] **[Deadlock prevention](#deadlock-prevention).**
