@@ -65,8 +65,8 @@ static class CollisionManager{
     public static unsafe CollisionDatabase LooseCollisions{
         get{
             CollisionDatabase list = new CollisionDatabase();
-            for(int cc = 1;cc < World.worldData.Count;cc++){
-                gameObj scope = World.worldData[cc];
+            for(int cc = 1;cc < World.world.Count;cc++){
+                gameObj scope = World.world[cc];
                 if(!scope.HasComponent<RigidBdy>()){continue;}
                 (gameObj gO, int Mass, Vector3 Velocity)[] collisions = SubSearch(scope);
                 if(collisions.Length > 0){
@@ -78,7 +78,7 @@ static class CollisionManager{
     ///<summary>Searches in the World.worldData list for any objects colliding with gameObj</summary>
     static (gameObj gO, int Mass, Vector3 Velocity)[] SubSearch(gameObj scope){
         List<(gameObj gO, int Mass, Vector3 Velocity)> result = [];
-        foreach(gameObj gO in World.worldData){
+        foreach(gameObj gO in World.world){
             if(Vector3.GetLength(scope.Position, gO.Position) < gO.CollisionRange+scope.CollisionRange){
                 if(!gO.HasComponent<RigidBdy>()){continue;}
                 RigidBdy? rG = gO.GetComponent<RigidBdy>();

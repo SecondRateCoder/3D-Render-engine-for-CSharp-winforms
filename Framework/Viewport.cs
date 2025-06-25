@@ -4,16 +4,16 @@
 /// </summary>
 static class World{
     static World(){
-        worldData = [];
+        world = [];
         cams = [new()];
         lights = [new Light(Vector3.Zero, Color.White, 15)];
         activeLights = [0];
     }
     /// <summary>Stores the entire 3d world.</summary>
-    public static List<gameObj> worldData;
+    public static List<gameObj> world;
     public static void Add(gameObj gO){
-        worldData ??= new List<gameObj>(5);
-        worldData.Add(gO);
+        world ??= new List<gameObj>(5);
+        world.Add(gO);
     }
     /// <summary>Stores all the cams in the world.</summary>
     public static List<Camera> cams;
@@ -48,7 +48,7 @@ static class World{
     public static void Call(){
         Vector3 camPos = 0f-cams[camIndex].Position;
         Vector3 camRot = 0f-cams[camIndex].Rotation;
-        foreach(gameObj gO in worldData){
+        foreach(gameObj gO in world){
             gO.Translate(camPos, camRot, false);
         }
     }
@@ -137,7 +137,7 @@ static class ViewPort{
     }
     public static WriteableBitmap Convert(int width, int height){
         WriteableBitmap bmp = new(width, height);
-        foreach(gameObj gO in World.worldData){
+        foreach(gameObj gO in World.world){
             Vector3[] PolygonOrigins = new Vector3[gO.GetComponent<Mesh>().Count];
             for(int cc =0; cc < PolygonOrigins.Length;cc++){PolygonOrigins[cc] = gO.GetComponent<Mesh>()[cc].origin;}
             bmp.Set(Convert_(gO.Texture(TextureStyles.Styles.StretchToFit), PolygonOrigins), (int)(255/2));
