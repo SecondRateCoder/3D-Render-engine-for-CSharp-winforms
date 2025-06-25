@@ -368,8 +368,8 @@ class Mesh : Rndrcomponent, IEnumerable{
 	/// <returns>A boolean value.</returns>
 	/// <remarks>Both meshes must be same-sized.</remarks>
 	public static bool operator !=(Mesh? m, Mesh? m2){return !(m == m2);}
-    public static explicit operator Mesh(List<Polygon> polygons){Mesh n = new(); n.AddRange(polygons);  return n; }
-    public static explicit operator Mesh(Polygon[] polygons){Mesh n = new(); n.AddRange(polygons);  return n; }
+    public static explicit operator Mesh(List<Polygon> polygons){return [.. polygons]; }
+    public static explicit operator Mesh(Polygon[] polygons){return [.. polygons]; }
     public static explicit operator Polygon[](Mesh mesh){return mesh.Get();}
 
     ///<summary>Translates this mesh by the Vector3 v.</summary>

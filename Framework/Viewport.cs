@@ -4,7 +4,7 @@
 /// </summary>
 static class World{
     static World(){
-        world = [];
+        world = new List<gameObj>(10);
         cams = [new()];
         lights = [new Light(Vector3.Zero, Color.White, 15)];
         activeLights = [0];
@@ -12,8 +12,11 @@ static class World{
     /// <summary>Stores the entire 3d world.</summary>
     public static List<gameObj> world;
     public static void Add(gameObj gO){
-        world ??= new List<gameObj>(5);
-        world.Add(gO);
+        try{world.Add(gO);}
+        catch(TypeInitializationException){
+            world = new List<gameObj>(10);
+            world.Add(gO);
+        }
     }
     /// <summary>Stores all the cams in the world.</summary>
     public static List<Camera> cams;

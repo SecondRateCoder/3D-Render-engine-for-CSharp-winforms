@@ -388,7 +388,6 @@ class gameObj{
     public static gameObj Empty{get{return new gameObj(Vector3.Zero, Vector3.Zero, false, [], [], "");}}
     public gameObj Copy(){return new gameObj(this.Position, this.Rotation, false, (Polygon[])this.Children, this.components, this.Name + "(1)");}
     public string Name;
-    private Mesh _children;
     public Mesh Children{
 #pragma warning disable CS8603 // Possible null reference return.
         get{if(this.HasComponent<Mesh>()){return this.GetComponent<Mesh>();}else{return Mesh.Empty;}}
@@ -492,14 +491,16 @@ class gameObj{
         return World.world[World.world.Count -1];
     }
     public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type t, Rndrcomponent rC)>? Mycomponents = null, string? name = null){
-        this.Position = position;
         if(Mycomponents != null){this.components = Mycomponents;}else{ this.components = []; }
         if(Mycomponents == null){this.components = [];}
         else{this.components = Mycomponents;}
         if(children != null){this.AddComponent<Mesh>((Mesh)children.ToList());}
-        this.Rotation = rotation;
+        this.Position = Vector3.Zero;
+        this.Rotation = Vector3.Zero;
+        this.Translate(position, rotation, false);
         this.Name = name == null? $"{World.world.Count+1}": name;
         if(Create){World.Add(this);}
+        return;
     }
 
     public static gameObj operator +(gameObj parent, Polygon[] children){
