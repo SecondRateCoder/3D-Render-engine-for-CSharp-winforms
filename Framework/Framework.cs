@@ -140,21 +140,21 @@ void Vector3_MatrixMultiply(Vector3 *self, float Matrix[3][3]){
     public Vector3 RotateAround(Vector3 Rotation, Vector3 Origin){
         if(Rotation == Vector3.Zero){return this;}
         this -= Origin;
+        float XCOS = (float)Math.Cos(Rotation.X), XSIN = (float)Math.Sin(Rotation.X);
+        float YCOS = (float)Math.Cos(Rotation.Y), YSIN = (float)Math.Sin(Rotation.Y);
+        float ZCOS = (float)Math.Cos(Rotation.Z), ZSIN = (float)Math.Sin(Rotation.Z);
         float[,] Xrot = new float[3, 3]{
             {1, 0, 0}, 
-            {0, (float)Math.Cos(Rotation.X), 0 - (float)Math.Sin(Rotation.X)}, 
-            {0, (float)Math.Sin(Rotation.X), (float)Math.Cos(Rotation.X)}
-        };
+            {0, XCOS, -XSIN}, 
+            {0, XSIN, XCOS}};
         float[,] Yrot = new float[3, 3]{
-            {(float)Math.Cos(Rotation.Y), 0, (float)Math.Sin(Rotation.Y)}, 
-            {0, 1, 0 - 0}, 
-            {0 - (float)Math.Sin(Rotation.Y), 0, (float)Math.Cos(Rotation.Y)}
-        };
+            {YCOS, 0, YSIN}, 
+            {0, 1, 0}, 
+            {-YSIN, 0, YCOS}};
         float[,] Zrot = new float[3, 3]{
-            {(float)Math.Cos(Rotation.Z), 0 - (float)Math.Sin(Rotation.Z), 0}, 
-            {(float)Math.Sin(Rotation.Z), (float)Math.Cos(Rotation.Z), 0}, 
-            {0, 0, 1}
-        };
+            {ZCOS, -ZSIN, 0}, 
+            {ZSIN, ZCOS, 0}, 
+            {0, 0, 1}};
         this = Mass_MatrixMultiply(this, Xrot, Yrot, Zrot);
         this += Origin;
         return this;
@@ -162,7 +162,8 @@ void Vector3_MatrixMultiply(Vector3 *self, float Matrix[3][3]){
     public static Vector3 Mass_MatrixMultiply(Vector3 v, params float[][,] Matrices) {
         int cc = 0;
         while (cc < Matrices.Length){
-            if(Matrices[cc].GetLength(0) > 3 && Matrices[cc].GetLength(1) > 3){ v = MatrixMultiply(v, Matrices[cc]); }
+            if(Matrices[cc].GetLength(0) >= 3 && Matrices[cc].GetLength(1) >= 3){ v = MatrixMultiply(v, Matrices[cc]); }
+            cc++;
         }
         return v;
     }
@@ -387,7 +388,7 @@ class gameObj{
     public static gameObj Empty{get{return new gameObj(Vector3.Zero, Vector3.Zero, false, [], [], "");}}
     public gameObj Copy(){return new gameObj(this.Position, this.Rotation, false, (Polygon[])this.Children, this.components, this.Name + "(1)");}
     public string Name;
-    
+    private Mesh _children;
     public Mesh Children{
 #pragma warning disable CS8603 // Possible null reference return.
         get{if(this.HasComponent<Mesh>()){return this.GetComponent<Mesh>();}else{return Mesh.Empty;}}
@@ -422,17 +423,11 @@ class gameObj{
     }
 
 
-    public void AddComponent<RComponent>(Type? type = null, RComponent? rC = null) where RComponent : Rndrcomponent, new(){
-        _ = type ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException());
+    public void AddComponent<RComponent>(RComponent? rC = null) where RComponent : Rndrcomponent, new(){
         _ = rC ?? throw new TypeInitializationException(nameof(gameObj), new ArgumentNullException());
         if(this.components == null){
-            this.components = [(type, rC)];
-        }else{this.components.Add((type, rC));}
-    }
-    public void AddComponents<RComponent>(IEnumerable<(Type type, RComponent rC)> rC) where RComponent : Rndrcomponent{
-        foreach((Type type, RComponent rc) rc in rC){
-            components.Add(rc);
-        }
+            this.components = [(typeof(RComponent), rC)];
+        }else{this.components.Add((typeof(RComponent), rC));}
     }
     public bool HasComponent<RComponent>()where RComponent : Rndrcomponent, new(){
         if(GetComponent<RComponent>() == null){return false;}else{return true;}
@@ -493,21 +488,16 @@ class gameObj{
         return (scope, Dis <= LowerBd && Dis > 0? true: false);
     }
 
-    public static int Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
+    public static gameObj Create(Vector3 position, Vector3 rotation, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null
         World.Add(new gameObj(position, rotation, false, children, Mycomponents, name));
-        return World.worldData.Count - 2;
+        return World.worldData[World.worldData.Count -1];
     }
-    public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type, Rndrcomponent)>? Mycomponents = null, string? name = null){
+    public gameObj(Vector3 position, Vector3 rotation, bool Create = true, IEnumerable<Polygon>? children = null, List<(Type t, Rndrcomponent rC)>? Mycomponents = null, string? name = null){
         this.Position = position;
-        if(children != null){
-            this.AddComponent<Mesh>();
-            this.Children.AddRange(children);
-        }
-        if(Mycomponents == null){
-            this.components = new List<(Type ogType, Rndrcomponent rC)>();
-        }else{
-            this.components = Mycomponents;
-        }
+        if(Mycomponents != null){this.components = Mycomponents;}else{ this.components = []; }
+        if(children != null){this.AddComponent<Mesh>([.. children]);}
+        if(Mycomponents == null){this.components = [];}
+        else{this.components = Mycomponents;}
         this.Rotation = rotation;
         this.Name = name == null? $"{World.worldData.Count+1}": name;
         if(Create){World.Add(this);}

@@ -188,10 +188,7 @@ class Path{
 		if(fileExtensions != null && !Directory && fileExtensions.Any()){
 			this.Directory = false;
 			this.filePath = File.Exists(filePath)? filePath: throw new TypeInitializationException($"Path", new ArgumentException());
-			this.fileExtensions = [];
-			foreach(string s in fileExtensions){
-				fileExtensions = this.fileExtensions.Append(new FileInfo(filePath).Extension != s? new FileInfo(filePath).Extension: s);
-			}
+			this.fileExtensions = [.. fileExtensions];
 		}else if(Empty){
 			this.Directory = false;
 			this.fileExtensions = [];
