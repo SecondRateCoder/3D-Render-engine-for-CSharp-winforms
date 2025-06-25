@@ -590,6 +590,23 @@ static class CustomFunctions{
         }
         return "";
     }
+    public static float[,] InverseMatrix = {
+        {1, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1}
+    };
+    public static float[,] Matrix_MatrixMultiply(float[,] mA, float[,] mB){
+        if(mA.GetLength(0) != mB.GetLength(1)){return new float[3, 3]{
+            {0, 0, 0},
+            {0, 0, 0},
+            {0, 0, 0}
+        };}
+        return new float[3, 3]{
+            {(mA[0, 0] * mB[0, 0]) +(mA[1, 0] * mB[0, 1]) +(mA[2, 0] * mB[0, 2]), (mA[0, 0] * mB[1, 0]) +(mA[1, 0] * mB[1, 1]) +(mA[2, 0] * mB[1, 2]), (mA[0, 0] * mB[2, 0]) +(mA[1, 0] * mB[2, 1]) +(mA[2, 0] * mB[2, 2])},
+            {(mA[0, 1] * mB[0, 0]) +(mA[1, 1] * mB[0, 1]) +(mA[2, 1] * mB[0, 2]), (mA[0, 1] * mB[1, 0]) +(mA[1, 1] * mB[1, 1]) +(mA[2, 1] * mB[1, 2]), (mA[0, 1] * mB[2, 0]) +(mA[1, 1] * mB[2, 1]) +(mA[2, 1] * mB[2, 2])},
+            {(mA[0, 2] * mB[2, 0]) +(mA[1, 2] * mB[0, 1]) +(mA[2, 2] * mB[0, 2]), (mA[0, 2] * mB[1, 0]) +(mA[1, 2] * mB[1, 1]) +(mA[2, 2] * mB[1, 2]), (mA[0, 2] * mB[0, 0]) +(mA[1, 2] * mB[2, 1]) +(mA[2, 2] * mB[2, 2])}
+        };
+    }
 }
 [Serializable]
 class InconsistentDimensionException : Exception{
@@ -819,7 +836,14 @@ class BackdoorJob<T, R>{
             if (jPointer >= jobs.Count) { jPointer = 0; }
             Type _t = jobs[jPointer].ParamType.GetType();
             Type _r = jobs[jPointer].ReturnType.GetType();
-            return ProcessJob_<_t, _r>(jobs[jPointer].Job);
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+            MethodInfo mI = typeof(BackdoorJobHandler).GetMethod("ProcessJob_");
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            mI = mI.MakeGenericMethod(_t, _r);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+            object[] temp = { jobs[jPointer] };
+            return mI.Invoke(null, temp);
         }
         static _R? ProcessJob_<_T, _R>(object Job) {
             BackdoorJob<_T, _R> Job_ = (BackdoorJob<_T, _R>)Job;

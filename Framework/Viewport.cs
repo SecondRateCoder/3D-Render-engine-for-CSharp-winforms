@@ -77,7 +77,7 @@ static class ViewPort{
         Point[] points = DrawBLine(new Point((int)a.p.X, (int)a.p.Y), new Point((int)b.p.X, (int)b.p.Y));
         TextureDatabase result = [];
         float colorBlend = 0;
-        float Colorincrement = (float)(points.Length/Math.Sqrt((int)Math.Abs(b.p.X - a.p.X)^2 + (int)Math.Abs(b.p.Y - a.p.Y)^2));
+        float Colorincrement = (float)(points.Length/Math.Sqrt((int)(Math.Abs(b.p.X - a.p.X) * Math.Abs(b.p.X - a.p.X)) + (int)(Math.Abs(b.p.Y - a.p.Y) * Math.Abs(b.p.Y - a.p.Y))));
         for(int i = 0; i< points.Length;i++){
             Color c = Color.FromArgb(
                 (int)Math.Clamp((a.c.A/colorBlend) + (b.c.A*colorBlend), 0, byte.MaxValue), 

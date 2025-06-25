@@ -79,7 +79,7 @@ static class CollisionManager{
     static (gameObj gO, int Mass, Vector3 Velocity)[] SubSearch(gameObj scope){
         List<(gameObj gO, int Mass, Vector3 Velocity)> result = [];
         foreach(gameObj gO in World.worldData){
-            if(Vector3.GetDistance(scope.Position, gO.Position) < gO.CollisionRange+scope.CollisionRange){
+            if(Vector3.GetLength(scope.Position, gO.Position) < gO.CollisionRange+scope.CollisionRange){
                 if(!gO.HasComponent<RigidBdy>()){continue;}
                 RigidBdy? rG = gO.GetComponent<RigidBdy>();
                 if(rG == null){continue;}else{

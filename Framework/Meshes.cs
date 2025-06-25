@@ -15,8 +15,8 @@ struct Polygon{
         //Get rotation from a to b around c
         //use rotation and length of AC and BC
         //Use 1/2(a*b)*Sin(Rotation) to get the area
-        float ac = Vector3.GetDistance(this.A, this.C);
-        float bc = Vector3.GetDistance(this.B, this.C);
+        float ac = Vector3.GetLength(this.A, this.C);
+        float bc = Vector3.GetLength(this.B, this.C);
         float ab = Vector3.GetRotation(this).Magnitude;
         return (float)(.5f * ac * bc * Math.Sin(ab));
     }}
@@ -48,9 +48,9 @@ struct Polygon{
             Polygon m = this;
             float function(bool x){
                 lock(m.UVPoints){
-                    float aLength = Vector3.GetDistance(m.A, m.B);
-                    float bLength = Vector3.GetDistance(m.B, m.C);
-                    float cLength = Vector3.GetDistance(m.C, m.A);
+                    float aLength = Vector3.GetLength(m.A, m.B);
+                    float bLength = Vector3.GetLength(m.B, m.C);
+                    float cLength = Vector3.GetLength(m.C, m.A);
                     return (float)(Math.Sqrt(aLength * bLength * cLength));
                 }
             }
@@ -99,7 +99,7 @@ struct Polygon{
     }
     public static Polygon PolyClip(Polygon target, Vector3 focus, float Range){
         (bool a, bool b, bool c) item_ = (true, true, true);
-        (float aLength, float bLength, float cLength) item = (Vector3.GetDistance(target.A, focus), Vector3.GetDistance(target.B, focus), Vector3.GetDistance(target.C, focus));
+        (float aLength, float bLength, float cLength) item = (Vector3.GetLength(target.A, focus), Vector3.GetLength(target.B, focus), Vector3.GetLength(target.C, focus));
         //Finds the Length closest to the focus and sets it to false
         if(item.aLength < item.bLength){
             if(item.aLength < item.cLength){
@@ -139,9 +139,9 @@ struct Polygon{
     }
     public Vector3 Furthest(Vector3 origin){
         Vector3 result;
-        float a = Vector3.GetDistance(A, origin);
-        float b = Vector3.GetDistance(B, origin);
-        float c = Vector3.GetDistance(C, origin);
+        float a = Vector3.GetLength(A, origin);
+        float b = Vector3.GetLength(B, origin);
+        float c = Vector3.GetLength(C, origin);
         if(a>b){
             result = a>c?this.A:this.C;
         }else{

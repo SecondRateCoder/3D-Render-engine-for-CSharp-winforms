@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Numerics;
 using System.Security.Cryptography;
 /// <summary>
 ///  A 3-dimensional point and rotation.
@@ -20,6 +21,7 @@ struct Vector3{
     public static readonly Vector3 Up = new Vector3(0, 1, 0);
     public static readonly Vector3 Forward = new Vector3(0, 0, 1);
     public static readonly Vector3 Right = new Vector3(1, 0, 0);
+    public static readonly Vector3 One = new Vector3(1, 1, 1);
 
     public static unsafe int Size{get{return sizeof(Vector3);}}
     /// <summary>
@@ -96,6 +98,38 @@ struct Vector3{
         this.Z = (float)Math.Tan(this.Z);
         return this;
     }
+    /*
+    void Vector3_Rotate(Vector3 *self, Vector3 change, Vector3 Around){
+    float Xrot[3][3] = {
+        {1, 0, 0}, 
+        {0, cos(change.X), 0 - sin(change.X)}, 
+        {0, sin(change.X), cos(change.X)}
+    };
+    float Yrot[3][3] = {
+        {cos(change.Y), 0, sin(change.Y)}, 
+        {0, 1, 0 - 0}, 
+        {0 - sin(change.Y), 0, cos(change.Y)}
+    };
+    float Zrot[3][3] = {
+        {cos(change.Z), 0 - sin(change.Z), 0}, 
+        {sin(change.Z), cos(change.Z), 0}, 
+        {0, 0, 1}
+    };
+    self->X = self->X - Around.X;
+    self->Y = self->Y - Around.Y;
+    self->Z = self->Z - Around.Z;
+    MassMultiply(self, Xrot, Yrot, Zrot);
+}
+void MassMultiply(Vector3 *self, float m1[3][3], float m2[3][3], float m3[3][3]){Vector3_MatrixMultiply(&self, Matrix_MatrixMultiply(Matrix_MatrixMultiply(m1, m2), m3));}
+void Vector3_MatrixMultiply(Vector3 *self, float Matrix[3][3]){
+    __m128 result;
+    __m128 Column = _mm_loadu_ps((float[4]){(self->X * Matrix[0][0]), (self->Y * Matrix[1][0]), (self->Y * Matrix[2][0]), 0});
+    result = _mm_add_ps(Column, _mm_loadu_ps((float[4]){(self->X * Matrix[0][1]), (self->Y * Matrix[1][1]), (self->Y * Matrix[2][1]), 0}));
+    result = _mm_add_ps(result, _mm_loadu_ps((float[4]){(self->X * Matrix[0][2]), (self->Y * Matrix[1][2]), (self->Y * Matrix[2][2]), 0}));
+    float* res = (float*)&result;
+    self->X = res[0]; self->Y = res[1]; self->Z = res[2];
+}
+    */
     /// <summary>
     ///  Rotate this vector around Origin, by Rotation.
     /// </summary>
@@ -105,13 +139,43 @@ struct Vector3{
     /// <remarks>This both sets this vector to the rotated version and returns a copy.</remarks>
     public Vector3 RotateAround(Vector3 Rotation, Vector3 Origin){
         if(Rotation == Vector3.Zero){return this;}
-        this += (Origin - (this*2));
-        Vector3 thisCopy = this;
-        this.X += Regulate((float)(thisCopy.Y/(Math.Tan(Rotation.X)/2)), 0);
-        this.Y += Regulate((float)(thisCopy.Z/(Math.Tan(Rotation.Y)/2)), 0);
-        this.Z += Regulate((float)(thisCopy.X/(Math.Tan(Rotation.Z)/2)), 0);
-        this -= (Origin + (this*2));
+        this -= Origin;
+        float[,] Xrot = new float[3, 3]{
+            {1, 0, 0}, 
+            {0, (float)Math.Cos(Rotation.X), 0 - (float)Math.Sin(Rotation.X)}, 
+            {0, (float)Math.Sin(Rotation.X), (float)Math.Cos(Rotation.X)}
+        };
+        float[,] Yrot = new float[3, 3]{
+            {(float)Math.Cos(Rotation.Y), 0, (float)Math.Sin(Rotation.Y)}, 
+            {0, 1, 0 - 0}, 
+            {0 - (float)Math.Sin(Rotation.Y), 0, (float)Math.Cos(Rotation.Y)}
+        };
+        float[,] Zrot = new float[3, 3]{
+            {(float)Math.Cos(Rotation.Z), 0 - (float)Math.Sin(Rotation.Z), 0}, 
+            {(float)Math.Sin(Rotation.Z), (float)Math.Cos(Rotation.Z), 0}, 
+            {0, 0, 1}
+        };
+        this = Mass_MatrixMultiply(this, Xrot, Yrot, Zrot);
+        this += Origin;
         return this;
+    }
+    public static Vector3 Mass_MatrixMultiply(Vector3 v, params float[][,] Matrices) {
+        int cc = 0;
+        while (cc < Matrices.Length){
+            if(Matrices[cc].GetLength(0) > 3 && Matrices[cc].GetLength(1) > 3){ v = MatrixMultiply(v, Matrices[cc]); }
+        }
+        return v;
+    }
+    public static Vector3 MatrixMultiply(Vector3 v, float[,] Matrix){
+        /*
+        |---------->|       | | |
+        |           |       | | |
+        |           |       | V |
+        */
+        v.X = (Matrix[0, 0] * v.X) + (Matrix[1, 0] * v.Y) + (Matrix[2, 0] * v.Z);
+        v.Y = (Matrix[0, 1] * v.X) + (Matrix[1, 1] * v.Y) + (Matrix[2, 1] * v.Z);
+        v.Z = (Matrix[0, 2] * v.X) + (Matrix[1, 2] * v.Y) + (Matrix[2, 2] * v.Z);
+        return v;
     }
     public Vector3 Abs(){
         this.X = Math.Abs(this.X);
@@ -165,31 +229,43 @@ struct Vector3{
     ///<summary>
     /// Get the distance from 2 vectors, as a float;
     ///</summary>
-    public static float GetDistance(Vector3 a, Vector3 b){
-        float xDif = Math.Abs(a.X - b.X);
-        float yDif = Math.Abs(a.Y - b.Y);
-        float zDif = Math.Abs(a.Z - b.Z);
-        double xy = xDif/Math.Cos(Math.Atan(yDif/xDif));
-        double xz = xDif/Math.Cos(Math.Atan(zDif/xDif));
-        double yz = zDif/Math.Cos(Math.Atan(yDif/zDif));
-        return (float)(xy+xz+yz)/3;
-    }
+    public static float GetLength(Vector3 v1, Vector3 v2){return MathF.Sqrt((v1.X-v2.X)*(v1.X-v2.X) + (v1.Y-v2.Y)*(v1.Y-v2.Y) + (v1.Z-v2.Z)*(v1.Z-v2.Z));}
     ///<summary>Get the rotation from point a to b, with the apex being between them.</summary>
     public static Vector3 GetRotation(Vector3 a, Vector3 b){return GetRotation(a, Vector3.Zero, b);}
     public static Vector3 GetRotation(Polygon p){
         return GetRotation(p.A, p.origin, p.C);
     }
-    public static Vector3 GetRotation(Vector3 a, Vector3 b, Vector3 c){
-        float A = Vector3.GetDistance(a, c);
-        float B = Vector3.GetDistance(b, c);
-        if(A > B){a = (a-b)/b;}else if(A < B){b = (b-a)/a;}
-        float xDif = Math.Abs(a.X - b.X);
-        float yDif = Math.Abs(a.Y - b.Y);
-        float zDif = Math.Abs(a.Z - b.Z);
-        double xy = Math.Atan(yDif/xDif);
-        double xz = Math.Atan(zDif/xDif);
-        double yz = Math.Atan(yDif/zDif);
-        return new Vector3((float)xy, (float)xz, (float)yz);
+    public static Vector3 GetRotation(Vector3 a, Vector3 b, Vector3 Centre){
+        a -= Centre;
+        float ALength = Vector3.GetLength(a, Vector3.Zero);
+        b -= Centre;
+        float BLength = Vector3.GetLength(b, Vector3.Zero);
+        if (BLength > ALength){
+            b *= ALength / BLength;
+        }else if (ALength < BLength){
+            a *= BLength / ALength;
+        }
+        Vector3 k = CProduct(a, b);
+        float angle = MathF.Acos(DProduct(a, b) / (Vector3.GetLength(a, Vector3.Zero) * Vector3.GetLength(b, Vector3.Zero)));
+        float angCos = MathF.Cos(angle);
+        float decangCos = 1 - angCos;
+        float angSin = MathF.Sin(angle);
+        return MatrixMultiply(Vector3.One, new float[3, 3]{
+            {angCos+(k.X*k.X*decangCos), (k.X*k.Y*decangCos)-(k.Z*angSin), (k.X*k.Z*decangCos)+(k.Y*angSin)},
+            {(k.Y*k.X*decangCos)+(k.Z*angSin), angCos+(k.Y * k.Y * decangCos), (k.Y*k.Z*decangCos)-(k.X*angSin)},
+            {(k.Z*k.X*decangCos)-(k.Y*angSin), (k.Z*k.Y*decangCos)+(k.X*angSin), angCos+(k.X*k.X*decangCos)}});
+        // [Changed vector] = [Matrix] * [Vector]
+        // float A = Vector3.GetDistance(a, c);
+        // float B = Vector3.GetDistance(b, c);
+        // if(A > B){a = (a-b)/b;}else if(A < B){b = (b-a)/a;}
+        // float xDif = Math.Abs(a.X - b.X);
+        // float yDif = Math.Abs(a.Y - b.Y);
+        // float zDif = Math.Abs(a.Z - b.Z);
+        // double xy = Math.Atan(yDif/xDif);
+        // double xz = Math.Atan(zDif/xDif);
+        // double yz = Math.Atan(yDif/zDif);
+        // return new Vector3((float)xy, (float)xz, (float)yz);
+
     }
     public static Vector3 CProduct(Vector3 a, Vector3 b){
         return new Vector3((a.Y*b.Z)-(a.Z*b.Y), (a.Z*b.X)-(a.X*b.Z), (a.X*b.Y)-(a.Y*b.X));
@@ -335,9 +411,9 @@ class gameObj{
     }
     public int CollisionRange{
         get{
-            float result = Vector3.GetDistance(this.Position, Children[0].Furthest(this.Position));
+            float result = Vector3.GetLength(this.Position, Children[0].Furthest(this.Position));
             for(int cc = 1; cc<Children.Count;cc++){
-                float distance = Vector3.GetDistance(this.Position, Children[0].Furthest(this.Position));
+                float distance = Vector3.GetLength(this.Position, Children[0].Furthest(this.Position));
                 result = result > distance? result: distance;
             }
             return (int)(result+.5);
@@ -408,12 +484,12 @@ class gameObj{
         Polygon[] poly = new Polygon[this.Children.Count];
         Polygon scope = this.Children[0];
         float Dis = 0;
-        for(int cc = 1; cc < poly.Length; cc++, Dis = Vector3.GetDistance(this.Children[cc].origin, Position)){
-            if(Vector3.GetDistance(scope.origin, Position) < Dis){
+        for(int cc = 1; cc < poly.Length; cc++, Dis = Vector3.GetLength(this.Children[cc].origin, Position)){
+            if(Vector3.GetLength(scope.origin, Position) < Dis){
                 scope = this.Children[cc];
             }
         }
-        Dis = Vector3.GetDistance(scope.origin, Position);
+        Dis = Vector3.GetLength(scope.origin, Position);
         return (scope, Dis <= LowerBd && Dis > 0? true: false);
     }
 

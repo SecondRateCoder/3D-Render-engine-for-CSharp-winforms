@@ -67,9 +67,10 @@ static class Entry{
         Buffer = new(f.Width, f.Height);
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-	[STAThread]
+
+    [STAThread]
     public static async Task Main(){
-        try { await ExtensionHandler.PreLoadExtensions(); } catch { if (!SkipStartUpWarnings) { MessageBox.Show("Extensions could not be Pre-Loaded", "ExtensionPre_LoadingException: Extensions could not be loaded.", MessageBoxButtons.OK, MessageBoxIcon.Warning); } }
+        //try { await ExtensionHandler.PreLoadExtensions(); } catch { if (!SkipStartUpWarnings) { MessageBox.Show("Extensions could not be Pre-Loaded", "ExtensionPre_LoadingException: Extensions could not be loaded.", MessageBoxButtons.OK, MessageBoxIcon.Warning); } }
         Update += f._Invoke;
         Entry.uiContext = SynchronizationContext.Current;
 		ExternalControl.Initialise();
