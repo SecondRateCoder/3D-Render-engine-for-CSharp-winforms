@@ -5,8 +5,8 @@
 static class World{
     static World(){
         world = new List<gameObj>(10);
-        cams = [new()];
-        lights = [new Light(Vector3.Zero, Color.White, 15)];
+        cams = [new(15f, Vector3.Zero, Vector3.Forward, 10)]; //Error here.
+        lights = [new Light(Vector3.Zero, Color.White, 15)]; //Error here.
         activeLights = [0];
     }
     /// <summary>Stores the entire 3d world.</summary>

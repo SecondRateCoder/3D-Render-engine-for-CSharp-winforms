@@ -236,18 +236,20 @@ class CollisionDatabase : IEnumerable{
 	public IEnumerator GetEnumerator() => collidingObjects.GetEnumerator();
 }
 class ControlScheme{
-    public int Count{get{return cS.Count;}}
-    List<(Keys key, InputController.KeyPressedDelegate kD)> cS = [];
+    int count_;
+    public int Count{get{return count_;} private set{if(cS.Length != value){count_ = cS.Length;}else{count_ = value;}}}
+    (Keys key, InputController.KeyPressedDelegate kD)[] cS;
+    
     public (Keys key, InputController.KeyPressedDelegate kD) this[int index]{
         get{return this.cS[index];}
         set{this.cS[index] = value;}
     }
-    public ControlScheme(IEnumerable<Keys> keys, IEnumerable<InputController.KeyPressedDelegate> controls){
-        if(keys.Count() != controls.Count()){throw new TypeInitializationException(nameof(ControlScheme), new ArgumentOutOfRangeException());}else{
-            int Length = keys.Count();
-            this.cS = new List<(Keys key, InputController.KeyPressedDelegate kD)>(Length);
-            for(int cc =0; cc < Length;cc++){
-                this.cS[cc] = (keys.ElementAt(cc), controls.ElementAt(cc));
+    public ControlScheme(IEnumerable<Keys> keys, IEnumerable<InputController.KeyPressedDelegate> Responses){
+        if(keys.Count() != Responses.Count()){throw new TypeInitializationException(nameof(ControlScheme), new ArgumentOutOfRangeException((keys.Count() > Responses.Count()? "keys": "Responses"), "Keys and Responses must be compatible, have the same length."));}else{
+            this.cS = new (Keys key, InputController.KeyPressedDelegate kD)[keys.Count()];
+            this.count_ = keys.Count();
+            for(int cc =0; cc < this.count_;cc++){
+                this.cS[cc] = (keys.ElementAt(cc), Responses.ElementAt(cc));
             }
         }
     }

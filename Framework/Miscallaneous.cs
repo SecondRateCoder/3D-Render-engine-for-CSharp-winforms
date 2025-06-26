@@ -56,8 +56,8 @@ struct Equation{
 }
 
 class Camera{
-    public Vector3 Position{get; set;} = Vector3.Zero;
-    public Vector3 Rotation{get; set;} = Vector3.Zero;
+    public Vector3 Position;
+    public Vector3 Rotation;
 	/// <summary>
 	/// The normalised resolution at which textures are applied to a mesh
 	/// </summary>
@@ -66,22 +66,23 @@ class Camera{
     public float theta{get{return (float)(2*Math.Atan((ViewPort.boundary.r/2)/this.near_));}}
     float near_;
     ///<summary>The length from the camera to the near plane.</summary>
-    public float near{get{return near_;} set{near_ = (near_ == 0 && value < far? value: near_);}}
-    float fov_ = 0;
+    public float near{get{return near_;} set{near_ = (near_ == 0 || value >= far? value: near_);}}
+    float fov_;
     ///<summary>
     /// The render distance.
     ///</summary>
     ///<remarks>This property cant be changed after being assigned.</remarks>
-    public float far{get{return fov_;} set{fov_ = (fov_ == 0? value: fov_);}}
+    public float far{get{return fov_;} set{fov_ = (fov_ == 0 || value <= near? value: fov_);}}
     public Camera(float Fov = 15f, Vector3? pos = null, Vector3? rot = null, int Resolution = 1){
         this.Resolution = Resolution;
-        this.far = Fov;
-        this.Position = pos == null? Vector3.Zero: pos.Value;
-        this.Rotation = pos == null? Vector3.Zero: pos.Value;
+        this.Position = (pos == null? Vector3.Zero: pos.Value);
+        this.Rotation = (rot == null? Vector3.Zero: rot.Value);
+        this.fov_ = Fov;
         _ = InputController.AttachKeyhandles(
             new ControlScheme(
-                [Keys.W, Keys.A, Keys.S, Keys.D, Keys.Q, Keys.E], 
-                [(duration, strength) => { Position = new Vector3(Position.X, Position.Y, Position.Z + 1); }, 
+                (Keys[])[Keys.W, Keys.A, Keys.S, Keys.D, Keys.Q, Keys.E], 
+                (InputController.KeyPressedDelegate[])[
+                    (duration, strength) => { Position = new Vector3(Position.X, Position.Y, Position.Z + 1); }, 
                     (duration, strength) => { Position = new Vector3(Position.X, Position.Y, Position.Z - 1); }, 
                     (duration, strength) => { Position = new Vector3(Position.X + 1, Position.Y, Position.Z); }, 
                     (duration, strength) => { Position = new Vector3(Position.X - 1, Position.Y, Position.Z); }, 
@@ -102,10 +103,10 @@ class Light{
     public int Intensity = 0;
 
     public Light(Vector3? source = null, Color? color = null, int mag = 10){
-        this.Source = source == null? new Vector3(): source.Value;
+        this.Source = source == null? Vector3.Zero: source.Value;
         this.Colour = color == null? Color.WhiteSmoke: color.Value;
-        this.Radius = (int)(mag*(3/4));
-        this.Intensity = mag-Radius;
+        this.Radius = (int)(mag/(2 *MathF.PI));
+        this.Intensity = (int)MathF.Sqrt(mag);
     }
 }
 class TextureStyles{

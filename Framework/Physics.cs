@@ -1,5 +1,4 @@
 using System.Timers;
-using NUnit.Framework;
 
 /// <summary>
 /// A Collider
@@ -105,11 +104,13 @@ static class CollisionManager{
         cts.CancelAfter(ColliderCheckTime);
         int x = 0;
         int y = 0;
-        for (y = 0; y < cD.Length | !cts.IsCancellationRequested; y++) {
-            for (x = 1; x < cD[y].Count | !cts.IsCancellationRequested; x++) {
-                cD[y][0].gameObject.GetComponent<RigidBdy>().velocity =
-                    Vector3.CProduct(cD[y][0].gameObject.Position,
-                        cD[y][x].gameObject.Position * cD[y][x].gameObject.GetComponent<RigidBdy>().TrueVelocity) / 10;
+        if(cD.Length > 0){
+            for (y = 0; y < cD.Length && !cts.IsCancellationRequested; y++) {
+                for (x = 1; x < cD[y].Count && !cts.IsCancellationRequested; x++) {
+                    cD[y][0].gameObject.GetComponent<RigidBdy>().velocity =
+                        Vector3.CProduct(cD[y][0].gameObject.Position,
+                            cD[y][x].gameObject.Position * cD[y][x].gameObject.GetComponent<RigidBdy>().TrueVelocity) / 10;
+                }
             }
         }
     }

@@ -1,6 +1,4 @@
 using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using NUnit.Framework;
 
 class WriteableBitmap{
     bool disposed = false;
@@ -200,12 +198,6 @@ class WriteableBitmap{
         }
 		if(bytes.Length > this.pixelHeight * this.pixelWidth * 4){throw new ArgumentOutOfRangeException(nameof(bytes), "Parameter cannot have a length that exceeds the bounds of this bitmap");}
         
-    }
-    [Test]
-    public void TestWriteableBitmapInitialization() {
-        var bitmap = new WriteableBitmap(100, 100);
-        Assert.That(bitmap.pixelWidth, Is.EqualTo(100));
-        Assert.That(bitmap.pixelHeight, Is.EqualTo(100));
     }
     public static explicit operator WriteableBitmap(Bitmap bmp){
 		return new WriteableBitmap(bmp);

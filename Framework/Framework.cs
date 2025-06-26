@@ -383,7 +383,7 @@ void Vector3_MatrixMultiply(Vector3 *self, float Matrix[3][3]){
 
 }
 /// <summary>Represents a 3-Dimensional object.</summary>
-[DebuggerDisplay("Position: {Positon}, Rotation = {Rotation}", Name = "{Name}")]
+[DebuggerDisplay("Position: {Position}, Rotation = {Rotation}", Name = "{Name}")]
 class gameObj{
     public static gameObj Empty{get{return new gameObj(Vector3.Zero, Vector3.Zero, false, [], [], "");}}
     public gameObj Copy(){return new gameObj(this.Position, this.Rotation, false, (Polygon[])this.Children, this.components, this.Name + "(1)");}

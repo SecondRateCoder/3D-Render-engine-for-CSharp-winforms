@@ -84,7 +84,7 @@ static class Entry{
             }
         };
         Start += (() => {
-            GC.Collect(-1, GCCollectionMode.Aggressive);
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive);
             GetStackDepth();
         });
         //!Test later: TestKey();

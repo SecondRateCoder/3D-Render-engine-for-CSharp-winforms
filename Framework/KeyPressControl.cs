@@ -500,7 +500,6 @@ static class InputController{
 		return false;
 	}
 	public static bool AttachKeyhandles(ControlScheme cS){
-		if (cS.Count != cS.Count) { throw new ArgumentOutOfRangeException(); }
 		for (int cc = 0; cc < cS.Count; cc++){
 			if (TrueKeyToIndex.TryGetValue(ToInputCotrollerKeys(cS[cc].key), out int cc_)){
 				KeyBinds[cc_].AttachableElement += cS[cc].kD;

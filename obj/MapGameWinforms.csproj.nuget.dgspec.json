@@ -51,18 +51,6 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "dependencies": {
-            "Microsoft.CodeAnalysis.CSharp": {
-              "target": "Package",
-              "version": "[4.14.0, )"
-            },
-            "Microsoft.CodeAnalysis.Scripting": {
-              "target": "Package",
-              "version": "[4.14.0, )"
-            },
-            "NUnit": {
-              "target": "Package",
-              "version": "[2.5.7.10213, )"
-            },
             "SharpDX.DirectInput": {
               "target": "Package",
               "version": "[4.2.0, )"
