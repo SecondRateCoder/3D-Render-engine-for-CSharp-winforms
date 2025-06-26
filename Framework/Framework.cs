@@ -218,7 +218,8 @@ void Vector3_MatrixMultiply(Vector3 *self, float Matrix[3][3]){
         }
     }
     public override int GetHashCode(){return BitConverter.ToInt32(ComputeHmacSha1Hash($"{this.X} {this.Y} {this.Z}", ""));}
-    public static explicit operator PointF(Vector3 v){if(v.Z == 0){return new PointF((int)v.X, (int)v.Y);}else{return new PointF((int)(v.X/v.Z), (int)(v.Y/v.Z));}}
+    public static explicit operator Point(Vector3 v){if(v.Z == 0){return new Point((int)v.X, (int)v.Y);}else{return new Point((int)(v.X/v.Z), (int)(v.Y/v.Z));}}
+    public static explicit operator PointF(Vector3 v){if(v.Z == 0){return new PointF(v.X, v.Y);}else{return new PointF((v.X/v.Z), (v.Y/v.Z));}}
     public static explicit operator Vector3(PointF p){return new Vector3(p.X, p.Y, 0);}
     public static explicit operator List<float>(Vector3 v){return new List<float>(){v.X, v.Y, v.Z};}
     public static explicit operator byte[](Vector3 v){
@@ -328,7 +329,7 @@ void Vector3_MatrixMultiply(Vector3 *self, float Matrix[3][3]){
         float aMag = a.Magnitude;
         a.Normalise();
         b = new PointF((int)(b.X/aMag), (int)(b.Y/aMag));
-        return new Vector3(a.X/a.Z*b.X, a.Y/a.Z*b.Y, 0);
+        return new Vector3((a.X/a.Z)*b.X, (a.Y/a.Z)*b.Y, 0);
     }
     public static Vector3 operator *(float b, Vector3 a){
         a.X *= b;

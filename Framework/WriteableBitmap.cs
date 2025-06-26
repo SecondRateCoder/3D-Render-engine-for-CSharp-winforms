@@ -42,6 +42,7 @@ class WriteableBitmap{
 		
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    public void Set(Color c, Point p){Set(c.A, c.R, c.G, c.B, p.X, p.Y);}
     public void Set(byte a, byte r, byte g, byte b, float x, float y, int Transparency = 0){
         bool function((byte a, byte r, byte g, byte b, float x, float y) args){
             lock(this){Rectangle rect = new Rectangle(Point.Empty, new Size(bmp.Width, bmp.Height));

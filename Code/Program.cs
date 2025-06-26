@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Reflection.Metadata;
 static class Entry{
     /// <summary>The maximum amount of time that <see cref="Loop"/> is allowed to delay itself by, 
     /// this is needed because <see cref="Loop"/> regulates itself by delaying itself between each Loop.</summary>
@@ -34,14 +35,10 @@ static class Entry{
     public static Action Start;
     public static Action LoadUp;
     public static Form1 f;
+    static long PeakMemUsage;
+    static long ActualMemUsage{get{return GC.GetTotalMemory(true);}}
     /// <summary>The delay that should be between each <see cref="HandleMemUsage"/> call.</summary>
     static int MemCheckRate;
-    /// <summary>An estimation of how much Memory has been assigned to <see cref ="Loop"/>.</summary>
-    public static long TotalMemUsage;
-    /// <summary>An estimation of how many bytes have been used by <see cref ="Loop"/> overall.</summary>
-    public static long PeakMemUsage;
-    /// <summary>An estimation of the number of bytes used by <see cref ="Loop"/> at the moment.</summary>
-    static long ActualMemUsage;
     /// <summary>The estimation of the Stack depth.</summary>
     public static int stackDepth;
     public static int selfDelay{get; private set;}
@@ -75,18 +72,11 @@ static class Entry{
         Entry.uiContext = SynchronizationContext.Current;
 		ExternalControl.Initialise();
         TUpdate += (sender, e) => {
-            Entry.ActualMemUsage = cProc.WorkingSet64;
             Entry.PeakMemUsage = cProc.PeakWorkingSet64;
-            Entry.TotalMemUsage = GC.GetTotalMemory(false);
             MemCheckRate++;
             if(MemCheckRate >= 10){
-                GetStackDepth();
             }
         };
-        Start += (() => {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive);
-            GetStackDepth();
-        });
         //!Test later: TestKey();
         gameObj.Create(Vector3.Zero, Vector3.Zero, Polygon.Mesh(5, 5, 0, 4), [(typeof(Texturer), new Texturer(StorageManager.ApplicationPath+@"Cache\Images\GrassBlock.png"))], "Cube");
         _ = Loop();
@@ -101,38 +91,30 @@ static class Entry{
             while(!Entry.Cts.IsCancellationRequested){
                 //Self regulate this function so that it does'nt take up at most 60% of Mem usage.
                 HandleMemUsage();
-                BuildSquare();
-                if (Entry.Buffer != null && Runs >= selfDelay / 10) { UpdateUI(() => f.Invalidate()); }
+                BuildWorld();
+                if (Entry.Buffer != null && Runs >= selfDelay / 30) { UpdateUI(); }
                 await Task.Delay(selfDelay, Entry.Cts.Token);
             	Runs+=.1f;
             }
             if(Update != null){Entry.Update();}
         });
     }
+    static void PushBuffer(){
+        Graphics g =f.CreateGraphics();
+        g.Clear(Color.AntiqueWhite);
+        g.DrawImage((Bitmap)Buffer, 0, 0);
+    }
+    static void UpdateUI() { uiContext?.Post(_ => PushBuffer(), null); }
     static void HandleMemUsage(){
-        if(ActualMemUsage > ((TotalMemUsage + PeakMemUsage)/2) * Entry._uLimit){selfDelay = Math.Min(selfDelay + 10, Entry.MaxDelay);}
-        if(ActualMemUsage > ((TotalMemUsage + PeakMemUsage)/2) * Entry._gLimit){selfDelay = Math.Min(selfDelay + 50, Entry.MaxDelay);}
-        if(ActualMemUsage < (TotalMemUsage + PeakMemUsage)/2* .5 && selfDelay > 10){selfDelay -= 10;}
+
+        if(ActualMemUsage > ((PeakMemUsage)/2) * Entry._uLimit){selfDelay = Math.Min(selfDelay + 10, Entry.MaxDelay);}
+        if(ActualMemUsage > ((PeakMemUsage)/2) * Entry._gLimit){selfDelay = Math.Min(selfDelay + 50, Entry.MaxDelay);}
+        if(ActualMemUsage < (PeakMemUsage)/2* .5 && selfDelay > 10){selfDelay -= 10;}
         if(stackDepth > 1000){
             selfDelay += 200;
         }else{
             selfDelay -= 10;
         }
-    }
-    static void GetStackDepth(){
-        try{
-            while(true){
-                AllocateStackSpace(stackDepth);
-                stackDepth++;
-            }
-        }catch(InsufficientExecutionStackException){
-            return;
-        }
-    }
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    static void AllocateStackSpace(int depth){
-        Span<byte> stackSpace = stackalloc byte[255];
-        stackSpace[0] = (byte)depth;
     }
     // static void TestKey(){
     //     EncryptionKey k = new([20, 3, 45, 6, 6], 
@@ -141,25 +123,24 @@ static class Entry{
     //     int[] array = EncryptionKey.DecodeKey(k.key_, [(byte)20, (byte)25, (byte)10, (byte)15, (byte)0, (byte)5, (byte)20, (byte)25, (byte)10, (byte)15], 2);
     //     MessageBox.Show($"{CustomFunctions.ToString(array)}");
     // }
-    static void UpdateUI(Action action){uiContext?.Post(_ => action(), null);}
     //Paint the enviroment.
     static void BuildSquare(){
-        try{f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.Cts.IsCancellationRequested}";}
-        catch(NullReferenceException){f.Name = $"TheWindowText, fps: {0}";}
+        try { f.Name = $"TheWindowText, fps: {ExternalControl.fps}, Cancel? : {Entry.Cts.IsCancellationRequested}"; }
+        catch (NullReferenceException) { f.Name = $"TheWindowText, fps: {0}"; }
         int formHeight;
         int formWidth;
         formWidth = f.Width;
         formHeight = f.Height;
         (Point p, Color color)[] values = {
-                (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
-                (new Point((int)(0.75 * formWidth), (int)(0.1 * formHeight)), Color.Black), 
-                (new Point((int)(0.75 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
-                (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black), 
+                (new Point((int)(0.25 * formWidth), (int)(0.1 * formHeight)), Color.Black),
+                (new Point((int)(0.75 * formWidth), (int)(0.1 * formHeight)), Color.Black),
+                (new Point((int)(0.75 * formWidth), (int)(0.9 * formHeight)), Color.Black),
+                (new Point((int)(0.25 * formWidth), (int)(0.9 * formHeight)), Color.Black),
             };
         Point[] Buffer = [.. ViewPort.DrawBLine(values[0].p, values[1].p)];
         Span<Point> Buffer_ = new(Buffer);
-        for(int cc =2; cc < values.Length-1; cc++){
-            if(!int.IsEvenInteger(Buffer_.Length)){Buffer_[Buffer_.Length-1] = Point.Empty;}
+        for (int cc = 2; cc < values.Length - 1; cc++){
+            if (!int.IsEvenInteger(Buffer_.Length)) { Buffer_[Buffer_.Length - 1] = Point.Empty; }
             Entry.Buffer.Set(new TextureDatabase(Buffer, Color.White), 255);
         }
     }
@@ -195,7 +176,7 @@ partial class Form1 : Form{
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public Form1(){
         InitializeComponent();
-        this.EnterFullScreenMode();
+        // this.EnterFullScreenMode();
     }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     override protected void OnLoad(EventArgs e){
@@ -278,8 +259,7 @@ partial class Form1 : Form{
         this.isFullScreen = true;
     }
 
-    public void LeaveFullScreenMode()
-    {
+    public void LeaveFullScreenMode(){
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.WindowState = FormWindowState.Normal;
         this.isFullScreen = false;

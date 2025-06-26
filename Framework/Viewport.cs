@@ -141,49 +141,107 @@ static class ViewPort{
     public static WriteableBitmap Convert(int width, int height){
         WriteableBitmap bmp = new(width, height);
         foreach(gameObj gO in World.world){
-            Vector3[] PolygonOrigins = new Vector3[gO.GetComponent<Mesh>().Count];
-            for(int cc =0; cc < PolygonOrigins.Length;cc++){PolygonOrigins[cc] = gO.GetComponent<Mesh>()[cc].origin;}
-            bmp.Set(Convert_(gO.Texture(TextureStyles.Styles.StretchToFit), PolygonOrigins), (int)(255/2));
+            // Vector3[] PolygonOrigins = new Vector3[gO.GetComponent<Mesh>().Count];
+            // for(int cc =0; cc < PolygonOrigins.Length;cc++){PolygonOrigins[cc] = gO.GetComponent<Mesh>()[cc].origin;}
+            // //Texture Style pre-applied.
+            // bmp.Set(Convert_(gO.Texture(TextureStyles.Styles.StretchToFit), PolygonOrigins, new Size(width, height)), (int)(255/2));
+            if(!gO.HasComponent<Mesh>()){continue;}
+            foreach(Polygon p in gO.GetComponent<Mesh>()){
+                Polygon p_ = Multiply(p);
+                p_.A.Normalise();
+                p_.A *= new PointF(width, height);
+                bmp.Set(Color.Black, (Point)p_.A);
+                p_.B.Normalise();
+                p_.B *= new PointF(width, height);
+                bmp.Set(Color.Black, (Point)p_.B);
+                p_.C.Normalise();
+                p_.C *= new PointF(width, height);
+                bmp.Set(Color.Black, (Point)p_.C);
+            }
         }
         return bmp;
     }
-    static WriteableBitmap Convert_(TextureDatabase tD, Vector3[] Origins){
-		WriteableBitmap bmp = new(Entry.f.Width, Entry.f.Height);
+    static WriteableBitmap Convert_(TextureDatabase tD, Vector3[] Origins, Size s){
+		WriteableBitmap bmp = new(s.Width, s.Height);
 		if(tD.Count % Origins.Length != 0 && tD.Count > Origins.Length){throw new ArgumentOutOfRangeException();}
-        for(int cc = 0; cc < tD.Count;cc++){
-			float increment = Origins.Length/tD.Count;
-			TextureDatabase buffer = tD.Slice_PerSectionRanges(cc);
-			for(int cc_ = 0; cc_ < buffer.Count; cc_++){
-                buffer.AddRangeAt(cc_, (IEnumerable<TextureDatabase.TexturePoint>)DrawBLine(buffer[cc_], buffer[cc_+1]));
-				buffer[cc_] = new TextureDatabase.TexturePoint(
-                new PointF(buffer[cc].p.X * ((PointF)Origins[cc]).X, buffer[cc].p.Y * ((PointF)Origins[cc]).Y), 
-                buffer[cc_].c);
-			}
-            tD.AssignRangeAt(cc, buffer.GetIEnumerable(), false);
-		}
-		bmp.Set(tD);
+        int cc =0;
+        int Length = Origins.Length;
+        while(cc < Length){
+            bmp.Set(tD[cc].c.A, tD[cc].c.R, tD[cc].c.G, tD[cc].c.B, tD[cc].p.X, tD[cc].p.Y, 255);
+            ++cc;
+        }
+        // for(int cc = 0; cc < tD.Count;cc++){
+        // 	float increment = Origins.Length/tD.Count;
+        // 	TextureDatabase buffer = tD.Slice_PerSectionRanges(cc);
+        // 	for(int cc_ = 0; cc_ < buffer.Count; cc_++){
+        //         buffer.AddRangeAt(cc_, (IEnumerable<TextureDatabase.TexturePoint>)DrawBLine(buffer[cc_], buffer[cc_+1]));
+        // 		buffer[cc_] = new TextureDatabase.TexturePoint(
+        //         new PointF(buffer[cc].p.X * ((PointF)Origins[cc]).X, buffer[cc].p.Y * ((PointF)Origins[cc]).Y), 
+        //         buffer[cc_].c);
+        // 	}
+        //     tD.AssignRangeAt(cc, buffer.GetIEnumerable(), false);
+        // }
+        // bmp.Set(tD);
         return bmp;
     }
+    /*
+    void DrawTexturedTriangle(
+    Bitmap target, 
+    Vector3 v0, Vector3 v1, Vector3 v2, 
+    PointF uv0, PointF uv1, PointF uv2, 
+    Bitmap texture)
+{
+    // Convert 3D to 2D screen points
+    PointF p0 = new PointF(v0.X, v0.Y);
+    PointF p1 = new PointF(v1.X, v1.Y);
+    PointF p2 = new PointF(v2.X, v2.Y);
 
+    // Find bounding box for the triangle
+    int minX = (int)MathF.Min(p0.X, MathF.Min(p1.X, p2.X));
+    int maxX = (int)MathF.Max(p0.X, MathF.Max(p1.X, p2.X));
+    int minY = (int)MathF.Min(p0.Y, MathF.Min(p1.Y, p2.Y));
+    int maxY = (int)MathF.Max(p0.Y, MathF.Max(p1.Y, p2.Y));
+
+    for (int y = minY; y <= maxY; y++)
+    {
+        for (int x = minX; x <= maxX; x++)
+        {
+            // Barycentric coordinates
+            float[] bary = ComputeBarycentric(p0, p1, p2, new PointF(x, y));
+            float u = bary[0] * uv0.X + bary[1] * uv1.X + bary[2] * uv2.X;
+            float v = bary[0] * uv0.Y + bary[1] * uv1.Y + bary[2] * uv2.Y;
+
+            // Check if the point is inside the triangle
+            if (bary[0] >= 0 && bary[1] >= 0 && bary[2] >= 0)
+            {
+                // Sample the texture
+                int texX = (int)(u * (texture.Width - 1));
+                int texY = (int)(v * (texture.Height - 1));
+                Color color = texture.GetPixel(texX, texY);
+
+                // Set the pixel on the target bitmap
+                target.SetPixel(x, y, color);
+            }
+        }
+    }
+}
+
+// Helper: Compute barycentric coordinates
+float[] ComputeBarycentric(PointF a, PointF b, PointF c, PointF p)
+{
+    float det = (b.Y - c.Y) * (a.X - c.X) + (c.X - b.X) * (a.Y - c.Y);
+    float l0 = ((b.Y - c.Y) * (p.X - c.X) + (c.X - b.X) * (p.Y - c.Y)) / det;
+    float l1 = ((c.Y - a.Y) * (p.X - c.X) + (a.X - c.X) * (p.Y - c.Y)) / det;
+    float l2 = 1.0f - l0 - l1;
+    return new float[] { l0, l1, l2 };
+}
+    */
 
     /// <summary>
     /// Will return a polygon whose vector co-ordinaates can be directly converted to points.
     /// </summary>
     /// <returns>A polygon whose vector co-ordinaates can be directly converted to points.</returns>
     public static Polygon Multiply(Polygon polygon){
-        return new Polygon(Multiply(polygon.A), Multiply(polygon.B), Multiply(polygon.C));
-    }
-    static Vector3 Multiply(Vector3 v){
-        v = new Vector3(
-            (PPMatrix[0, 0]*World.cams[World.camIndex].far/4 * v.X/World.cams[World.camIndex].far)+(PPMatrix[1, 0]*World.cams[World.camIndex].far/4 * v.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 0]*World.cams[World.camIndex].far/4 * v.Z/World.cams[World.camIndex].far)+PPMatrix[3, 0],
-            (PPMatrix[0, 1]*World.cams[World.camIndex].far/4 * v.X/World.cams[World.camIndex].far)+(PPMatrix[1, 1]*World.cams[World.camIndex].far/4 * v.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 1]*World.cams[World.camIndex].far/4 * v.Z/World.cams[World.camIndex].far)+PPMatrix[3, 1],
-            (PPMatrix[0, 2]*World.cams[World.camIndex].far/4 * v.X/World.cams[World.camIndex].far)+(PPMatrix[1, 2]*World.cams[World.camIndex].far/4 * v.Y/World.cams[World.camIndex].far)+(PPMatrix[2, 2]*World.cams[World.camIndex].far/4 * v.Z/World.cams[World.camIndex].far)+PPMatrix[3, 2]
-            );
-        float wC = PPMatrix[0, 3] * v.X + PPMatrix[1, 3] * v.Y + PPMatrix[2, 3] * v.Z + PPMatrix[3, 3];
-        v /= wC;
-        //Normalise then multiply by the form dimensions to scale it.
-        v.Normalise();
-        v= new Vector3(v.X/v.Z * Entry.f.Bounds.Width, v.Y/v.Z  * Entry.f.Bounds.Height, 0);
-        return v;
+        return new Polygon(Vector3.MatrixMultiply(polygon.A, PPMatrix), Vector3.MatrixMultiply(polygon.B, PPMatrix), Vector3.MatrixMultiply(polygon.C, PPMatrix));
     }
 }
