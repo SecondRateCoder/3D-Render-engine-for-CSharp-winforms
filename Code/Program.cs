@@ -122,8 +122,8 @@ static class Entry{
     static void GetStackDepth(){
         try{
             while(true){
-                stackDepth++;
                 AllocateStackSpace(stackDepth);
+                stackDepth++;
             }
         }catch(InsufficientExecutionStackException){
             return;
@@ -227,13 +227,13 @@ partial class Form1 : Form{
         base.OnPaint(e);
         if (Entry.Buffer != null) { e.Graphics.DrawImage((Bitmap)Entry.Buffer, Point.Empty); }
     }
-    public (DateTime Start, InputController.Keys key)[] KeyBuffer { get; private set; } = new (DateTime Start, InputController.Keys key)[20];
+    public (DateTime Start, Keys key)[] KeyBuffer { get; private set; } = new (DateTime Start, Keys key)[20];
     int Position = 0;
     void AddKeyValue(Keys key){
         lock (KeyBuffer){
             Position++;
             if (Position >= 20) {Position = 0; }
-            KeyBuffer[Position] = (DateTime.Now, InputController.ToInputCotrollerKeys(key));
+            KeyBuffer[Position] = (DateTime.Now, key);
         }
     }
     protected override void OnKeyDown(KeyEventArgs e){
